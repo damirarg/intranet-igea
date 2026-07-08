@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>IGEA - Intranet App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        * { -webkit-tap-highlight-color: transparent; }
+        
+        body {
+            position: relative;
+            background-color: #f8fafc;
+            display: flex;
+            flex-direction: row;
+            height: 100vh;
+            height: 100dvh;
+            overflow: hidden;
+        }
+
+        aside, main { position: relative; z-index: 1; }
+
+        .app-background {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            overflow: hidden;
+            background:
+                radial-gradient(circle at 20% 20%, rgba(56, 189, 248, 0.18), transparent 28%),
+                radial-gradient(circle at 80% 16%, rgba(16, 185, 129, 0.16), transparent 24%),
+                linear-gradient(135deg, #f7fbff 0%, #eef8ff 45%, #f8fff9 100%);
+        }
+
+        .app-background::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background-image: linear-gradient(rgba(14, 116, 144, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(14, 116, 144, 0.05) 1px, transparent 1px);
+            background-size: 40px 40px;
+            opacity: 0.35;
+            animation: driftGrid 18s linear infinite;
+        }
+
+        .bg-orb {
+            position: absolute;
+            border-radius: 9999px;
+            filter: blur(28px);
+            opacity: 0.7;
+            animation: floatBlob 14s ease-in-out infinite alternate;
+        }
+
+        .orb-a {
+            width: 24rem;
+            height: 24rem;
+            background: rgba(96, 165, 250, 0.22);
+            top: -5rem;
+            left: -4rem;
+        }
+
+        .orb-b {
+            width: 20rem;
+            height: 20rem;
+            background: rgba(34, 197, 94, 0.18);
+            bottom: -2rem;
+            right: -3rem;
+            animation-duration: 17s;
+        }
+
+        .orb-c {
+            width: 15rem;
+            height: 15rem;
+            background: rgba(251, 191, 36, 0.16);
+            top: 36%;
+            right: 10%;
+            animation-duration: 12s;
+        }
+
+        #cursor-trail { position: fixed; inset: 0; pointer-events: none; z-index: 50; overflow: hidden; }
+
+        .cursor-glow {
+            position: absolute;
+            width: 22px;
+            height: 22px;
+            border-radius: 9999px;
+            border: 1px solid rgba(59, 130, 246, 0.22);
+            background: radial-gradient(circle, rgba(96, 165, 250, 0.22) 0%, rgba(96, 165, 250, 0.06) 45%, transparent 70%);
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 18px rgba(96, 165, 250, 0.12);
+            mix-blend-mode: screen;
+        }
+
+        @keyframes floatBlob {
+            from { transform: translate3d(0, 0, 0) scale(1); }
+            to { transform: translate3d(20px, -30px, 0) scale(1.08); }
+        }
+
+        @keyframes driftGrid {
+            from { transform: translateY(0); }
+            to { transform: translateY(24px); }
+        }
+
+        @keyframes pulseStroke {
+            0%, 100% { stroke-dasharray: 0 1000; opacity: 0.35; }
+            50% { stroke-dasharray: 180 120; opacity: 0.7; }
+        }
+
+        @keyframes rotateDNA {
+            from { transform: rotateZ(0deg); }
+            to { transform: rotateZ(360deg); }
+        }
+
+        @keyframes softGlow {
+            0%, 100% { box-shadow: 0 0 20px rgba(96, 165, 250, 0.1); }
+            50% { box-shadow: 0 0 30px rgba(96, 165, 250, 0.2); }
+        }
+
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        .inicio-background {
+            position: relative;
+            background-image: url('data:image/jpeg;base64,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');
+            background-size: cover;
+            background-position: center;
+        }
+
+        .inicio-background::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.65);
+            -webkit-backdrop-filter: blur(3px);
+            backdrop-filter: blur(3px);
+        }
+
+        .dna-animation {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, rgba(96, 165, 250, 0.3), rgba(16, 185, 129, 0.3));
+            animation: rotateDNA 8s linear infinite;
+            flex-shrink: 0;
+        }
+
+        aside {
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            width: 16rem;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1rem;
+        }
+
+        .logo-container img {
+            max-height: 60px;
+            width: auto;
+            object-fit: contain;
+            filter: brightness(1.1);
+        }
+
+        .content-card {
+            position: relative;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(240, 249, 255, 0.9) 100%);
+            border: 1px solid rgba(200, 220, 255, 0.3);
+            animation: softGlow 3s ease-in-out infinite;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .content-card:hover {
+            transform: translateY(-4px) scale(1.02);
+            box-shadow: 0 8px 24px rgba(59, 130, 246, 0.2);
+            border-color: rgba(59, 130, 246, 0.5);
+        }
+
+        main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        #contenido-seccion {
+            flex: 1;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+            padding: 2rem;
+        }
+
+        input, select, textarea { font-size: 16px; }
+
+        /* MEDIA QUERIES */
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column;
+            }
+
+            aside {
+                width: 100%;
+                flex-direction: row;
+                padding: 12px;
+                gap: 8px;
+                align-items: center;
+                min-height: auto;
+                max-height: 80px;
+            }
+
+            .logo-container {
+                margin-bottom: 0;
+                flex-shrink: 0;
+            }
+
+            .logo-container img {
+                max-height: 45px;
+            }
+
+            .sidebar-header {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                flex-shrink: 0;
+            }
+
+            .sidebar-header h1 {
+                font-size: 1rem;
+                margin: 0;
+                white-space: nowrap;
+            }
+
+            .sidebar-header p {
+                display: none;
+            }
+
+            #menu-navegacion {
+                display: flex;
+                flex-direction: row;
+                gap: 6px;
+                padding: 0;
+                flex: 1;
+            }
+
+            #menu-navegacion button {
+                padding: 8px 12px;
+                font-size: 0.8rem;
+                flex: 1;
+                white-space: nowrap;
+            }
+
+            .sidebar-footer {
+                display: none;
+            }
+
+            .dna-animation {
+                display: none;
+            }
+
+            main {
+                width: 100%;
+                height: auto;
+                overflow-y: auto;
+            }
+
+            #contenido-seccion {
+                padding: 16px;
+                max-width: none;
+            }
+
+            .inicio-background {
+                padding: 12px;
+            }
+
+            header {
+                flex-direction: column;
+                gap: 8px;
+                padding: 12px;
+            }
+
+            #titulo-seccion {
+                font-size: 1.25rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            aside {
+                max-height: 90px;
+                gap: 4px;
+                padding: 8px;
+            }
+
+            .sidebar-header h1 {
+                font-size: 0.9rem;
+            }
+
+            .logo-container img {
+                max-height: 40px;
+            }
+
+            #menu-navegacion button {
+                padding: 6px 8px;
+                font-size: 0.7rem;
+            }
+
+            #contenido-seccion {
+                padding: 12px;
+            }
+
+            #titulo-seccion {
+                font-size: 1rem;
+            }
+
+            header {
+                padding: 8px;
+                gap: 6px;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans">
+    <div class="app-background" aria-hidden="true">
+        <div class="bg-orb orb-a"></div>
+        <div class="bg-orb orb-b"></div>
+        <div class="bg-orb orb-c"></div>
+    </div>
+    <div id="cursor-trail" aria-hidden="true"></div>
+
+    <!-- SIDEBAR -->
+    <aside class="bg-blue-900/95 text-white shadow-xl border-r border-white/10" style="-webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);">
+        <div class="sidebar-header flex items-center justify-center gap-3 p-4">
+            <div class="logo-container">
+                <img src="data:image/jpeg;base64,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 [truncated - base64 data too long]" alt="Logo">
+            </div>
+            <div>
+                <h1 class="font-bold text-lg">IGEA</h1>
+                <p class="text-xs text-blue-300">Portal</p>
+            </div>
+        </div>
+
+        <nav class="flex-1 px-2 py-2 space-y-1" id="menu-navegacion">
+            <button onclick="cambiarVista('inicio')" class="w-full px-3 py-2 text-left bg-blue-800 rounded transition hover:bg-blue-700 text-sm font-medium">🏠 Inicio</button>
+            <button onclick="cambiarVista('dpp')" class="w-full px-3 py-2 text-left hover:bg-blue-800 rounded transition text-sm font-medium">👥 DPP</button>
+            <button onclick="cambiarVista('procedimientos')" class="w-full px-3 py-2 text-left hover:bg-blue-800 rounded transition text-sm font-medium">📋 Procedimientos</button>
+        </nav>
+
+        <div class="px-4 py-2 border-t border-blue-800/50 text-xs text-center text-blue-300">
+            v2.0
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="flex-1 flex flex-col">
+        <header class="bg-white/80 backdrop-blur border-b px-4 py-3 sticky top-0 z-40">
+            <h2 id="titulo-seccion" class="text-2xl font-bold text-blue-900">Inicio</h2>
+        </header>
+
+        <div id="contenido-seccion" class="flex-1 overflow-y-auto p-4">
+            <!-- Contenido dinámico -->
+        </div>
+    </main>
+
+    <script>
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+
+        // Datos
+        const archivosDrive = {
+            dpp: [
+                { titulo: "Coordinador Operativo, Administrativo y de Finanzas", url: "https://docs.google.com/document/d/e/2PACX-1vQfMGqJT4lLrHl7tJ8j-zQ1VPpDT0RvSZPhGvflWj-V7bLO_KBGDr4WKq9DwV-KJCGa0FVVHUpHvEgv/pub?embedded=true" },
+                { titulo: "Administrativa de Admisión y Atención al Público", url: "https://docs.google.com/document/d/e/2PACX-1vSdJNfnJhkFrRyLPXAUQv1dNZPP91GhXw1fFhBbGUV5Q3KdUvL0bF6KLxcqOgKILfC3Wh2VQkD5tHH8/pub?embedded=true" },
+                { titulo: "Operadora de Atención Digital", url: "https://docs.google.com/document/d/e/2PACX-1vTyM5d_7KQyYP5c_1Jy5WvO7mRn0bqNH7zK8ZqQqJP5CvN8vL2N5xK9Q/pub?embedded=true" },
+                { titulo: "Administrativa de Enlace Institucional", url: "https://docs.google.com/document/d/e/2PACX-1vYqRzK1N8R3S4V2_7W9X0YZ1A2B3C4D5E6F7G/pub?embedded=true" },
+                { titulo: "Responsable de Tesorería y Pagos", url: "https://docs.google.com/document/d/e/2PACX-1vA1B2C3D4E5F6G7H8I9J0K1L2M3N4O5P6Q7R/pub?embedded=true" }
+            ],
+            procedimientos: [
+                { titulo: "Gestión de Vacaciones y Licencias Especiales", url: "https://docs.google.com/document/d/e/2PACX-1vQqJmN5K6L7M8N9O0P1Q2R3S4T5U6V7W8X/pub?embedded=true" }
+            ]
+        };
+
+        // Cursor trail (solo desktop)
+        if (!isMobile) {
+            const trailContainer = document.getElementById('cursor-trail');
+            document.addEventListener('mousemove', (e) => {
+                const glow = document.createElement('div');
+                glow.className = 'cursor-glow';
+                glow.style.left = e.clientX + 'px';
+                glow.style.top = e.clientY + 'px';
+                trailContainer.appendChild(glow);
+                setTimeout(() => glow.remove(), 600);
+            });
+        }
+
+        function cambiarVista(vista) {
+            const contenido = document.getElementById('contenido-seccion');
+            const titulo = document.getElementById('titulo-seccion');
+
+            document.querySelectorAll('#menu-navegacion button').forEach(btn => {
+                btn.classList.remove('bg-blue-800');
+                btn.classList.add('hover:bg-blue-800');
+            });
+
+            if (vista === 'inicio') {
+                titulo.textContent = 'Inicio';
+                event.target.classList.add('bg-blue-800');
+                contenido.innerHTML = `
+                    <div class="inicio-background rounded-lg p-6 md:p-8">
+                        <div class="relative z-10">
+                            <h1 class="text-3xl md:text-4xl font-bold text-blue-900 mb-4">Bienvenido a IGEA</h1>
+                            <p class="text-lg md:text-xl text-gray-700 mb-6">Portal de gestión interna de la institución</p>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="content-card p-4 rounded-lg">
+                                    <h3 class="font-bold text-blue-900 mb-2">📊 DPP</h3>
+                                    <p class="text-sm text-gray-600">Descripciones de Perfil y Puestos</p>
+                                </div>
+                                <div class="content-card p-4 rounded-lg">
+                                    <h3 class="font-bold text-blue-900 mb-2">📋 Procedimientos</h3>
+                                    <p class="text-sm text-gray-600">Gestión de procesos organizacionales</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else if (vista === 'dpp') {
+                titulo.textContent = 'Descripciones de Perfil y Puestos';
+                event.target.classList.add('bg-blue-800');
+                contenido.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-2 gap-4">${archivosDrive.dpp.map((doc, i) => `
+                    <div class="content-card p-4 rounded-lg cursor-pointer" onclick="abrirDocumento('${doc.titulo}', '${doc.url}')">
+                        <h3 class="font-bold text-blue-900 mb-2">📄 ${doc.titulo}</h3>
+                    </div>
+                `).join('')}</div>`;
+            } else if (vista === 'procedimientos') {
+                titulo.textContent = 'Procedimientos';
+                event.target.classList.add('bg-blue-800');
+                contenido.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-2 gap-4">${archivosDrive.procedimientos.map((doc, i) => `
+                    <div class="content-card p-4 rounded-lg cursor-pointer" onclick="abrirDocumento('${doc.titulo}', '${doc.url}')">
+                        <h3 class="font-bold text-blue-900 mb-2">📋 ${doc.titulo}</h3>
+                    </div>
+                `).join('')}</div>`;
+            }
+        }
+
+        function abrirDocumento(titulo, url) {
+            const contenido = document.getElementById('contenido-seccion');
+            contenido.innerHTML = `
+                <div class="h-full flex flex-col bg-white rounded-lg overflow-hidden shadow-lg">
+                    <div class="bg-blue-900 text-white p-4 flex items-center justify-between sticky top-0 z-50">
+                        <h3 class="font-bold text-lg truncate">${titulo}</h3>
+                        <button onclick="cambiarVista('${titulo.includes('Vacacion') ? 'procedimientos' : 'dpp'}')" class="px-3 py-1 bg-blue-700 rounded hover:bg-blue-600 text-sm">← Atrás</button>
+                    </div>
+                    <iframe src="${url}" class="flex-1 w-full border-none" title="${titulo}"></iframe>
+                </div>
+            `;
+        }
+
+        // Mostrar inicio al cargar
+        cambiarVista('inicio');
+    </script>
+</body>
+</html>
