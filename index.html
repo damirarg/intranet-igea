@@ -184,7 +184,6 @@
             <p class="text-sm text-blue-300 mt-1">Portal de Gestión</p>
         </div>
         <nav class="flex-1 px-4 space-y-2" id="menu-navegacion">
-            <!-- Botones de navegación. Les agregué un ID para manejar el estado "activo" -->
             <button id="btn-inicio" onclick="cambiarVista('inicio')"
                 class="w-full flex items-center p-3 text-left bg-blue-800 rounded-lg transition shadow-inner">
                 <span>🏠 Inicio</span>
@@ -213,7 +212,6 @@
         <header
             class="bg-white/80 backdrop-blur-sm shadow-sm p-4 sticky top-0 z-10 flex justify-between items-center border-b border-gray-200/50">
             <div class="flex items-center gap-4">
-                <!-- Botón de Volver (Oculto por defecto) -->
                 <button id="btn-volver" onclick="volverAtras()"
                     class="hidden text-blue-600 hover:text-blue-800 font-medium flex items-center transition bg-blue-50 px-3 py-1.5 rounded-md hover:bg-blue-100">
                     <span class="mr-1">←</span> Volver
@@ -254,142 +252,21 @@
         });
 
         // ==========================================
-        // BASE DE DATOS DE ENLACES (DRIVE)
+        // BASE DE DATOS DE ENLACES (DRIVE) - DPP y Procedimientos
         // ==========================================
         const archivosDrive = {
             dpp: [
-                {
-                    nombre: "Coordinador Operativo, Administrativo y de Finanzas",
-                    area: "Administración y Finanzas",
-                    url: "https://docs.google.com/document/d/1IaOfr1qIjGI6kKGbioG84X5zZU9oOaoF/preview"
-                },
-                {
-                    nombre: "Administrativa de Admisión y Atención al Público",
-                    area: "Admisión y Atención al Público",
-                    url: "https://docs.google.com/document/d/1RiU2YNFAs7DHN_Ee9oO-YDo1ppAAXEqQ/preview"
-                },
-                {
-                    nombre: "Operadora de Atención Digital",
-                    area: "Atención Digital",
-                    url: "https://docs.google.com/document/d/1GWxd8yy_GNYTy2f_nVKRkeO1ZUTQV3yw/preview"
-                },
-                {
-                    nombre: "Administrativa de Enlace Institucional",
-                    area: "Enlace Institucional",
-                    url: "https://docs.google.com/document/d/1kFfqGuGzD6b7bhr6UnMMTIZjJQ0Y-J_i/preview"
-                },
-                {
-                    nombre: "Responsable de Tesorería y Pagos",
-                    area: "Tesorería y Pagos",
-                    url: "https://docs.google.com/document/d/1JVqhA8iW0_aypK80JmGiVjbJBuSAOvQe/preview"
-                }
+                { nombre: "Coordinador Operativo, Administrativo y de Finanzas", area: "Administración y Finanzas", url: "https://docs.google.com/document/d/1IaOfr1qIjGI6kKGbioG84X5zZU9oOaoF/preview" },
+                { nombre: "Administrativa de Admisión y Atención al Público", area: "Admisión y Atención al Público", url: "https://docs.google.com/document/d/1RiU2YNFAs7DHN_Ee9oO-YDo1ppAAXEqQ/preview" },
+                { nombre: "Operadora de Atención Digital", area: "Atención Digital", url: "https://docs.google.com/document/d/1GWxd8yy_GNYTy2f_nVKRkeO1ZUTQV3yw/preview" },
+                { nombre: "Administrativa de Enlace Institucional", area: "Enlace Institucional", url: "https://docs.google.com/document/d/1kFfqGuGzD6b7bhr6UnMMTIZjJQ0Y-J_i/preview" },
+                { nombre: "Responsable de Tesorería y Pagos", area: "Tesorería y Pagos", url: "https://docs.google.com/document/d/1JVqhA8iW0_aypK80JmGiVjbJBuSAOvQe/preview" }
             ],
             procedimientos: [
-                {
-                    nombre: "Gestión de Vacaciones y Licencias Especiales",
-                    fecha: "07/07/2026",
-                    url: "https://docs.google.com/document/d/1wYzmFrBZG0qQ3C9_HbHoHcUJDIwE-VcP/preview"
-                },
-                {
-                    nombre: "Guardia Administrativa y Gestión Remota",
-                    fecha: "20/07/2026",
-                    url: "https://docs.google.com/document/d/17_p1VdCKTV-EvsT4paMaSZw_jteOEJZ4/preview"
-                }
+                { nombre: "Gestión de Vacaciones y Licencias Especiales", fecha: "07/07/2026", url: "https://docs.google.com/document/d/1wYzmFrBZG0qQ3C9_HbHoHcUJDIwE-VcP/preview" },
+                { nombre: "Guardia Administrativa y Gestión Remota", fecha: "20/07/2026", url: "https://docs.google.com/document/d/17_p1VdCKTV-EvsT4paMaSZw_jteOEJZ4/preview" }
             ]
         };
-
-        /// ==========================================
-        // BASE DE DATOS DE CARPETAS DE RECIBOS
-        // ==========================================
-        const baseRecibos = [
-            { 
-                nombre: "RODRIGUEZ Damián", 
-                dni: "28946471", 
-                urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1rm4KzCg1kzz2331RipWsxF_VHW22RUxc#list" 
-            },
-            { 
-                nombre: "BARCA Antonela", 
-                dni: "36328511", 
-                urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1d_XCX3rW4K-TrOuFl6RphGW59GGS75rp#list" 
-            },
-            { 
-                nombre: "CAVERO Yesica", 
-                dni: "29776330", 
-                urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1QLA7FF4m321WpWAg5n2NGGrb4bnAOePr#list" 
-            },
-            { 
-                nombre: "CEPEDA CANCLINI Agustina", 
-                dni: "40493935", 
-                urlCarpeta: "https://drive.google.com/embeddedfolderview?id=129eIyYKSF-oYcNHJGmMy5yBJkV5cHAjN#list" 
-            },
-            { 
-                nombre: "CLAIR Violeta", 
-                dni: "32716538", 
-                urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1QYUmbR6ogwIVtBjpNvnogvIeI1i5STH_#list" 
-            },
-            { 
-                nombre: "CONTENTO Anahí", 
-                dni: "29920656", 
-                urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1LQtmaNxkYK8DEabnrSYYTZ1g5SQfCcnV#list" 
-            },
-            { 
-                nombre: "CORADEGHINI Sofía", 
-                dni: "37551799", 
-                urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1JVg0maB0r6n71qoDEYa0BkC11EOtNkvZ#list" 
-            },
-            { 
-                nombre: "GARCIA Nicolás", 
-                dni: "28794772", 
-                urlCarpeta: "https://drive.google.com/embeddedfolderview?id=14gQgK-5yforXLuO9tPwB5ZCOPRskwOFx#list" 
-            },
-            { 
-                nombre: "MICCIULLO Dolores", 
-                dni: "33525177", 
-                urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1JlMuDCQ8INZRwwBlKDQEruAjqogQKlMg#list" 
-            },
-            { 
-                nombre: "OLAVARRIA Florencia", 
-                dni: "39149390", 
-                urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1VkoQqntqztQQzCGt75bOYV0TNdvI5di6#list" 
-            },
-            { 
-                nombre: "PAEZ Silvia", 
-                dni: "25994888", 
-                urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1jswBKEfen8deRq8ZNZx0wrn1V9Mp2CSa#list" 
-            },
-            { 
-                nombre: "PEIÑEPIL Oriana", 
-                dni: "39483052", 
-                urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1IiyO99e_8glZyzM8i5TSp2OFgxMDNpjS#list" 
-            },
-            { 
-                nombre: "PEZZELLA Giuliana", 
-                dni: "39410760", 
-                urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1xOk46je2inGy2wMxlGBAZjFhti-UjdLz#list" 
-            },
-            { 
-                nombre: "RODRIGUEZ DE HOZ Pilar", 
-                dni: "26081622", 
-                urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1AOhpojCPqqjqtl9FhRHivCu7I17VHf80#list" 
-            },
-            { 
-                nombre: "RUIZ Brenda", 
-                dni: "36328306", 
-                urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1DF19U3pmCs9VLqd46iMeIq6502mNyzvY#list" 
-            },
-            { 
-                nombre: "SANTECCHIA Myrian", 
-                dni: "25215131", 
-                urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1BWyl3hQOXS4fJLEoLwV9m8nYiUgnfb6Z#list" 
-            },
-            { 
-                nombre: "VALERO Manuel", 
-                dni: "29776561", 
-                urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1DTnWeQVkxQ_mQ7EJEU0w4ygFnFlxjnO6#list" 
-            }
-        ];
-            // Podés seguir agregando al resto del equipo respetando este formato
-        
 
         // Variable para recordar en qué sección estábamos
         let seccionActual = 'inicio';
@@ -466,32 +343,32 @@
         }
 
         function renderizarRecibos() {
-            let opcionesSelect = baseRecibos.map((emp, index) => `
-                <option value="${index}">${emp.nombre}</option>
-            `).join('');
-
             return `
                 <div class="bg-white/90 backdrop-blur p-8 rounded-2xl shadow-lg border border-white/50 max-w-xl mx-auto">
-                    <h3 class="text-2xl font-bold text-blue-900 mb-2">Consulta de Recibos de Sueldo</h3>
-                    <p class="text-gray-600 mb-6 text-sm">Seleccioná tu nombre e ingresá tu DNI para acceder a tu documentación.</p>
+                    <h3 class="text-2xl font-bold text-blue-900 mb-2">Acceso a Legajo Digital</h3>
+                    <p class="text-gray-600 mb-6 text-sm">Ingresá tu correo electrónico corporativo y contraseña para ver tus recibos.</p>
                     
                     <div class="space-y-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Empleado</label>
-                            <select id="select-empleado" class="w-full bg-gray-50 border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
-                                <option value="">Seleccioná tu nombre...</option>
-                                ${opcionesSelect}
-                            </select>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Correo Electrónico</label>
+                            <input type="email" id="input-email" 
+                                class="w-full bg-gray-50 border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                placeholder="ejemplo@igea.com.ar">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Clave de Acceso (DNI)</label>
-                            <input type="password" id="input-dni" 
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
+                            <input type="password" id="input-password" 
                                 class="w-full bg-gray-50 border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                                placeholder="Ingresá tu DNI sin puntos">
+                                placeholder="Tu contraseña segura">
                         </div>
-                        <button onclick="validarYVerRecibo()"
-                            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg transition shadow-md">
-                            Acceder al Recibo
+                        
+                        <div class="flex items-center justify-between mt-2">
+                            <button onclick="window.recuperarClaveFirebase()" class="text-sm text-blue-600 hover:underline">¿Olvidaste tu contraseña?</button>
+                        </div>
+
+                        <button onclick="window.iniciarSesionFirebase()"
+                            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg transition shadow-md mt-4">
+                            Ingresar
                         </button>
                     </div>
                 </div>
@@ -537,25 +414,7 @@
             }
         }
 
-        function validarYVerRecibo() {
-            const indexSeleccionado = document.getElementById('select-empleado').value;
-            const dniIngresado = document.getElementById('input-dni').value;
-
-            if (indexSeleccionado === "") {
-                alert("Por favor, seleccioná un empleado.");
-                return;
-            }
-
-            const empleado = baseRecibos[indexSeleccionado];
-
-            if (empleado.dni === dniIngresado) {
-                abrirDocumento(`Legajo Digital - ${empleado.nombre}`, empleado.urlCarpeta);
-            } else {
-                alert("Clave incorrecta. Por favor, verificá tu DNI.");
-            }
-        }
-
-function abrirDocumento(titulo, url) {
+        function abrirDocumento(titulo, url) {
             const contenedorContenido = document.getElementById('contenido-seccion');
             const tituloSeccion = document.getElementById('titulo-seccion');
             const btnVolver = document.getElementById('btn-volver');
@@ -566,11 +425,11 @@ function abrirDocumento(titulo, url) {
 
             contenedorContenido.innerHTML = `
                 <div class="w-full h-[calc(100vh-12rem)] bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden relative">
-                    <!-- Agregamos el ID 'spinner-carga' para poder apagarlo luego -->
+                    <!-- ID para apagar la animación de carga -->
                     <div id="spinner-carga" class="absolute inset-0 flex items-center justify-center bg-gray-50 z-0">
                         <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
                     </div>
-                    <!-- Agregamos el evento onload para ocultar el spinner y bg-white para dar fondo sólido -->
+                    <!-- onload se encarga de ocultar el spinner cuando termina de cargar Drive -->
                     <iframe 
                         src="${url}" 
                         class="w-full h-full relative z-10 border-0 bg-white"
@@ -587,19 +446,16 @@ function abrirDocumento(titulo, url) {
 
         window.onload = () => cambiarVista('inicio');
     </script>
+    
     <!-- ========================================== -->
     <!-- CONFIGURACIÓN DEL CEREBRO DE FIREBASE      -->
     <!-- ========================================== -->
-    <!-- Usamos type="module" para poder importar funciones modernas de JavaScript -->
     <script type="module">
-        // 1. Importamos la función de inicialización principal desde los servidores de Google
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-
-        // 2. Importamos los módulos específicos que vamos a usar (Autenticación y Base de Datos)
-        import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+        // Importamos las funciones de Autenticación
+        import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
         import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-        // 3. Objeto de configuración 
         const firebaseConfig = {
             apiKey: "AIzaSyBg0u_Se2Od--7wbZFwqWKRdUv_IrYiXw0",
             authDomain: "intranet-igea.firebaseapp.com",
@@ -609,15 +465,50 @@ function abrirDocumento(titulo, url) {
             appId: "1:53285656859:web:b98b85861bd5d0472e1bbe"
         };
 
-        // 4. Ejecutamos la función para arrancar la aplicación con nuestra configuración
         const app = initializeApp(firebaseConfig);
-
-        // 5. Activamos las variables auth y db para poder usarlas en futuras funciones 
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // Imprimimos un mensaje oculto en la consola para confirmar que el código compiló bien
-        console.log("Módulos de Firebase listos para la integración.");
+        // Función para Iniciar Sesión (conectada al HTML)
+        window.iniciarSesionFirebase = function() {
+            const email = document.getElementById('input-email').value;
+            const password = document.getElementById('input-password').value;
+
+            if(!email || !password) {
+                alert("Por favor, completá tu correo y contraseña.");
+                return;
+            }
+
+            signInWithEmailAndPassword(auth, email, password)
+                .then((userCredential) => {
+                    const user = userCredential.user;
+                    alert("¡Ingreso exitoso! Bienvenido " + user.email);
+                    // Más adelante, aquí validaremos en Firestore qué usuario ingresó y cargaremos su carpeta.
+                })
+                .catch((error) => {
+                    alert("Error al ingresar: Verificá tus datos. (" + error.message + ")");
+                });
+        };
+
+        // Función para Recuperar Contraseña por Mail
+        window.recuperarClaveFirebase = function() {
+            const email = document.getElementById('input-email').value;
+            
+            if(!email) {
+                alert("Por favor, escribí tu correo electrónico en el casillero de arriba y volvé a presionar este botón.");
+                return;
+            }
+
+            sendPasswordResetEmail(auth, email)
+                .then(() => {
+                    alert("¡Te enviamos un correo electrónico! Revisá tu bandeja de entrada para restablecer tu contraseña.");
+                })
+                .catch((error) => {
+                    alert("Hubo un error al enviar el correo. (" + error.message + ")");
+                });
+        };
+
+        console.log("Módulos de Firebase Autenticación listos.");
     </script>
 </body>
 
