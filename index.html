@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,7 +13,8 @@
             background-color: #f8fafc;
         }
 
-        aside, main {
+        aside,
+        main {
             position: relative;
             z-index: 1;
         }
@@ -119,6 +121,7 @@
             from {
                 transform: translate3d(0, 0, 0) scale(1);
             }
+
             to {
                 transform: translate3d(20px, -30px, 0) scale(1.08);
             }
@@ -128,16 +131,20 @@
             from {
                 transform: translateY(0);
             }
+
             to {
                 transform: translateY(24px);
             }
         }
 
         @keyframes pulseStroke {
-            0%, 100% {
+
+            0%,
+            100% {
                 stroke-dasharray: 0 1000;
                 opacity: 0.35;
             }
+
             50% {
                 stroke-dasharray: 180 120;
                 opacity: 0.7;
@@ -148,20 +155,24 @@
         .no-scrollbar::-webkit-scrollbar {
             display: none;
         }
+
         .no-scrollbar {
             -ms-overflow-style: none;
             scrollbar-width: none;
         }
     </style>
 </head>
+
 <body class="bg-gray-50 text-gray-800 font-sans flex h-screen overflow-hidden">
     <div class="app-background" aria-hidden="true">
         <div class="bg-orb orb-a"></div>
         <div class="bg-orb orb-b"></div>
         <div class="bg-orb orb-c"></div>
         <svg class="bg-wave" viewBox="0 0 1000 1000" preserveAspectRatio="none">
-            <path class="bg-path path-a" d="M80 220C230 120 300 140 410 220C520 300 610 340 710 300C780 276 865 214 930 156" />
-            <path class="bg-path path-b" d="M70 410C170 320 280 320 380 395C480 470 590 520 690 492C770 470 860 402 940 340" />
+            <path class="bg-path path-a"
+                d="M80 220C230 120 300 140 410 220C520 300 610 340 710 300C780 276 865 214 930 156" />
+            <path class="bg-path path-b"
+                d="M70 410C170 320 280 320 380 395C480 470 590 520 690 492C770 470 860 402 940 340" />
         </svg>
     </div>
     <div id="cursor-trail" aria-hidden="true"></div>
@@ -174,13 +185,16 @@
         </div>
         <nav class="flex-1 px-4 space-y-2" id="menu-navegacion">
             <!-- Botones de navegación. Les agregué un ID para manejar el estado "activo" -->
-            <button id="btn-inicio" onclick="cambiarVista('inicio')" class="w-full flex items-center p-3 text-left bg-blue-800 rounded-lg transition shadow-inner">
+            <button id="btn-inicio" onclick="cambiarVista('inicio')"
+                class="w-full flex items-center p-3 text-left bg-blue-800 rounded-lg transition shadow-inner">
                 <span>🏠 Inicio</span>
             </button>
-            <button id="btn-dpp" onclick="cambiarVista('dpp')" class="w-full flex items-center p-3 text-left hover:bg-blue-800 rounded-lg transition">
+            <button id="btn-dpp" onclick="cambiarVista('dpp')"
+                class="w-full flex items-center p-3 text-left hover:bg-blue-800 rounded-lg transition">
                 <span>👥 DPP</span>
             </button>
-            <button id="btn-procedimientos" onclick="cambiarVista('procedimientos')" class="w-full flex items-center p-3 text-left hover:bg-blue-800 rounded-lg transition">
+            <button id="btn-procedimientos" onclick="cambiarVista('procedimientos')"
+                class="w-full flex items-center p-3 text-left hover:bg-blue-800 rounded-lg transition">
                 <span>📋 Procedimientos</span>
             </button>
         </nav>
@@ -192,18 +206,21 @@
     <!-- Panel Central (Contenido Dinámico) -->
     <main class="flex-1 flex flex-col h-screen overflow-y-auto no-scrollbar relative">
         <!-- Encabezado superior -->
-        <header class="bg-white/80 backdrop-blur-sm shadow-sm p-4 sticky top-0 z-10 flex justify-between items-center border-b border-gray-200/50">
+        <header
+            class="bg-white/80 backdrop-blur-sm shadow-sm p-4 sticky top-0 z-10 flex justify-between items-center border-b border-gray-200/50">
             <div class="flex items-center gap-4">
                 <!-- Botón de Volver (Oculto por defecto) -->
-                <button id="btn-volver" onclick="volverAtras()" class="hidden text-blue-600 hover:text-blue-800 font-medium flex items-center transition bg-blue-50 px-3 py-1.5 rounded-md hover:bg-blue-100">
+                <button id="btn-volver" onclick="volverAtras()"
+                    class="hidden text-blue-600 hover:text-blue-800 font-medium flex items-center transition bg-blue-50 px-3 py-1.5 rounded-md hover:bg-blue-100">
                     <span class="mr-1">←</span> Volver
                 </button>
                 <h2 id="titulo-seccion" class="text-xl font-semibold text-gray-800">Inicio</h2>
             </div>
-            
+
             <!-- Buscador simulado -->
             <div class="relative">
-                <input type="text" placeholder="Buscar..." class="bg-gray-100/50 border border-gray-200 rounded-full px-4 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-white transition w-48">
+                <input type="text" placeholder="Buscar..."
+                    class="bg-gray-100/50 border border-gray-200 rounded-full px-4 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-white transition w-48">
                 <span class="absolute right-3 top-1.5 text-gray-400">🔍</span>
             </div>
         </header>
@@ -359,8 +376,8 @@
             document.getElementById('btn-inicio').className = "w-full flex items-center p-3 text-left hover:bg-blue-800 rounded-lg transition";
             document.getElementById('btn-dpp').className = "w-full flex items-center p-3 text-left hover:bg-blue-800 rounded-lg transition";
             document.getElementById('btn-procedimientos').className = "w-full flex items-center p-3 text-left hover:bg-blue-800 rounded-lg transition";
-            
-            if(vista === 'inicio' || vista === 'dpp' || vista === 'procedimientos') {
+
+            if (vista === 'inicio' || vista === 'dpp' || vista === 'procedimientos') {
                 document.getElementById(`btn-${vista}`).className = "w-full flex items-center p-3 text-left bg-blue-800 rounded-lg transition shadow-inner";
             }
         }
@@ -369,10 +386,10 @@
             const contenedorContenido = document.getElementById('contenido-seccion');
             const tituloSeccion = document.getElementById('titulo-seccion');
             const btnVolver = document.getElementById('btn-volver');
-            
+
             seccionActual = vista;
             actualizarMenuActivo(vista);
-            btnVolver.classList.add('hidden'); 
+            btnVolver.classList.add('hidden');
 
             if (vista === 'inicio') {
                 tituloSeccion.textContent = "Inicio";
@@ -415,5 +432,40 @@
 
         window.onload = () => cambiarVista('inicio');
     </script>
+    <!-- ========================================== -->
+    <!-- CONFIGURACIÓN DEL CEREBRO DE FIREBASE      -->
+    <!-- ========================================== -->
+    <!-- Usamos type="module" para poder importar funciones modernas de JavaScript -->
+    <script type="module">
+        // 1. Importamos la función de inicialización principal desde los servidores de Google
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+
+        // 2. Importamos los módulos específicos que vamos a usar (Autenticación y Base de Datos)
+        import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+        import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+        // 3. Objeto de configuración 
+        // Estas son las "llaves" temporales. Firebase nos dará las reales al crear el proyecto.
+        const firebaseConfig = {
+            apiKey: "AIzaSyBg0u_Se2Od--7wbZFwqWKRdUv_IrYiXw0",
+            authDomain: "intranet-igea.firebaseapp.com",
+            projectId: "intranet-igea",
+            storageBucket: "intranet-igea.appspot.com",
+            messagingSenderId: "53285656859",
+            appId: "1:53285656859:web:b98b85861bd5d0472e1bbe"
+        };
+
+        // 4. Ejecutamos la función para arrancar la aplicación con nuestra configuración
+        const app = initializeApp(firebaseConfig);
+
+        // 5. Activamos las variables auth y db para poder usarlas en futuras funciones 
+        // (por ejemplo, cuando programemos el botón de "Solicitar Adelanto")
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Imprimimos un mensaje oculto en la consola para confirmar que el código compiló bien
+        console.log("Módulos de Firebase listos para la integración.");
+    </script>
 </body>
+
 </html>
