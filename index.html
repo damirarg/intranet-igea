@@ -2,9 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IGEA - Intranet App</title>
     <!-- Importamos Tailwind CSS para un diseño moderno y rápido -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -12,10 +10,6 @@
         body {
             position: relative;
             background-color: #f8fafc;
-            display: flex;
-            flex-direction: row;
-            height: 100vh;
-            height: 100dvh;
         }
 
         aside, main {
@@ -158,295 +152,6 @@
             -ms-overflow-style: none;
             scrollbar-width: none;
         }
-
-        .inicio-background {
-            position: relative;
-            background-image: url('./assets/consultorio.jpg');
-            background-size: cover;
-            background-position: center;
-            background-attachment: fixed;
-        }
-
-        .inicio-background::before {
-            content: "";
-            position: absolute;
-            inset: 0;
-            background: rgba(255, 255, 255, 0.65);
-            -webkit-backdrop-filter: blur(3px);
-            backdrop-filter: blur(3px);
-            z-index: 1;
-        }
-
-        .inicio-background > * {
-            position: relative;
-            z-index: 2;
-        }
-
-        /* Estilos para la barra lateral con ADN */
-        aside {
-            position: relative;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .sidebar-dna-bg {
-            position: absolute;
-            inset: 0;
-            width: 100%;
-            height: 100%;
-            opacity: 0.18;
-            z-index: 0;
-            object-fit: cover;
-            object-position: center;
-        }
-
-        .sidebar-header {
-            position: relative;
-            z-index: 10;
-        }
-
-        nav {
-            position: relative;
-            z-index: 10;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .sidebar-footer {
-            position: relative;
-            z-index: 10;
-        }
-
-        @keyframes rotateDNA {
-            from {
-                transform: translateY(-100%) rotateZ(0deg);
-            }
-            to {
-                transform: translateY(100%) rotateZ(-360deg);
-            }
-        }
-
-        .logo-container {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 1rem;
-        }
-
-        .logo-container img {
-            max-height: 60px;
-            width: auto;
-            object-fit: contain;
-            filter: brightness(1.1);
-        }
-
-        /* Animaciones mejoradas para DPP y Procedimientos */
-        .content-card {
-            position: relative;
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(240, 249, 255, 0.9) 100%);
-            border: 1px solid rgba(200, 220, 255, 0.3);
-            animation: softGlow 3s ease-in-out infinite;
-        }
-
-        .content-item {
-            position: relative;
-            overflow: hidden;
-            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-
-        .content-item::before {
-            content: "";
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-            transition: left 0.6s ease;
-            z-index: 10;
-            pointer-events: none;
-        }
-
-        .content-item:hover::before {
-            left: 100%;
-        }
-
-        .content-item:hover {
-            transform: translateY(-4px) scale(1.02);
-            box-shadow: 0 8px 24px rgba(59, 130, 246, 0.2);
-            border-color: rgba(59, 130, 246, 0.5);
-        }
-
-        @keyframes softGlow {
-            0%, 100% {
-                box-shadow: 0 0 20px rgba(96, 165, 250, 0.1);
-            }
-            50% {
-                box-shadow: 0 0 30px rgba(96, 165, 250, 0.2);
-            }
-        }
-
-        @keyframes shimmer {
-            0% {
-                background-position: -200%;
-            }
-            100% {
-                background-position: 200%;
-            }
-        }
-
-        /* Optimización para iOS y móviles */
-        @supports (padding: max(0px)) {
-            body {
-                padding-left: max(0px, env(safe-area-inset-left));
-                padding-right: max(0px, env(safe-area-inset-right));
-            }
-        }
-
-        /* Evitar zoom en inputs en iOS */
-        input, select, textarea {
-            font-size: 16px;
-        }
-
-        /* Mejorar rendimiento en móviles */
-        * {
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        /* Media queries para móviles */
-        @media (max-width: 768px) {
-            body {
-                flex-direction: column;
-                height: 100vh;
-                height: 100dvh;
-            }
-
-            aside {
-                width: 100% !important;
-                flex-direction: row;
-                padding: 8px;
-                gap: 8px;
-                align-items: center;
-                justify-content: space-between;
-                min-height: auto;
-            }
-
-            .sidebar-header {
-                display: flex;
-                align-items: center;
-                gap: 12px;
-                flex-shrink: 0;
-            }
-
-            .logo-container {
-                margin-bottom: 0;
-                min-width: 40px;
-            }
-
-            .logo-container img {
-                max-height: 40px;
-            }
-
-            .sidebar-header h1 {
-                font-size: 1.25rem;
-                margin: 0;
-            }
-
-            .sidebar-header p {
-                display: none;
-            }
-
-            #menu-navegacion {
-                display: flex;
-                flex-direction: row;
-                gap: 4px;
-                padding: 0 !important;
-                flex: 1;
-            }
-
-            #menu-navegacion button {
-                padding: 6px 10px !important;
-                font-size: 0.75rem;
-                flex: 1;
-            }
-
-            .sidebar-footer {
-                display: none;
-            }
-
-            main {
-                flex: 1;
-                width: 100%;
-                overflow-y: auto;
-                height: auto;
-            }
-
-            #contenido-seccion {
-                padding: 16px !important;
-                max-width: none !important;
-                margin: auto !important;
-                width: 100%;
-            }
-
-            .inicio-background {
-                padding: 12px !important;
-            }
-
-            .inicio-background > div {
-                max-width: none !important;
-                padding: 16px !important;
-            }
-
-            header {
-                padding: 8px !important;
-                gap: 8px !important;
-            }
-
-            header input {
-                width: 100% !important;
-                display: block !important;
-            }
-
-            .relative input {
-                display: none !important;
-            }
-
-            #btn-volver {
-                padding: 6px 12px !important;
-                font-size: 0.875rem !important;
-            }
-
-            #titulo-seccion {
-                font-size: 1.125rem !important;
-            }
-        }
-
-        @media (max-width: 480px) {
-            aside {
-                flex-wrap: wrap;
-            }
-
-            .sidebar-header h1 {
-                font-size: 1rem;
-                display: none;
-            }
-
-            .logo-container img {
-                max-height: 35px;
-            }
-
-            #menu-navegacion button {
-                padding: 4px 8px !important;
-                font-size: 0.65rem !important;
-                flex: 1;
-            }
-
-            #contenido-seccion {
-                padding: 12px !important;
-            }
-        }
-
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800 font-sans flex h-screen overflow-hidden">
@@ -462,22 +167,11 @@
     <div id="cursor-trail" aria-hidden="true"></div>
 
     <!-- Menú Lateral (Sidebar) -->
-    <aside class="w-64 bg-blue-900/95 text-white flex flex-col shadow-xl border-r border-white/10" style="-webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);">
-        <!-- Fondo animado de ADN -->
-        <video class="sidebar-dna-bg" autoplay muted playsinline loop disablePictureInPicture>
-            <source src="./assets/Hélice ADN.mp4" type="video/mp4">
-        </video>
-
-        <!-- Encabezado con logo -->
-        <div class="sidebar-header p-6">
-            <div class="logo-container">
-                <img src="./assets/Logo.jpg" alt="Logo IGEA">
-            </div>
-            <h1 class="text-2xl font-bold tracking-wider text-center">IGEA Adm</h1>
-            <p class="text-sm text-blue-300 mt-1 text-center">Portal de Gestión</p>
+    <aside class="w-64 bg-blue-900/95 backdrop-blur-md text-white flex flex-col shadow-xl border-r border-white/10">
+        <div class="p-6">
+            <h1 class="text-2xl font-bold tracking-wider">IGEA Adm</h1>
+            <p class="text-sm text-blue-300 mt-1">Portal de Gestión</p>
         </div>
-
-        <!-- Navegación -->
         <nav class="flex-1 px-4 space-y-2" id="menu-navegacion">
             <!-- Botones de navegación. Les agregué un ID para manejar el estado "activo" -->
             <button id="btn-inicio" onclick="cambiarVista('inicio')" class="w-full flex items-center p-3 text-left bg-blue-800 rounded-lg transition shadow-inner">
@@ -490,17 +184,15 @@
                 <span>📋 Procedimientos</span>
             </button>
         </nav>
-
-        <!-- Pie de página -->
-        <div class="sidebar-footer p-4 border-t border-blue-800/50">
+        <div class="p-4 border-t border-blue-800/50">
             <p class="text-xs text-center text-blue-400">Versión 2.0</p>
         </div>
     </aside>
 
     <!-- Panel Central (Contenido Dinámico) -->
-    <main class="flex-1 flex flex-col h-screen overflow-y-auto no-scrollbar relative" style="height: 100vh; height: 100dvh;">
+    <main class="flex-1 flex flex-col h-screen overflow-y-auto no-scrollbar relative">
         <!-- Encabezado superior -->
-        <header class="bg-white/80 shadow-sm p-4 sticky top-0 z-10 flex justify-between items-center border-b border-gray-200/50" style="-webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);">
+        <header class="bg-white/80 backdrop-blur-sm shadow-sm p-4 sticky top-0 z-10 flex justify-between items-center border-b border-gray-200/50">
             <div class="flex items-center gap-4">
                 <!-- Botón de Volver (Oculto por defecto) -->
                 <button id="btn-volver" onclick="volverAtras()" class="hidden text-blue-600 hover:text-blue-800 font-medium flex items-center transition bg-blue-50 px-3 py-1.5 rounded-md hover:bg-blue-100">
@@ -524,31 +216,21 @@
 
     <!-- Lógica de la Aplicación (JavaScript) -->
     <script>
-        // Detectar si es iOS o móvil
-        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-        const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-        
-        // EFECTOS VISUALES DEL CURSOR - Solo en desktop
-        if (!isMobile) {
-            const cursorTrail = document.getElementById('cursor-trail');
-            const cursorGlow = document.createElement('div');
-            cursorGlow.className = 'cursor-glow';
-            cursorTrail.appendChild(cursorGlow);
+        // EFECTOS VISUALES DEL CURSOR
+        const cursorTrail = document.getElementById('cursor-trail');
+        const cursorGlow = document.createElement('div');
+        cursorGlow.className = 'cursor-glow';
+        cursorTrail.appendChild(cursorGlow);
 
-            window.addEventListener('mousemove', (event) => {
-                cursorGlow.style.left = `${event.clientX}px`;
-                cursorGlow.style.top = `${event.clientY}px`;
-                cursorGlow.style.opacity = '1';
-            });
+        window.addEventListener('mousemove', (event) => {
+            cursorGlow.style.left = `${event.clientX}px`;
+            cursorGlow.style.top = `${event.clientY}px`;
+            cursorGlow.style.opacity = '1';
+        });
 
-            window.addEventListener('mouseleave', () => {
-                cursorGlow.style.opacity = '0';
-            });
-        } else {
-            // En móviles, ocultar el cursor trail
-            const cursorTrail = document.getElementById('cursor-trail');
-            if (cursorTrail) cursorTrail.style.display = 'none';
-        }
+        window.addEventListener('mouseleave', () => {
+            cursorGlow.style.opacity = '0';
+        });
 
         // ==========================================
         // BASE DE DATOS DE ENLACES (DRIVE)
@@ -586,6 +268,11 @@
                     nombre: "Gestión de Vacaciones y Licencias Especiales",
                     fecha: "07/07/2026",
                     url: "https://docs.google.com/document/d/1wYzmFrBZG0qQ3C9_HbHoHcUJDIwE-VcP/preview"
+                },
+                {
+                    nombre: "Guardia Administrativa y Gestión Remota",
+                    fecha: "20/07/2026",
+                    url: "https://docs.google.com/document/d/17_p1VdCKTV-EvsT4paMaSZw_jteOEJZ4/preview"
                 }
             ]
         };
@@ -599,22 +286,20 @@
 
         function renderizarInicio() {
             return `
-                <div class="inicio-background w-full h-full rounded-2xl overflow-hidden flex items-center justify-center p-8">
-                    <div class="bg-white/85 p-8 rounded-2xl shadow-lg border border-white/60 max-w-2xl" style="-webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);">
-                        <h3 class="text-3xl font-bold text-blue-900 mb-4">Intranet Administración</h3>
-                        <p class="text-gray-600 mb-8 text-lg">Desde esta aplicación vas a poder gestionar todos los recursos del área de manera rápida y centralizada, con documentos actualizados en tiempo real.</p>
-                        
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div class="bg-gradient-to-br from-blue-50 to-white p-6 rounded-xl border border-blue-100 shadow-sm hover:shadow-md cursor-pointer hover:-translate-y-1 transition duration-300" onclick="cambiarVista('dpp')">
-                                <div class="text-4xl mb-3">👥</div>
-                                <h4 class="font-bold text-xl text-blue-900">Descripciones de Perfil y Puestos</h4>
-                                <p class="text-gray-600 mt-2">Consultá las Descripciones de Perfil y Puestos de todo el equipo de IGEA.</p>
-                            </div>
-                            <div class="bg-gradient-to-br from-emerald-50 to-white p-6 rounded-xl border border-emerald-100 shadow-sm hover:shadow-md cursor-pointer hover:-translate-y-1 transition duration-300" onclick="cambiarVista('procedimientos')">
-                                <div class="text-4xl mb-3">📋</div>
-                                <h4 class="font-bold text-xl text-emerald-900">Procedimientos</h4>
-                                <p class="text-gray-600 mt-2">Accedé a la normativa vigente, manuales y protocolos internos.</p>
-                            </div>
+                <div class="bg-white/90 backdrop-blur p-8 rounded-2xl shadow-lg border border-white/50">
+                    <h3 class="text-3xl font-bold text-blue-900 mb-4">Bienvenido al nuevo portal de Administración</h3>
+                    <p class="text-gray-600 mb-8 text-lg">Desde esta aplicación vas a poder gestionar todos los recursos del área de manera rápida y centralizada, con documentos actualizados en tiempo real.</p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="bg-gradient-to-br from-blue-50 to-white p-6 rounded-xl border border-blue-100 shadow-sm hover:shadow-md cursor-pointer hover:-translate-y-1 transition duration-300" onclick="cambiarVista('dpp')">
+                            <div class="text-4xl mb-3">👥</div>
+                            <h4 class="font-bold text-xl text-blue-900">Directorio DPP</h4>
+                            <p class="text-gray-600 mt-2">Consultá las Descripciones de Perfil y Puestos de todo el equipo de IGEA.</p>
+                        </div>
+                        <div class="bg-gradient-to-br from-emerald-50 to-white p-6 rounded-xl border border-emerald-100 shadow-sm hover:shadow-md cursor-pointer hover:-translate-y-1 transition duration-300" onclick="cambiarVista('procedimientos')">
+                            <div class="text-4xl mb-3">📋</div>
+                            <h4 class="font-bold text-xl text-emerald-900">Procedimientos</h4>
+                            <p class="text-gray-600 mt-2">Accedé a la normativa vigente, manuales y protocolos internos.</p>
                         </div>
                     </div>
                 </div>
@@ -623,11 +308,12 @@
 
         function renderizarDPP() {
             let filasHTML = archivosDrive.dpp.map(doc => `
-                <div class="content-item p-4 border-b border-gray-100 flex justify-between items-center hover:bg-blue-50 transition cursor-pointer" onclick="abrirDocumento('${doc.nombre}', '${doc.url}')">
+                <div class="p-4 border-b border-gray-100 flex justify-between items-center hover:bg-blue-50 transition cursor-pointer" onclick="abrirDocumento('${doc.nombre}', '${doc.url}')">
                     <div class="flex items-center gap-3">
                         <div class="bg-blue-100 text-blue-600 p-2 rounded-lg">👤</div>
                         <div>
                             <span class="font-semibold text-gray-800 block">${doc.nombre}</span>
+                            <span class="text-sm text-gray-500">${doc.area}</span>
                         </div>
                     </div>
                     <button class="bg-white border border-gray-200 text-blue-600 px-4 py-2 rounded-lg hover:bg-blue-600 hover:text-white transition shadow-sm text-sm font-medium">Ver Perfil</button>
@@ -635,8 +321,8 @@
             `).join('');
 
             return `
-                <div class="content-card p-6 rounded-2xl shadow-lg">
-                    <p class="text-gray-600 mb-6">Seleccioná una DPP</p>
+                <div class="bg-white/90 backdrop-blur p-6 rounded-2xl shadow-lg border border-white/50">
+                    <p class="text-gray-600 mb-6">Seleccioná un perfil para ver el documento oficial cargado en Drive.</p>
                     <div class="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
                         ${filasHTML}
                     </div>
@@ -646,7 +332,7 @@
 
         function renderizarProcedimientos() {
             let itemsHTML = archivosDrive.procedimientos.map(doc => `
-                <li class="content-item flex items-center justify-between p-4 bg-white rounded-xl border border-gray-200 shadow-sm cursor-pointer" onclick="abrirDocumento('${doc.nombre}', '${doc.url}')">
+                <li class="flex items-center justify-between p-4 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:border-emerald-300 transition cursor-pointer" onclick="abrirDocumento('${doc.nombre}', '${doc.url}')">
                     <div class="flex items-center">
                         <span class="text-3xl mr-4 p-2 bg-emerald-50 rounded-lg">📄</span>
                         <div>
