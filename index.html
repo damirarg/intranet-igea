@@ -197,6 +197,10 @@
                 class="w-full flex items-center p-3 text-left hover:bg-blue-800 rounded-lg transition">
                 <span>📋 Procedimientos</span>
             </button>
+            <button id="btn-recibos" onclick="cambiarVista('recibos')"
+                class="w-full flex items-center p-3 text-left hover:bg-blue-800 rounded-lg transition">
+                <span>📄 Recibos de Sueldo</span>
+            </button>
         </nav>
         <div class="p-4 border-t border-blue-800/50">
             <p class="text-xs text-center text-blue-400">Versión 2.0</p>
@@ -294,6 +298,38 @@
             ]
         };
 
+        // ==========================================
+        // BASE DE DATOS DE CARPETAS DE RECIBOS
+        // ==========================================
+        const baseRecibos = [
+            { 
+                nombre: "RODRIGUEZ Damián", 
+                dni: "28946471", 
+                urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1rm4KzCg1kzz2331RipWsxF_VHW22RUxc#list" 
+            },
+            { 
+                nombre: "BARCA Antonela", 
+                dni: "11111111", 
+                urlCarpeta: "https://drive.google.com/embeddedfolderview?id=ACA_VA_EL_ID_DE_LA_CARPETA_DE_IGNACIO#list" 
+            },
+            { 
+                nombre: "CAVERO Yesica", 
+                dni: "22222222", 
+                urlCarpeta: "https://drive.google.com/embeddedfolderview?id=ACA_VA_EL_ID_DE_LA_CARPETA_DE_SABRINA#list" 
+            },
+            { 
+                nombre: "CEPEDA CANCLINI Agustina", 
+                dni: "33333333", 
+                urlCarpeta: "https://drive.google.com/embeddedfolderview?id=ACA_VA_EL_ID_DE_LA_CARPETA_DE_NICOLAS#list" 
+            },
+            { 
+                nombre: "CLAIR Violeta", 
+                dni: "44444444", 
+                urlCarpeta: "https://drive.google.com/embeddedfolderview?id=ACA_VA_EL_ID_DE_LA_CARPETA_DE_ELIANA#list" 
+            }
+            // Podés seguir agregando al resto del equipo (Ariel Ruiz, Franco Romeral, Ayelén, Paula...) respetando este formato
+        ];
+
         // Variable para recordar en qué sección estábamos
         let seccionActual = 'inicio';
 
@@ -368,6 +404,39 @@
             `;
         }
 
+        function renderizarRecibos() {
+            let opcionesSelect = baseRecibos.map((emp, index) => `
+                <option value="${index}">${emp.nombre}</option>
+            `).join('');
+
+            return `
+                <div class="bg-white/90 backdrop-blur p-8 rounded-2xl shadow-lg border border-white/50 max-w-xl mx-auto">
+                    <h3 class="text-2xl font-bold text-blue-900 mb-2">Consulta de Recibos de Sueldo</h3>
+                    <p class="text-gray-600 mb-6 text-sm">Seleccioná tu nombre e ingresá tu DNI para acceder a tu documentación.</p>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Empleado</label>
+                            <select id="select-empleado" class="w-full bg-gray-50 border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+                                <option value="">Seleccioná tu nombre...</option>
+                                ${opcionesSelect}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Clave de Acceso (DNI)</label>
+                            <input type="password" id="input-dni" 
+                                class="w-full bg-gray-50 border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                placeholder="Ingresá tu DNI sin puntos">
+                        </div>
+                        <button onclick="validarYVerRecibo()"
+                            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg transition shadow-md">
+                            Acceder al Recibo
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
         // ==========================================
         // CONTROLADORES DE LA INTERFAZ
         // ==========================================
@@ -376,8 +445,9 @@
             document.getElementById('btn-inicio').className = "w-full flex items-center p-3 text-left hover:bg-blue-800 rounded-lg transition";
             document.getElementById('btn-dpp').className = "w-full flex items-center p-3 text-left hover:bg-blue-800 rounded-lg transition";
             document.getElementById('btn-procedimientos').className = "w-full flex items-center p-3 text-left hover:bg-blue-800 rounded-lg transition";
+            document.getElementById('btn-recibos').className = "w-full flex items-center p-3 text-left hover:bg-blue-800 rounded-lg transition";
 
-            if (vista === 'inicio' || vista === 'dpp' || vista === 'procedimientos') {
+            if (vista === 'inicio' || vista === 'dpp' || vista === 'procedimientos' || vista === 'recibos') {
                 document.getElementById(`btn-${vista}`).className = "w-full flex items-center p-3 text-left bg-blue-800 rounded-lg transition shadow-inner";
             }
         }
@@ -400,10 +470,31 @@
             } else if (vista === 'procedimientos') {
                 tituloSeccion.textContent = "Procedimientos Normativos";
                 contenedorContenido.innerHTML = renderizarProcedimientos();
+            } else if (vista === 'recibos') {
+                tituloSeccion.textContent = "Recibos de Sueldo";
+                contenedorContenido.innerHTML = renderizarRecibos();
             }
         }
 
-        function abrirDocumento(titulo, url) {
+        function validarYVerRecibo() {
+            const indexSeleccionado = document.getElementById('select-empleado').value;
+            const dniIngresado = document.getElementById('input-dni').value;
+
+            if (indexSeleccionado === "") {
+                alert("Por favor, seleccioná un empleado.");
+                return;
+            }
+
+            const empleado = baseRecibos[indexSeleccionado];
+
+            if (empleado.dni === dniIngresado) {
+                abrirDocumento(`Legajo Digital - ${empleado.nombre}`, empleado.urlCarpeta);
+            } else {
+                alert("Clave incorrecta. Por favor, verificá tu DNI.");
+            }
+        }
+
+function abrirDocumento(titulo, url) {
             const contenedorContenido = document.getElementById('contenido-seccion');
             const tituloSeccion = document.getElementById('titulo-seccion');
             const btnVolver = document.getElementById('btn-volver');
@@ -414,12 +505,15 @@
 
             contenedorContenido.innerHTML = `
                 <div class="w-full h-[calc(100vh-12rem)] bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden relative">
-                    <div class="absolute inset-0 flex items-center justify-center bg-gray-50 z-0">
+                    <!-- Agregamos el ID 'spinner-carga' para poder apagarlo luego -->
+                    <div id="spinner-carga" class="absolute inset-0 flex items-center justify-center bg-gray-50 z-0">
                         <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
                     </div>
+                    <!-- Agregamos el evento onload para ocultar el spinner y bg-white para dar fondo sólido -->
                     <iframe 
                         src="${url}" 
-                        class="w-full h-full relative z-10 border-0"
+                        class="w-full h-full relative z-10 border-0 bg-white"
+                        onload="document.getElementById('spinner-carga').style.display='none'"
                         allow="autoplay">
                     </iframe>
                 </div>
@@ -445,7 +539,6 @@
         import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
         // 3. Objeto de configuración 
-        // Estas son las "llaves" temporales. Firebase nos dará las reales al crear el proyecto.
         const firebaseConfig = {
             apiKey: "AIzaSyBg0u_Se2Od--7wbZFwqWKRdUv_IrYiXw0",
             authDomain: "intranet-igea.firebaseapp.com",
@@ -459,7 +552,6 @@
         const app = initializeApp(firebaseConfig);
 
         // 5. Activamos las variables auth y db para poder usarlas en futuras funciones 
-        // (por ejemplo, cuando programemos el botón de "Solicitar Adelanto")
         const auth = getAuth(app);
         const db = getFirestore(app);
 
