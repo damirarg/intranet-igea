@@ -39,7 +39,6 @@
         }
         .icon-large { font-size: 32px; }
 
-        /* Animaciones para el logo */
         @keyframes entradaLogo {
             0% { opacity: 0; transform: scale(0.8) translateY(20px); }
             100% { opacity: 1; transform: scale(1) translateY(0); }
@@ -70,9 +69,8 @@
 
         <div class="bg-white/95 p-10 rounded-3xl shadow-2xl border border-white/40 max-w-md w-full relative z-10">
             <div class="text-center mb-8">
-                <!-- CÓDIGO CORREGIDO: Eliminamos el atributo onerror que colgaba la página -->
                 <div class="mx-auto mb-4 flex justify-center animar-entrada">
-                    <img src="./assets/logo.jpg" alt="Logo Corporativo" class="h-20 object-contain drop-shadow-lg">
+                    <img src="./assets/logo.jpg" alt="Logo IGEA" class="h-20 object-contain drop-shadow-lg">
                 </div>
                 <h2 class="text-sm font-bold text-slate-500 uppercase tracking-widest">Portal de Gestión</h2>
             </div>
@@ -131,7 +129,6 @@
         <!-- Menú Lateral -->
         <aside class="w-72 bg-white/90 backdrop-blur-xl border-r border-slate-200 flex flex-col shadow-sm">
             <div class="p-8 flex items-center gap-3">
-                <!-- CÓDIGO CORREGIDO: Eliminamos el atributo onerror aquí también -->
                 <div class="animar-flotar">
                     <img src="./assets/logo.jpg" alt="Logo Pequeño" class="h-10 object-contain drop-shadow-sm">
                 </div>
@@ -156,10 +153,15 @@
                     <span class="material-symbols-rounded">receipt_long</span>
                     <span>Mis Recibos</span>
                 </button>
+                <!-- NUEVO BOTÓN EN EL MENÚ PARA ABSENTIFY -->
+                <a href="https://app.absentify.com" target="_blank" class="w-full flex items-center gap-3 p-3 text-left text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium rounded-xl transition">
+                    <span class="material-symbols-rounded">event_note</span>
+                    <span>Absentify (Vacaciones)</span>
+                </a>
             </nav>
             <div class="p-6">
                 <div class="bg-slate-50 rounded-xl p-4 border border-slate-100 text-center">
-                    <p class="text-xs font-medium text-slate-500">Intranet Segura v4.6</p>
+                    <p class="text-xs font-medium text-slate-500">Intranet Segura v4.7</p>
                 </div>
             </div>
         </aside>
@@ -267,31 +269,44 @@
                     </div>
                 </div>
                 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- GRILLA CON 4 ACCESOS DIRECTOS (INCLUYENDO ABSENTIFY) -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     
-                    <div class="bg-white p-8 rounded-3xl border-t-4 border-t-blue-500 border-x border-b border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group" onclick="cambiarVista('dpp')">
-                        <div class="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                    <!-- Tarjeta 1: DPP -->
+                    <div class="bg-white p-6 rounded-3xl border-t-4 border-t-blue-500 border-x border-b border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group" onclick="cambiarVista('dpp')">
+                        <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-4 group-hover:bg-blue-600 group-hover:text-white transition-colors">
                             <span class="material-symbols-rounded icon-large">badge</span>
                         </div>
-                        <h4 class="font-bold text-xl text-slate-800 mb-2">Directorio DPP</h4>
-                        <p class="text-slate-500 leading-relaxed text-sm">Consultá las Descripciones de Perfil y Puestos de todo el equipo.</p>
+                        <h4 class="font-bold text-lg text-slate-800 mb-1">Directorio DPP</h4>
+                        <p class="text-slate-500 leading-relaxed text-xs">Descripciones de perfil y puestos.</p>
                     </div>
                     
-                    <div class="bg-white p-8 rounded-3xl border-t-4 border-t-emerald-500 border-x border-b border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group" onclick="cambiarVista('procedimientos')">
-                        <div class="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+                    <!-- Tarjeta 2: Procedimientos -->
+                    <div class="bg-white p-6 rounded-3xl border-t-4 border-t-emerald-500 border-x border-b border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group" onclick="cambiarVista('procedimientos')">
+                        <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mb-4 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
                             <span class="material-symbols-rounded icon-large">rule</span>
                         </div>
-                        <h4 class="font-bold text-xl text-slate-800 mb-2">Procedimientos</h4>
-                        <p class="text-slate-500 leading-relaxed text-sm">Accedé a la normativa vigente, manuales y protocolos internos.</p>
+                        <h4 class="font-bold text-lg text-slate-800 mb-1">Procedimientos</h4>
+                        <p class="text-slate-500 leading-relaxed text-xs">Normativa vigente y protocolos.</p>
                     </div>
 
-                    <div class="bg-white p-8 rounded-3xl border-t-4 border-t-indigo-500 border-x border-b border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group" onclick="cambiarVista('recibos')">
-                        <div class="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                    <!-- Tarjeta 3: Recibos -->
+                    <div class="bg-white p-6 rounded-3xl border-t-4 border-t-indigo-500 border-x border-b border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group" onclick="cambiarVista('recibos')">
+                        <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mb-4 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
                             <span class="material-symbols-rounded icon-large">receipt_long</span>
                         </div>
-                        <h4 class="font-bold text-xl text-slate-800 mb-2">Mis Recibos</h4>
-                        <p class="text-slate-500 leading-relaxed text-sm">Ingresá a tu carpeta privada para ver y descargar tus recibos de sueldo.</p>
+                        <h4 class="font-bold text-lg text-slate-800 mb-1">Mis Recibos</h4>
+                        <p class="text-slate-500 leading-relaxed text-xs">Carpeta privada de sueldos.</p>
                     </div>
+
+                    <!-- Tarjeta 4: Absentify (Enlace Externo) -->
+                    <a href="https://app.absentify.com" target="_blank" class="bg-white p-6 rounded-3xl border-t-4 border-t-amber-500 border-x border-b border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group block">
+                        <div class="w-12 h-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center mb-4 group-hover:bg-amber-600 group-hover:text-white transition-colors">
+                            <span class="material-symbols-rounded icon-large">event_note</span>
+                        </div>
+                        <h4 class="font-bold text-lg text-slate-800 mb-1">Absentify ↗</h4>
+                        <p class="text-slate-500 leading-relaxed text-xs">Gestión de vacaciones y licencias.</p>
+                    </a>
 
                 </div>
             `;
