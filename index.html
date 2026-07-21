@@ -70,8 +70,9 @@
 
         <div class="bg-white/95 p-10 rounded-3xl shadow-2xl border border-white/40 max-w-md w-full relative z-10">
             <div class="text-center mb-8">
+                <!-- CÓDIGO CORREGIDO: Eliminamos el atributo onerror que colgaba la página -->
                 <div class="mx-auto mb-4 flex justify-center animar-entrada">
-                    <img src="./assets/logo.jpg" alt="Logo IGEA" class="h-20 object-contain drop-shadow-lg" onerror="this.src='https://via.placeholder.com/150x60?text=LOGO+IGEA'">
+                    <img src="./assets/logo.jpg" alt="Logo Corporativo" class="h-20 object-contain drop-shadow-lg">
                 </div>
                 <h2 class="text-sm font-bold text-slate-500 uppercase tracking-widest">Portal de Gestión</h2>
             </div>
@@ -130,8 +131,9 @@
         <!-- Menú Lateral -->
         <aside class="w-72 bg-white/90 backdrop-blur-xl border-r border-slate-200 flex flex-col shadow-sm">
             <div class="p-8 flex items-center gap-3">
+                <!-- CÓDIGO CORREGIDO: Eliminamos el atributo onerror aquí también -->
                 <div class="animar-flotar">
-                    <img src="./assets/logo.jpg" alt="Logo IGEA" class="h-10 object-contain drop-shadow-sm" onerror="this.src='https://via.placeholder.com/40x40?text=IGEA'">
+                    <img src="./assets/logo.jpg" alt="Logo Pequeño" class="h-10 object-contain drop-shadow-sm">
                 </div>
                 <div>
                     <h1 class="text-sm font-bold text-slate-500 uppercase tracking-widest">Administración</h1>
@@ -157,7 +159,7 @@
             </nav>
             <div class="p-6">
                 <div class="bg-slate-50 rounded-xl p-4 border border-slate-100 text-center">
-                    <p class="text-xs font-medium text-slate-500">Intranet Segura v4.5</p>
+                    <p class="text-xs font-medium text-slate-500">Intranet Segura v4.6</p>
                 </div>
             </div>
         </aside>
@@ -195,7 +197,7 @@
         </main>
     </div>
 
-    <!-- Lógica JavaScript (Visual) -->
+    <!-- Lógica JavaScript -->
     <script>
         let usuarioActualEmail = "";
 
@@ -243,15 +245,12 @@
             document.getElementById('modal-clave').classList.add('hidden');
         }
 
-        // TEXTO DINÁMICO REFINADO: Ahora extraemos solo el nombre de pila
         function renderizarInicio() {
             let nombreSaludo = usuarioActualEmail; 
             const empleado = baseRecibos.find(emp => emp.email.toLowerCase() === usuarioActualEmail.toLowerCase());
             
             if(empleado) {
-                // El comando split(" ") corta el texto donde hay espacios y arma una lista de palabras.
                 let partesDelNombre = empleado.nombre.split(" ");
-                // El comando pop() agarra y saca únicamente la última palabra de esa lista.
                 nombreSaludo = partesDelNombre.pop();
             }
 
