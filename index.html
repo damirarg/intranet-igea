@@ -4,71 +4,105 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IGEA - Intranet App</title>
+    <title>IGEA - Portal Interno</title>
+    
+    <!-- Importamos Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- NUEVO: Fuente Corporativa Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- NUEVO: Iconografía Profesional de Google -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0" />
+
     <style>
-        body { position: relative; background-color: #f8fafc; }
+        body { 
+            position: relative; 
+            background-color: #f8fafc; 
+            font-family: 'Inter', sans-serif; /* Aplicamos la nueva fuente */
+        }
+        
+        /* Fondo moderno y limpio */
         .app-background {
             position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
             background:
-                radial-gradient(circle at 20% 20%, rgba(56, 189, 248, 0.12), transparent 35%),
-                radial-gradient(circle at 80% 16%, rgba(16, 185, 129, 0.10), transparent 30%),
-                linear-gradient(135deg, #f0f7ff 0%, #e6f4ff 50%, #f0fbf4 100%);
+                radial-gradient(circle at 20% 20%, rgba(56, 189, 248, 0.08), transparent 40%),
+                radial-gradient(circle at 80% 16%, rgba(16, 185, 129, 0.05), transparent 35%),
+                linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
         }
+        
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* Ajuste fino para los iconos */
+        .material-symbols-rounded {
+            font-size: 20px;
+            vertical-align: middle;
+        }
+        .icon-large { font-size: 32px; }
     </style>
 </head>
 
-<body class="text-gray-800 font-sans flex h-screen overflow-hidden">
+<body class="text-slate-800 flex h-screen overflow-hidden">
     <div class="app-background" aria-hidden="true"></div>
 
-    <!-- PANTALLA DE LOGIN GLOBAL -->
-    <div id="pantalla-login" class="absolute inset-0 z-50 flex items-center justify-center bg-gray-900/60 backdrop-blur-sm transition-opacity">
-        <div class="bg-white p-8 rounded-2xl shadow-2xl border border-gray-100 max-w-md w-full relative">
-            <div class="text-center mb-6">
-                <h1 class="text-3xl font-bold text-blue-900 tracking-wider mb-1">IGEA</h1>
-                <h2 class="text-lg font-medium text-gray-600">Portal Interno</h2>
+    <!-- PANTALLA DE LOGIN GLOBAL ESTILIZADA -->
+    <div id="pantalla-login" class="absolute inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-md transition-opacity">
+        <div class="bg-white/95 p-10 rounded-3xl shadow-2xl border border-white/40 max-w-md w-full relative">
+            <div class="text-center mb-8">
+                <div class="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-200">
+                    <span class="material-symbols-rounded text-white icon-large">domain</span>
+                </div>
+                <h1 class="text-3xl font-bold text-slate-800 tracking-tight mb-1">IGEA</h1>
+                <h2 class="text-sm font-medium text-slate-500 uppercase tracking-widest">Portal de Gestión</h2>
             </div>
             
-            <div class="space-y-4">
+            <div class="space-y-5">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Correo Electrónico</label>
-                    <input type="email" id="input-email" 
-                        class="w-full bg-gray-50 border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-400 focus:outline-none"
-                        placeholder="tu.correo@igea.com.ar">
+                    <label class="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Correo Electrónico</label>
+                    <div class="relative">
+                        <span class="material-symbols-rounded absolute left-3 top-2.5 text-slate-400">mail</span>
+                        <input type="email" id="input-email" 
+                            class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-all"
+                            placeholder="tu.correo@igea.com.ar">
+                    </div>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
-                    <input type="password" id="input-password" 
-                        class="w-full bg-gray-50 border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-400 focus:outline-none"
-                        placeholder="••••••••">
+                    <label class="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Contraseña</label>
+                    <div class="relative">
+                        <span class="material-symbols-rounded absolute left-3 top-2.5 text-slate-400">lock</span>
+                        <input type="password" id="input-password" 
+                            class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-all"
+                            placeholder="••••••••">
+                    </div>
                 </div>
                 
-                <div class="flex justify-end mt-2">
-                    <button onclick="window.recuperarClaveFirebase()" class="text-xs text-blue-600 hover:underline">¿Olvidaste tu contraseña?</button>
+                <div class="flex justify-end mt-1">
+                    <button onclick="window.recuperarClaveFirebase()" class="text-xs font-medium text-blue-600 hover:text-blue-700 transition">¿Olvidaste tu contraseña?</button>
                 </div>
 
                 <button onclick="window.iniciarSesionFirebase()"
-                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg transition shadow-md mt-4">
-                    Ingresar a la Intranet
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl transition-all shadow-lg shadow-blue-200 mt-2">
+                    Ingresar
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- MODAL (VENTANA FLOTANTE) PARA CAMBIAR CONTRASEÑA -->
-    <div id="modal-clave" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 backdrop-blur-sm">
-        <div class="bg-white p-6 rounded-xl shadow-xl w-96 relative">
-            <h3 class="text-lg font-bold text-blue-900 mb-4">Cambiar mi contraseña</h3>
-            <p class="text-sm text-gray-600 mb-4">Ingresá tu nueva clave. Recordá que debe tener al menos 6 caracteres.</p>
+    <!-- MODAL DE CAMBIO DE CLAVE -->
+    <div id="modal-clave" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm">
+        <div class="bg-white p-8 rounded-2xl shadow-xl w-96 relative border border-slate-100">
+            <div class="flex items-center gap-3 mb-4">
+                <span class="material-symbols-rounded text-blue-600">key</span>
+                <h3 class="text-lg font-bold text-slate-800">Cambiar contraseña</h3>
+            </div>
+            <p class="text-sm text-slate-600 mb-5">Ingresá tu nueva clave (mínimo 6 caracteres).</p>
             
-            <label class="block text-sm font-medium text-gray-700 mb-1">Nueva Contraseña</label>
-            <input type="password" id="input-nueva-clave" class="w-full bg-gray-50 border border-gray-300 rounded-lg px-4 py-2 mb-6 focus:ring-2 focus:ring-blue-400 focus:outline-none" placeholder="Escribí acá...">
+            <input type="password" id="input-nueva-clave" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 mb-6 focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm" placeholder="Nueva contraseña...">
             
             <div class="flex justify-end gap-3">
-                <button onclick="cerrarModalClave()" class="px-4 py-2 text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition">Cancelar</button>
-                <button onclick="window.cambiarClaveFirebase()" class="px-4 py-2 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition">Guardar Clave</button>
+                <button onclick="cerrarModalClave()" class="px-5 py-2.5 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition">Cancelar</button>
+                <button onclick="window.cambiarClaveFirebase()" class="px-5 py-2.5 text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 rounded-xl transition shadow-md shadow-blue-200">Guardar</button>
             </div>
         </div>
     </div>
@@ -76,52 +110,72 @@
     <!-- APLICACIÓN PRINCIPAL -->
     <div id="aplicacion-principal" class="hidden flex h-screen w-full relative z-10">
         
-        <!-- Menú Lateral -->
-        <aside class="w-64 bg-blue-900/95 backdrop-blur-md text-white flex flex-col shadow-xl border-r border-white/10">
-            <div class="p-6">
-                <h1 class="text-2xl font-bold tracking-wider">IGEA Adm</h1>
-                <p class="text-sm text-blue-300 mt-1">Portal de Gestión</p>
+        <!-- Menú Lateral Modernizado -->
+        <aside class="w-72 bg-white/80 backdrop-blur-xl border-r border-slate-200 flex flex-col shadow-sm">
+            <div class="p-8 flex items-center gap-3">
+                <div class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-md shadow-blue-200">
+                    <span class="material-symbols-rounded text-white">domain</span>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight text-slate-800">IGEA</h1>
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Administración</p>
+                </div>
             </div>
-            <nav class="flex-1 px-4 space-y-2" id="menu-navegacion">
-                <button id="btn-inicio" onclick="cambiarVista('inicio')" class="w-full flex items-center p-3 text-left bg-blue-800 rounded-lg transition shadow-inner">
-                    <span>🏠 Inicio</span>
+            <nav class="flex-1 px-4 space-y-1" id="menu-navegacion">
+                <button id="btn-inicio" onclick="cambiarVista('inicio')" class="w-full flex items-center gap-3 p-3 text-left bg-blue-50 text-blue-700 font-medium rounded-xl transition">
+                    <span class="material-symbols-rounded">space_dashboard</span>
+                    <span>Inicio</span>
                 </button>
-                <button id="btn-dpp" onclick="cambiarVista('dpp')" class="w-full flex items-center p-3 text-left hover:bg-blue-800 rounded-lg transition">
-                    <span>👥 DPP</span>
+                <button id="btn-dpp" onclick="cambiarVista('dpp')" class="w-full flex items-center gap-3 p-3 text-left text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium rounded-xl transition">
+                    <span class="material-symbols-rounded">badge</span>
+                    <span>Directorio DPP</span>
                 </button>
-                <button id="btn-procedimientos" onclick="cambiarVista('procedimientos')" class="w-full flex items-center p-3 text-left hover:bg-blue-800 rounded-lg transition">
-                    <span>📋 Procedimientos</span>
+                <button id="btn-procedimientos" onclick="cambiarVista('procedimientos')" class="w-full flex items-center gap-3 p-3 text-left text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium rounded-xl transition">
+                    <span class="material-symbols-rounded">rule</span>
+                    <span>Procedimientos</span>
                 </button>
-                <button id="btn-recibos" onclick="cambiarVista('recibos')" class="w-full flex items-center p-3 text-left hover:bg-blue-800 rounded-lg transition">
-                    <span>📄 Mis Recibos de Sueldo</span>
+                <button id="btn-recibos" onclick="cambiarVista('recibos')" class="w-full flex items-center gap-3 p-3 text-left text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium rounded-xl transition">
+                    <span class="material-symbols-rounded">receipt_long</span>
+                    <span>Mis Recibos</span>
                 </button>
             </nav>
-            <div class="p-4 border-t border-blue-800/50">
-                <p class="text-xs text-center text-blue-400">Versión 3.2 (Nombres en Header)</p>
+            <div class="p-6">
+                <div class="bg-slate-50 rounded-xl p-4 border border-slate-100 text-center">
+                    <p class="text-xs font-medium text-slate-500">Intranet Segura v4.0</p>
+                </div>
             </div>
         </aside>
 
         <!-- Panel Central -->
         <main class="flex-1 flex flex-col h-screen overflow-y-auto no-scrollbar">
             <!-- Encabezado superior -->
-            <header class="bg-white/80 backdrop-blur-sm shadow-sm p-4 sticky top-0 z-10 flex justify-between items-center border-b border-gray-200/50">
+            <header class="bg-white/60 backdrop-blur-md px-8 py-4 sticky top-0 z-10 flex justify-between items-center border-b border-slate-200">
                 <div class="flex items-center gap-4">
-                    <button id="btn-volver" onclick="volverAtras()" class="hidden text-blue-600 font-medium flex items-center transition bg-blue-50 px-3 py-1.5 rounded-md hover:bg-blue-100">
-                        <span class="mr-1">←</span> Volver
+                    <button id="btn-volver" onclick="volverAtras()" class="hidden text-slate-500 hover:text-slate-800 font-medium flex items-center transition bg-slate-100 px-3 py-1.5 rounded-lg hover:bg-slate-200 text-sm">
+                        <span class="material-symbols-rounded mr-1" style="font-size: 18px;">arrow_back</span> Volver
                     </button>
-                    <h2 id="titulo-seccion" class="text-xl font-semibold text-gray-800">Inicio</h2>
+                    <h2 id="titulo-seccion" class="text-2xl font-bold text-slate-800 tracking-tight">Inicio</h2>
                 </div>
                 
-                <!-- Info de usuario y Botones de Sesión -->
-                <div class="flex items-center gap-4">
-                    <span id="nombre-usuario-header" class="text-sm text-gray-700 font-bold bg-gray-100 px-3 py-1 rounded-full">Cargando...</span>
-                    <button onclick="abrirModalClave()" class="text-sm text-blue-600 hover:text-blue-800 font-medium transition">Cambiar Clave</button>
-                    <span class="text-gray-300">|</span>
-                    <button onclick="window.cerrarSesion()" class="text-sm text-red-600 hover:text-red-800 font-medium transition">Cerrar Sesión</button>
+                <!-- Info de usuario -->
+                <div class="flex items-center gap-5">
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                            <span class="material-symbols-rounded" style="font-size: 18px;">person</span>
+                        </div>
+                        <span id="nombre-usuario-header" class="text-sm text-slate-700 font-semibold">Cargando...</span>
+                    </div>
+                    <div class="w-px h-6 bg-slate-200"></div>
+                    <button onclick="abrirModalClave()" class="text-slate-500 hover:text-blue-600 transition flex items-center gap-1" title="Cambiar Clave">
+                        <span class="material-symbols-rounded">settings</span>
+                    </button>
+                    <button onclick="window.cerrarSesion()" class="text-slate-500 hover:text-red-600 transition flex items-center gap-1" title="Cerrar Sesión">
+                        <span class="material-symbols-rounded">logout</span>
+                    </button>
                 </div>
             </header>
 
-            <div id="contenido-seccion" class="p-8 w-full max-w-5xl mx-auto h-full">
+            <div id="contenido-seccion" class="p-8 w-full max-w-6xl mx-auto h-full">
                 <!-- Contenido dinámico -->
             </div>
         </main>
@@ -171,28 +225,32 @@
             document.getElementById('modal-clave').classList.remove('hidden');
             document.getElementById('input-nueva-clave').value = ''; 
         }
-
         function cerrarModalClave() {
             document.getElementById('modal-clave').classList.add('hidden');
         }
 
         function renderizarInicio() {
             return `
-                <div class="bg-white/90 p-8 rounded-2xl shadow-lg border border-white/50">
-                    <h3 class="text-3xl font-bold text-blue-900 mb-4">Bienvenido al Portal de Administración</h3>
-                    <p class="text-gray-600 mb-8 text-lg">Gestioná los recursos de manera rápida y centralizada.</p>
+                <div class="mb-10">
+                    <h3 class="text-3xl font-bold text-slate-800 mb-2 tracking-tight">Hola, buen día</h3>
+                    <p class="text-slate-500 text-lg">Centralizá y gestioná tu documentación operativa.</p>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group" onclick="cambiarVista('dpp')">
+                        <div class="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                            <span class="material-symbols-rounded icon-large">badge</span>
+                        </div>
+                        <h4 class="font-bold text-xl text-slate-800 mb-2">Directorio DPP</h4>
+                        <p class="text-slate-500 leading-relaxed">Consultá las Descripciones de Perfil y Puestos de todo el equipo.</p>
+                    </div>
                     
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="bg-gradient-to-br from-blue-50 to-white p-6 rounded-xl border border-blue-100 shadow-sm hover:shadow-md cursor-pointer hover:-translate-y-1 transition duration-300" onclick="cambiarVista('dpp')">
-                            <div class="text-4xl mb-3">👥</div>
-                            <h4 class="font-bold text-xl text-blue-900">Directorio DPP</h4>
-                            <p class="text-gray-600 mt-2">Consultá las Descripciones de Perfil y Puestos del equipo de IGEA.</p>
+                    <div class="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group" onclick="cambiarVista('procedimientos')">
+                        <div class="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+                            <span class="material-symbols-rounded icon-large">rule</span>
                         </div>
-                        <div class="bg-gradient-to-br from-emerald-50 to-white p-6 rounded-xl border border-emerald-100 shadow-sm hover:shadow-md cursor-pointer hover:-translate-y-1 transition duration-300" onclick="cambiarVista('procedimientos')">
-                            <div class="text-4xl mb-3">📋</div>
-                            <h4 class="font-bold text-xl text-emerald-900">Procedimientos</h4>
-                            <p class="text-gray-600 mt-2">Accedé a la normativa vigente y protocolos internos.</p>
-                        </div>
+                        <h4 class="font-bold text-xl text-slate-800 mb-2">Procedimientos</h4>
+                        <p class="text-slate-500 leading-relaxed">Accedé a la normativa vigente, manuales y protocolos internos.</p>
                     </div>
                 </div>
             `;
@@ -200,40 +258,48 @@
 
         function renderizarDPP() {
             let filasHTML = archivosDrive.dpp.map(doc => `
-                <div class="p-4 border-b border-gray-100 flex justify-between items-center hover:bg-blue-50 transition cursor-pointer" onclick="abrirDocumento('${doc.nombre}', '${doc.url}')">
-                    <div class="flex items-center gap-3">
-                        <div class="bg-blue-100 text-blue-600 p-2 rounded-lg">👤</div>
+                <div class="p-5 border-b border-slate-100 flex justify-between items-center hover:bg-slate-50 transition cursor-pointer group" onclick="abrirDocumento('${doc.nombre}', '${doc.url}')">
+                    <div class="flex items-center gap-4">
+                        <div class="bg-blue-50 text-blue-600 p-3 rounded-xl group-hover:bg-blue-100 transition">
+                            <span class="material-symbols-rounded">person_pin</span>
+                        </div>
                         <div>
-                            <span class="font-semibold text-gray-800 block">${doc.nombre}</span>
-                            <span class="text-sm text-gray-500">${doc.area}</span>
+                            <span class="font-bold text-slate-800 block text-lg">${doc.nombre}</span>
+                            <span class="text-sm font-medium text-slate-500">${doc.area}</span>
                         </div>
                     </div>
-                    <button class="bg-white border border-gray-200 text-blue-600 px-4 py-2 rounded-lg hover:bg-blue-600 hover:text-white transition shadow-sm text-sm font-medium">Ver Perfil</button>
+                    <button class="text-slate-400 group-hover:text-blue-600 transition flex items-center">
+                        <span class="material-symbols-rounded">open_in_new</span>
+                    </button>
                 </div>
             `).join('');
 
             return `
-                <div class="bg-white/90 p-6 rounded-2xl shadow-lg border border-white/50">
-                    <p class="text-gray-600 mb-6">Seleccioná un perfil para ver el documento oficial.</p>
-                    <div class="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-                        ${filasHTML}
+                <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+                    <div class="p-6 border-b border-slate-100 bg-slate-50/50">
+                        <p class="text-slate-600 font-medium">Seleccioná un perfil de la lista para visualizar el documento oficial.</p>
                     </div>
+                    <div>${filasHTML}</div>
                 </div>
             `;
         }
 
         function renderizarProcedimientos() {
             let itemsHTML = archivosDrive.procedimientos.map(doc => `
-                <li class="flex items-center justify-between p-4 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:border-emerald-300 transition cursor-pointer" onclick="abrirDocumento('${doc.nombre}', '${doc.url}')">
-                    <div class="flex items-center">
-                        <span class="text-3xl mr-4 p-2 bg-emerald-50 rounded-lg">📄</span>
+                <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:border-emerald-200 transition cursor-pointer flex justify-between items-center group" onclick="abrirDocumento('${doc.nombre}', '${doc.url}')">
+                    <div class="flex items-center gap-4">
+                        <div class="bg-emerald-50 text-emerald-600 p-3 rounded-xl group-hover:bg-emerald-100 transition">
+                            <span class="material-symbols-rounded">description</span>
+                        </div>
                         <div>
-                            <h4 class="font-semibold text-gray-800 text-lg">${doc.nombre}</h4>
-                            <p class="text-sm text-emerald-600 font-medium">Actualizado: ${doc.fecha}</p>
+                            <h4 class="font-bold text-slate-800 text-lg">${doc.nombre}</h4>
+                            <p class="text-sm text-slate-500 font-medium mt-1 flex items-center gap-1">
+                                <span class="material-symbols-rounded" style="font-size: 14px;">update</span> Actualizado: ${doc.fecha}
+                            </p>
                         </div>
                     </div>
-                    <span class="text-gray-400 hover:text-emerald-600 transition">➜</span>
-                </li>
+                    <span class="material-symbols-rounded text-slate-300 group-hover:text-emerald-500 transition">arrow_forward_ios</span>
+                </div>
             `).join('');
 
             return `<div class="space-y-4">${itemsHTML}</div>`;
@@ -244,9 +310,10 @@
 
             if (empleado) {
                 return `
-                    <div class="w-full h-[calc(100vh-12rem)] bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden relative">
-                        <div id="spinner-carga" class="absolute inset-0 flex items-center justify-center bg-gray-50 z-0">
-                            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                    <div class="w-full h-[calc(100vh-12rem)] bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden relative">
+                        <div id="spinner-carga" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-50 z-0">
+                            <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mb-4"></div>
+                            <span class="text-sm font-medium text-slate-500">Conectando con Google Drive...</span>
                         </div>
                         <iframe src="${empleado.urlCarpeta}" class="w-full h-full relative z-10 border-0 bg-white"
                             onload="document.getElementById('spinner-carga').style.display='none'" allow="autoplay">
@@ -255,9 +322,10 @@
                 `;
             } else {
                 return `
-                    <div class="bg-red-50 p-6 rounded-xl border border-red-200 text-center shadow-sm">
-                        <h3 class="text-xl font-bold text-red-700 mb-2">Legajo no encontrado</h3>
-                        <p class="text-red-600">Tu correo (${usuarioActualEmail}) no tiene una carpeta de recibos asociada. Comunicáte con Administración.</p>
+                    <div class="bg-red-50 p-8 rounded-3xl border border-red-100 text-center flex flex-col items-center">
+                        <span class="material-symbols-rounded text-red-400 text-5xl mb-3">error</span>
+                        <h3 class="text-xl font-bold text-red-800 mb-2">Legajo no vinculado</h3>
+                        <p class="text-red-600 font-medium">El correo ${usuarioActualEmail} no tiene una carpeta asociada en el sistema.</p>
                     </div>
                 `;
             }
@@ -266,10 +334,10 @@
         function actualizarMenuActivo(vista) {
             ['inicio', 'dpp', 'procedimientos', 'recibos'].forEach(v => {
                 const btn = document.getElementById(`btn-${v}`);
-                if (btn) btn.className = "w-full flex items-center p-3 text-left hover:bg-blue-800 rounded-lg transition";
+                if (btn) btn.className = "w-full flex items-center gap-3 p-3 text-left text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium rounded-xl transition";
             });
             const btnActivo = document.getElementById(`btn-${vista}`);
-            if (btnActivo) btnActivo.className = "w-full flex items-center p-3 text-left bg-blue-800 rounded-lg transition shadow-inner";
+            if (btnActivo) btnActivo.className = "w-full flex items-center gap-3 p-3 text-left bg-blue-50 text-blue-700 font-medium rounded-xl transition shadow-sm";
         }
 
         function cambiarVista(vista) {
@@ -280,9 +348,9 @@
             const titulo = document.getElementById('titulo-seccion');
 
             if (vista === 'inicio') { titulo.textContent = "Inicio"; contenido.innerHTML = renderizarInicio(); }
-            if (vista === 'dpp') { titulo.textContent = "Directorio DPP"; contenido.innerHTML = renderizarDPP(); }
-            if (vista === 'procedimientos') { titulo.textContent = "Procedimientos"; contenido.innerHTML = renderizarProcedimientos(); }
-            if (vista === 'recibos') { titulo.textContent = "Legajo Digital Privado"; contenido.innerHTML = renderizarRecibos(); }
+            if (vista === 'dpp') { titulo.textContent = "Directorio de Perfiles"; contenido.innerHTML = renderizarDPP(); }
+            if (vista === 'procedimientos') { titulo.textContent = "Procedimientos Internos"; contenido.innerHTML = renderizarProcedimientos(); }
+            if (vista === 'recibos') { titulo.textContent = "Legajo Digital"; contenido.innerHTML = renderizarRecibos(); }
         }
 
         function abrirDocumento(titulo, url) {
@@ -295,9 +363,10 @@
             actualizarMenuActivo('');
 
             contenedorContenido.innerHTML = `
-                <div class="w-full h-[calc(100vh-12rem)] bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden relative">
-                    <div id="spinner-carga" class="absolute inset-0 flex items-center justify-center bg-gray-50 z-0">
-                        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                <div class="w-full h-[calc(100vh-12rem)] bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden relative">
+                    <div id="spinner-carga" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-50 z-0">
+                        <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mb-4"></div>
+                        <span class="text-sm font-medium text-slate-500">Cargando documento...</span>
                     </div>
                     <iframe 
                         src="${url}" 
@@ -313,7 +382,7 @@
     </script>
     
     <!-- ========================================== -->
-    <!-- CONFIGURACIÓN DEL CEREBRO DE FIREBASE      -->
+    <!-- CONFIGURACIÓN DE FIREBASE                  -->
     <!-- ========================================== -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -331,18 +400,14 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
 
-        // ACTUALIZAMOS EL VIGILANTE PARA QUE BUSQUE EL NOMBRE
         onAuthStateChanged(auth, (user) => {
             const pantallaLogin = document.getElementById('pantalla-login');
             const appPrincipal = document.getElementById('aplicacion-principal');
 
             if (user) {
                 usuarioActualEmail = user.email;
-                
-                // LÓGICA NUEVA: Buscar el empleado por su correo
                 const empleadoEncontrado = baseRecibos.find(emp => emp.email.toLowerCase() === user.email.toLowerCase());
                 
-                // Si lo encontramos en la lista mostramos su nombre, sino dejamos su mail por defecto
                 if (empleadoEncontrado) {
                     document.getElementById('nombre-usuario-header').textContent = empleadoEncontrado.nombre;
                 } else {
@@ -372,7 +437,7 @@
             if(!email) { alert("Por favor, escribí tu correo electrónico arriba y volvé a presionar este botón."); return; }
             sendPasswordResetEmail(auth, email)
                 .then(() => alert("¡Correo enviado a " + email + "! Revisá tu bandeja de entrada."))
-                .catch((error) => alert("Error al enviar el correo. (" + error.message + ")"));
+                .catch((error) => alert("Error al enviar el correo."));
         };
 
         window.cerrarSesion = function() {
@@ -397,9 +462,9 @@
                     cerrarModalClave(); 
                 }).catch((error) => {
                     if(error.code === 'auth/requires-recent-login') {
-                        alert("Por seguridad, para cambiar la clave tenés que haber iniciado sesión recientemente. Por favor, cerrá sesión, volvé a ingresar e intentalo de nuevo.");
+                        alert("Por seguridad, cerrá sesión y volvé a ingresar para cambiar la clave.");
                     } else {
-                        alert("Error al actualizar la contraseña: " + error.message);
+                        alert("Error al actualizar: " + error.message);
                     }
                 });
             }
