@@ -153,7 +153,6 @@
                     <span class="material-symbols-rounded">receipt_long</span>
                     <span>Mis Recibos</span>
                 </button>
-                <!-- NUEVO BOTÓN EN EL MENÚ PARA ABSENTIFY -->
                 <a href="https://app.absentify.com" target="_blank" class="w-full flex items-center gap-3 p-3 text-left text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium rounded-xl transition">
                     <span class="material-symbols-rounded">event_note</span>
                     <span>Absentify (Vacaciones)</span>
@@ -161,7 +160,7 @@
             </nav>
             <div class="p-6">
                 <div class="bg-slate-50 rounded-xl p-4 border border-slate-100 text-center">
-                    <p class="text-xs font-medium text-slate-500">Intranet Segura v4.7</p>
+                    <p class="text-xs font-medium text-slate-500">Intranet Segura v4.8</p>
                 </div>
             </div>
         </aside>
@@ -269,10 +268,8 @@
                     </div>
                 </div>
                 
-                <!-- GRILLA CON 4 ACCESOS DIRECTOS (INCLUYENDO ABSENTIFY) -->
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     
-                    <!-- Tarjeta 1: DPP -->
                     <div class="bg-white p-6 rounded-3xl border-t-4 border-t-blue-500 border-x border-b border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group" onclick="cambiarVista('dpp')">
                         <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-4 group-hover:bg-blue-600 group-hover:text-white transition-colors">
                             <span class="material-symbols-rounded icon-large">badge</span>
@@ -281,7 +278,6 @@
                         <p class="text-slate-500 leading-relaxed text-xs">Descripciones de perfil y puestos.</p>
                     </div>
                     
-                    <!-- Tarjeta 2: Procedimientos -->
                     <div class="bg-white p-6 rounded-3xl border-t-4 border-t-emerald-500 border-x border-b border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group" onclick="cambiarVista('procedimientos')">
                         <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mb-4 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
                             <span class="material-symbols-rounded icon-large">rule</span>
@@ -290,7 +286,6 @@
                         <p class="text-slate-500 leading-relaxed text-xs">Normativa vigente y protocolos.</p>
                     </div>
 
-                    <!-- Tarjeta 3: Recibos -->
                     <div class="bg-white p-6 rounded-3xl border-t-4 border-t-indigo-500 border-x border-b border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group" onclick="cambiarVista('recibos')">
                         <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mb-4 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
                             <span class="material-symbols-rounded icon-large">receipt_long</span>
@@ -299,7 +294,6 @@
                         <p class="text-slate-500 leading-relaxed text-xs">Carpeta privada de sueldos.</p>
                     </div>
 
-                    <!-- Tarjeta 4: Absentify (Enlace Externo) -->
                     <a href="https://app.absentify.com" target="_blank" class="bg-white p-6 rounded-3xl border-t-4 border-t-amber-500 border-x border-b border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group block">
                         <div class="w-12 h-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center mb-4 group-hover:bg-amber-600 group-hover:text-white transition-colors">
                             <span class="material-symbols-rounded icon-large">event_note</span>
@@ -361,12 +355,23 @@
             return `<div class="space-y-4">${itemsHTML}</div>`;
         }
 
+        // FUNCIÓN MEJORADA: Incluye visor de Drive + Botón directo de respaldo por si el navegador bloquea la carpeta
         function renderizarRecibos() {
             const empleado = baseRecibos.find(emp => emp.email.toLowerCase() === usuarioActualEmail.toLowerCase());
 
             if (empleado) {
+                // Extraemos dinámicamente el ID de la carpeta para armar el botón de enlace directo
+                let idCarpeta = empleado.urlCarpeta.split('id=')[1].split('#')[0];
+                let linkDirecto = `https://drive.google.com/drive/folders/${idCarpeta}`;
+
                 return `
-                    <div class="w-full h-[calc(100vh-12rem)] bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden relative">
+                    <div class="mb-4 flex flex-col sm:flex-row justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-slate-200 gap-3">
+                        <span class="text-sm text-slate-600 font-medium text-center sm:text-left">¿Problemas para visualizar abajo? Abrila en una pestaña nueva:</span>
+                        <a href="${linkDirecto}" target="_blank" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition shadow-sm flex items-center gap-1.5 shrink-0">
+                            <span class="material-symbols-rounded" style="font-size: 16px;">open_in_new</span> Abrir en Google Drive
+                        </a>
+                    </div>
+                    <div class="w-full h-[calc(100vh-16rem)] bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden relative">
                         <div id="spinner-carga" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-50 z-0">
                             <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mb-4"></div>
                             <span class="text-sm font-medium text-slate-500">Conectando con Google Drive...</span>
@@ -515,7 +520,7 @@
 
             if(user) {
                 updatePassword(user, nuevaClave).then(() => {
-                    alert("¡Excelente! Tu contraseña se actualizó correctamente.");
+                    alert("¡Excelente! Tecnológicamente tu contraseña se actualizó correctamente.");
                     cerrarModalClave(); 
                 }).catch((error) => {
                     if(error.code === 'auth/requires-recent-login') {
