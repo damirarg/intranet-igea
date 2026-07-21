@@ -6,6 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IGEA - Portal Interno</title>
     
+    <!-- FAVICON: Reemplaza el icono del mundo por tu logo corporativo -->
+    <link rel="icon" href="./assets/logo.jpg" type="image/jpeg">
+    
     <!-- Importamos Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
@@ -126,7 +129,7 @@
     <!-- APLICACIÓN PRINCIPAL -->
     <div id="aplicacion-principal" class="hidden flex flex-col md:flex-row h-screen w-full relative z-10">
         
-        <!-- Menú Lateral (Adaptable: barra superior en celu, lateral en compu) -->
+        <!-- Menú Lateral -->
         <aside class="w-full md:w-72 bg-white/90 backdrop-blur-xl border-b md:border-r border-slate-200 flex flex-col shadow-sm shrink-0">
             <div class="p-4 md:p-8 flex items-center justify-between md:justify-start gap-3">
                 <div class="flex items-center gap-3">
@@ -138,7 +141,6 @@
                     </div>
                 </div>
             </div>
-            <!-- Navegación oculta o compacta en móvil para evitar desbordes -->
             <nav class="flex md:flex-1 flex-row md:flex-col overflow-x-auto md:overflow-visible px-4 py-2 md:py-0 space-x-2 md:space-x-0 md:space-y-2 no-scrollbar" id="menu-navegacion">
                 <button id="btn-inicio" onclick="cambiarVista('inicio')" class="flex items-center gap-2 md:gap-3 p-2.5 md:p-3 text-left bg-blue-50 text-blue-700 font-medium rounded-xl transition shrink-0">
                     <span class="material-symbols-rounded">space_dashboard</span>
@@ -163,7 +165,7 @@
             </nav>
             <div class="hidden md:block p-6">
                 <div class="bg-slate-50 rounded-xl p-4 border border-slate-100 text-center">
-                    <p class="text-xs font-medium text-slate-500">Intranet Segura v4.9</p>
+                    <p class="text-xs font-medium text-slate-500">Intranet Segura v5.0</p>
                 </div>
             </div>
         </aside>
