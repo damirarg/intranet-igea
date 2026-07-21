@@ -64,16 +64,15 @@
 
     <!-- PANTALLA DE LOGIN GLOBAL CON FONDO DE CONSULTORIO -->
     <div id="pantalla-login" class="absolute inset-0 z-50 flex items-center justify-center transition-opacity" 
-         style="background-image: url('assets/consultorio.jpg'); background-size: cover; background-position: center;">
+         style="background-image: url('./assets/consultorio.jpg'); background-size: cover; background-position: center;">
         
-        <!-- Capa oscura para oscurecer la foto y que resalte el cuadro blanco -->
         <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"></div>
 
         <div class="bg-white/95 p-10 rounded-3xl shadow-2xl border border-white/40 max-w-md w-full relative z-10">
             <div class="text-center mb-8">
-                <!-- LOGO ACTUALIZADO A .JPG -->
+                <!-- LOGO LOGIN -->
                 <div class="mx-auto mb-6 flex justify-center animar-entrada">
-                    <img src="assets/logo.jpg" alt="Logo IGEA" class="h-20 object-contain drop-shadow-lg">
+                    <img src="./assets/logo.jpg" alt="Logo IGEA" class="h-20 object-contain drop-shadow-lg" onerror="this.src='https://via.placeholder.com/150x60?text=LOGO+IGEA'">
                 </div>
                 <h1 class="text-3xl font-bold text-slate-800 tracking-tight mb-1">IGEA</h1>
                 <h2 class="text-sm font-medium text-slate-500 uppercase tracking-widest">Portal de Gestión</h2>
@@ -131,18 +130,18 @@
     <div id="aplicacion-principal" class="hidden flex h-screen w-full relative z-10">
         
         <!-- Menú Lateral -->
-        <aside class="w-72 bg-white/80 backdrop-blur-xl border-r border-slate-200 flex flex-col shadow-sm">
+        <aside class="w-72 bg-white/90 backdrop-blur-xl border-r border-slate-200 flex flex-col shadow-sm">
             <div class="p-8 flex items-center gap-3">
-                <!-- LOGO ACTUALIZADO A .JPG EN EL MENÚ -->
+                <!-- LOGO MENÚ LATERAL -->
                 <div class="animar-flotar">
-                    <img src="assets/logo.jpg" alt="Logo IGEA Pequeño" class="h-10 object-contain drop-shadow-sm">
+                    <img src="./assets/logo.jpg" alt="Logo IGEA" class="h-10 object-contain drop-shadow-sm" onerror="this.src='https://via.placeholder.com/40x40?text=IGEA'">
                 </div>
                 <div>
                     <h1 class="text-xl font-bold tracking-tight text-slate-800">IGEA</h1>
                     <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Administración</p>
                 </div>
             </div>
-            <nav class="flex-1 px-4 space-y-1" id="menu-navegacion">
+            <nav class="flex-1 px-4 space-y-2" id="menu-navegacion">
                 <button id="btn-inicio" onclick="cambiarVista('inicio')" class="w-full flex items-center gap-3 p-3 text-left bg-blue-50 text-blue-700 font-medium rounded-xl transition">
                     <span class="material-symbols-rounded">space_dashboard</span>
                     <span>Inicio</span>
@@ -162,14 +161,14 @@
             </nav>
             <div class="p-6">
                 <div class="bg-slate-50 rounded-xl p-4 border border-slate-100 text-center">
-                    <p class="text-xs font-medium text-slate-500">Intranet Segura v4.2</p>
+                    <p class="text-xs font-medium text-slate-500">Intranet Segura v4.3</p>
                 </div>
             </div>
         </aside>
 
         <!-- Panel Central -->
         <main class="flex-1 flex flex-col h-screen overflow-y-auto no-scrollbar">
-            <header class="bg-white/60 backdrop-blur-md px-8 py-4 sticky top-0 z-10 flex justify-between items-center border-b border-slate-200">
+            <header class="bg-white/70 backdrop-blur-md px-8 py-4 sticky top-0 z-10 flex justify-between items-center border-b border-slate-200">
                 <div class="flex items-center gap-4">
                     <button id="btn-volver" onclick="volverAtras()" class="hidden text-slate-500 hover:text-slate-800 font-medium flex items-center transition bg-slate-100 px-3 py-1.5 rounded-lg hover:bg-slate-200 text-sm">
                         <span class="material-symbols-rounded mr-1" style="font-size: 18px;">arrow_back</span> Volver
@@ -250,27 +249,51 @@
 
         function renderizarInicio() {
             return `
-                <div class="mb-10">
-                    <h3 class="text-3xl font-bold text-slate-800 mb-2 tracking-tight">Hola, buen día</h3>
-                    <p class="text-slate-500 text-lg">Centralizá y gestioná tu documentación operativa.</p>
+                <!-- BANNER DINÁMICO CON VIDEO DE ADN -->
+                <div class="relative w-full h-48 md:h-56 rounded-3xl overflow-hidden mb-8 shadow-sm flex items-center px-10 border border-slate-200">
+                    <video autoplay loop muted playsinline class="absolute inset-0 w-full h-full object-cover opacity-20">
+                        <!-- IMPORTANTE: El video debe llamarse helice-adn.mp4 -->
+                        <source src="./assets/helice-adn.mp4" type="video/mp4">
+                    </video>
+                    <!-- Filtro degradado para asegurar lectura del texto -->
+                    <div class="absolute inset-0 bg-gradient-to-r from-white via-white/80 to-transparent"></div>
+                    
+                    <div class="relative z-10">
+                        <h3 class="text-3xl md:text-4xl font-bold text-slate-800 mb-2 tracking-tight">Hola, buen día</h3>
+                        <p class="text-slate-600 text-lg font-medium">Centralizá y gestioná tu documentación operativa y legajo personal.</p>
+                    </div>
                 </div>
                 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group" onclick="cambiarVista('dpp')">
+                <!-- AGREGAMOS LA TERCERA TARJETA (RECIBOS) -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    
+                    <!-- Tarjeta 1: DPP -->
+                    <div class="bg-white p-8 rounded-3xl border-t-4 border-t-blue-500 border-x border-b border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group" onclick="cambiarVista('dpp')">
                         <div class="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-blue-600 group-hover:text-white transition-colors">
                             <span class="material-symbols-rounded icon-large">badge</span>
                         </div>
                         <h4 class="font-bold text-xl text-slate-800 mb-2">Directorio DPP</h4>
-                        <p class="text-slate-500 leading-relaxed">Consultá las Descripciones de Perfil y Puestos de todo el equipo.</p>
+                        <p class="text-slate-500 leading-relaxed text-sm">Consultá las Descripciones de Perfil y Puestos de todo el equipo.</p>
                     </div>
                     
-                    <div class="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group" onclick="cambiarVista('procedimientos')">
+                    <!-- Tarjeta 2: Procedimientos -->
+                    <div class="bg-white p-8 rounded-3xl border-t-4 border-t-emerald-500 border-x border-b border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group" onclick="cambiarVista('procedimientos')">
                         <div class="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
                             <span class="material-symbols-rounded icon-large">rule</span>
                         </div>
                         <h4 class="font-bold text-xl text-slate-800 mb-2">Procedimientos</h4>
-                        <p class="text-slate-500 leading-relaxed">Accedé a la normativa vigente, manuales y protocolos internos.</p>
+                        <p class="text-slate-500 leading-relaxed text-sm">Accedé a la normativa vigente, manuales y protocolos internos.</p>
                     </div>
+
+                    <!-- Tarjeta 3: Recibos -->
+                    <div class="bg-white p-8 rounded-3xl border-t-4 border-t-indigo-500 border-x border-b border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group" onclick="cambiarVista('recibos')">
+                        <div class="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                            <span class="material-symbols-rounded icon-large">receipt_long</span>
+                        </div>
+                        <h4 class="font-bold text-xl text-slate-800 mb-2">Mis Recibos</h4>
+                        <p class="text-slate-500 leading-relaxed text-sm">Ingresá a tu carpeta privada para ver y descargar tus recibos de sueldo.</p>
+                    </div>
+
                 </div>
             `;
         }
