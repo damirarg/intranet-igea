@@ -5,13 +5,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IGEA - Intranet App</title>
-    <!-- Importamos Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { position: relative; background-color: #f8fafc; }
         .app-background {
             position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
-            /* Dejamos un degradado suave y limpio, eliminando las líneas molestas */
             background:
                 radial-gradient(circle at 20% 20%, rgba(56, 189, 248, 0.12), transparent 35%),
                 radial-gradient(circle at 80% 16%, rgba(16, 185, 129, 0.10), transparent 30%),
@@ -59,7 +57,23 @@
         </div>
     </div>
 
-    <!-- APLICACIÓN PRINCIPAL (OCULTA HASTA QUE SE LOGUEAN) -->
+    <!-- MODAL (VENTANA FLOTANTE) PARA CAMBIAR CONTRASEÑA -->
+    <div id="modal-clave" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 backdrop-blur-sm">
+        <div class="bg-white p-6 rounded-xl shadow-xl w-96 relative">
+            <h3 class="text-lg font-bold text-blue-900 mb-4">Cambiar mi contraseña</h3>
+            <p class="text-sm text-gray-600 mb-4">Ingresá tu nueva clave. Recordá que debe tener al menos 6 caracteres.</p>
+            
+            <label class="block text-sm font-medium text-gray-700 mb-1">Nueva Contraseña</label>
+            <input type="password" id="input-nueva-clave" class="w-full bg-gray-50 border border-gray-300 rounded-lg px-4 py-2 mb-6 focus:ring-2 focus:ring-blue-400 focus:outline-none" placeholder="Escribí acá...">
+            
+            <div class="flex justify-end gap-3">
+                <button onclick="cerrarModalClave()" class="px-4 py-2 text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition">Cancelar</button>
+                <button onclick="window.cambiarClaveFirebase()" class="px-4 py-2 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition">Guardar Clave</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- APLICACIÓN PRINCIPAL -->
     <div id="aplicacion-principal" class="hidden flex h-screen w-full relative z-10">
         
         <!-- Menú Lateral -->
@@ -83,7 +97,7 @@
                 </button>
             </nav>
             <div class="p-4 border-t border-blue-800/50">
-                <p class="text-xs text-center text-blue-400">Versión 3.0 (Segura)</p>
+                <p class="text-xs text-center text-blue-400">Versión 3.2 (Nombres en Header)</p>
             </div>
         </aside>
 
@@ -98,9 +112,11 @@
                     <h2 id="titulo-seccion" class="text-xl font-semibold text-gray-800">Inicio</h2>
                 </div>
                 
-                <!-- Info de usuario y Cerrar Sesión -->
+                <!-- Info de usuario y Botones de Sesión -->
                 <div class="flex items-center gap-4">
-                    <span id="nombre-usuario-header" class="text-sm text-gray-600 font-medium bg-gray-100 px-3 py-1 rounded-full">Cargando...</span>
+                    <span id="nombre-usuario-header" class="text-sm text-gray-700 font-bold bg-gray-100 px-3 py-1 rounded-full">Cargando...</span>
+                    <button onclick="abrirModalClave()" class="text-sm text-blue-600 hover:text-blue-800 font-medium transition">Cambiar Clave</button>
+                    <span class="text-gray-300">|</span>
                     <button onclick="window.cerrarSesion()" class="text-sm text-red-600 hover:text-red-800 font-medium transition">Cerrar Sesión</button>
                 </div>
             </header>
@@ -111,14 +127,10 @@
         </main>
     </div>
 
-    <!-- Lógica JavaScript -->
+    <!-- Lógica JavaScript (Visual) -->
     <script>
-        // VARIABLE GLOBAL PARA SABER QUIÉN INGRESÓ
         let usuarioActualEmail = "";
 
-        // ==========================================
-        // BASE DE DATOS DE RECIBOS (MAPEADOS POR MAIL)
-        // ==========================================
         const baseRecibos = [
             { email: "damirodriguez81@gmail.com", nombre: "RODRIGUEZ Damián", urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1rm4KzCg1kzz2331RipWsxF_VHW22RUxc#list" },
             { email: "antonela.db08@gmail.com", nombre: "BARCA Antonela", urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1d_XCX3rW4K-TrOuFl6RphGW59GGS75rp#list" },
@@ -139,9 +151,6 @@
             { email: "mvalero@igea.com.ar", nombre: "VALERO Manuel", urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1DTnWeQVkxQ_mQ7EJEU0w4ygFnFlxjnO6#list" }
         ];
 
-        // ==========================================
-        // ARCHIVOS DE DRIVE COMUNES (RESTAURADOS)
-        // ==========================================
         const archivosDrive = {
             dpp: [
                 { nombre: "Coordinador Operativo, Administrativo y de Finanzas", area: "Administración y Finanzas", url: "https://docs.google.com/document/d/1IaOfr1qIjGI6kKGbioG84X5zZU9oOaoF/preview" },
@@ -158,9 +167,15 @@
 
         let seccionActual = 'inicio';
 
-        // ==========================================
-        // FUNCIONES DE RENDERIZADO
-        // ==========================================
+        function abrirModalClave() {
+            document.getElementById('modal-clave').classList.remove('hidden');
+            document.getElementById('input-nueva-clave').value = ''; 
+        }
+
+        function cerrarModalClave() {
+            document.getElementById('modal-clave').classList.add('hidden');
+        }
+
         function renderizarInicio() {
             return `
                 <div class="bg-white/90 p-8 rounded-2xl shadow-lg border border-white/50">
@@ -183,7 +198,6 @@
             `;
         }
 
-        // Restauramos el renderizado completo de DPP
         function renderizarDPP() {
             let filasHTML = archivosDrive.dpp.map(doc => `
                 <div class="p-4 border-b border-gray-100 flex justify-between items-center hover:bg-blue-50 transition cursor-pointer" onclick="abrirDocumento('${doc.nombre}', '${doc.url}')">
@@ -208,7 +222,6 @@
             `;
         }
 
-        // Restauramos el renderizado completo de Procedimientos
         function renderizarProcedimientos() {
             let itemsHTML = archivosDrive.procedimientos.map(doc => `
                 <li class="flex items-center justify-between p-4 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:border-emerald-300 transition cursor-pointer" onclick="abrirDocumento('${doc.nombre}', '${doc.url}')">
@@ -250,9 +263,6 @@
             }
         }
 
-        // ==========================================
-        // CONTROLADORES DE INTERFAZ
-        // ==========================================
         function actualizarMenuActivo(vista) {
             ['inicio', 'dpp', 'procedimientos', 'recibos'].forEach(v => {
                 const btn = document.getElementById(`btn-${v}`);
@@ -275,7 +285,6 @@
             if (vista === 'recibos') { titulo.textContent = "Legajo Digital Privado"; contenido.innerHTML = renderizarRecibos(); }
         }
 
-        // Agregamos la función abrirDocumento que se había perdido
         function abrirDocumento(titulo, url) {
             const contenedorContenido = document.getElementById('contenido-seccion');
             const tituloSeccion = document.getElementById('titulo-seccion');
@@ -308,7 +317,7 @@
     <!-- ========================================== -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+        import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail, onAuthStateChanged, signOut, updatePassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBg0u_Se2Od--7wbZFwqWKRdUv_IrYiXw0",
@@ -322,34 +331,40 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
 
-        // EL VIGILANTE: Se ejecuta solo cada vez que alguien entra o sale
+        // ACTUALIZAMOS EL VIGILANTE PARA QUE BUSQUE EL NOMBRE
         onAuthStateChanged(auth, (user) => {
             const pantallaLogin = document.getElementById('pantalla-login');
             const appPrincipal = document.getElementById('aplicacion-principal');
 
             if (user) {
-                // Hay sesión activa
                 usuarioActualEmail = user.email;
-                document.getElementById('nombre-usuario-header').textContent = user.email;
                 
-                pantallaLogin.classList.add('hidden'); // Ocultar Login
-                appPrincipal.classList.remove('hidden'); // Mostrar Intranet
-                cambiarVista('inicio'); // Cargar Inicio por defecto
+                // LÓGICA NUEVA: Buscar el empleado por su correo
+                const empleadoEncontrado = baseRecibos.find(emp => emp.email.toLowerCase() === user.email.toLowerCase());
+                
+                // Si lo encontramos en la lista mostramos su nombre, sino dejamos su mail por defecto
+                if (empleadoEncontrado) {
+                    document.getElementById('nombre-usuario-header').textContent = empleadoEncontrado.nombre;
+                } else {
+                    document.getElementById('nombre-usuario-header').textContent = user.email;
+                }
+                
+                pantallaLogin.classList.add('hidden');
+                appPrincipal.classList.remove('hidden');
+                cambiarVista('inicio');
             } else {
-                // No hay sesión activa
                 usuarioActualEmail = "";
-                pantallaLogin.classList.remove('hidden'); // Mostrar Login
-                appPrincipal.classList.add('hidden'); // Ocultar Intranet
+                pantallaLogin.classList.remove('hidden');
+                appPrincipal.classList.add('hidden');
             }
         });
 
-        // Funciones conectadas a los botones del HTML
         window.iniciarSesionFirebase = function() {
             const email = document.getElementById('input-email').value;
             const password = document.getElementById('input-password').value;
             if(!email || !password) { alert("Por favor, completá todos los datos."); return; }
             signInWithEmailAndPassword(auth, email, password)
-                .catch((error) => alert("Error: Verificá tus credenciales. (" + error.message + ")"));
+                .catch((error) => alert("Error: Verificá tus credenciales."));
         };
 
         window.recuperarClaveFirebase = function() {
@@ -362,9 +377,32 @@
 
         window.cerrarSesion = function() {
             signOut(auth).then(() => {
-                document.getElementById('input-password').value = ''; // Limpiamos el campo de contraseña
-                document.getElementById('input-email').value = ''; // Limpiamos el campo de correo
+                document.getElementById('input-password').value = ''; 
+                document.getElementById('input-email').value = ''; 
             });
+        };
+
+        window.cambiarClaveFirebase = function() {
+            const user = auth.currentUser;
+            const nuevaClave = document.getElementById('input-nueva-clave').value;
+
+            if(!nuevaClave || nuevaClave.length < 6) {
+                alert("Por favor, ingresá una contraseña que tenga al menos 6 caracteres.");
+                return;
+            }
+
+            if(user) {
+                updatePassword(user, nuevaClave).then(() => {
+                    alert("¡Excelente! Tu contraseña se actualizó correctamente.");
+                    cerrarModalClave(); 
+                }).catch((error) => {
+                    if(error.code === 'auth/requires-recent-login') {
+                        alert("Por seguridad, para cambiar la clave tenés que haber iniciado sesión recientemente. Por favor, cerrá sesión, volvé a ingresar e intentalo de nuevo.");
+                    } else {
+                        alert("Error al actualizar la contraseña: " + error.message);
+                    }
+                });
+            }
         };
     </script>
 </body>
