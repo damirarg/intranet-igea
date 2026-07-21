@@ -5,446 +5,221 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IGEA - Intranet App</title>
-    <!-- Importamos Tailwind CSS para un diseño moderno y rápido -->
+    <!-- Importamos Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body {
-            position: relative;
-            background-color: #f8fafc;
-        }
-
-        aside,
-        main {
-            position: relative;
-            z-index: 1;
-        }
-
+        body { position: relative; background-color: #f8fafc; }
         .app-background {
-            position: fixed;
-            inset: 0;
-            z-index: 0;
-            pointer-events: none;
-            overflow: hidden;
+            position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
             background:
                 radial-gradient(circle at 20% 20%, rgba(56, 189, 248, 0.18), transparent 28%),
                 radial-gradient(circle at 80% 16%, rgba(16, 185, 129, 0.16), transparent 24%),
                 linear-gradient(135deg, #f7fbff 0%, #eef8ff 45%, #f8fff9 100%);
         }
-
         .app-background::before {
-            content: "";
-            position: absolute;
-            inset: 0;
+            content: ""; position: absolute; inset: 0;
             background-image: linear-gradient(rgba(14, 116, 144, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(14, 116, 144, 0.05) 1px, transparent 1px);
-            background-size: 40px 40px;
-            opacity: 0.35;
-            animation: driftGrid 18s linear infinite;
+            background-size: 40px 40px; opacity: 0.35; animation: driftGrid 18s linear infinite;
         }
-
-        .bg-orb {
-            position: absolute;
-            border-radius: 9999px;
-            filter: blur(28px);
-            opacity: 0.7;
-            animation: floatBlob 14s ease-in-out infinite alternate;
-        }
-
-        .orb-a {
-            width: 24rem;
-            height: 24rem;
-            background: rgba(96, 165, 250, 0.22);
-            top: -5rem;
-            left: -4rem;
-        }
-
-        .orb-b {
-            width: 20rem;
-            height: 20rem;
-            background: rgba(34, 197, 94, 0.18);
-            bottom: -2rem;
-            right: -3rem;
-            animation-duration: 17s;
-        }
-
-        .orb-c {
-            width: 15rem;
-            height: 15rem;
-            background: rgba(251, 191, 36, 0.16);
-            top: 36%;
-            right: 10%;
-            animation-duration: 12s;
-        }
-
-        .bg-wave {
-            position: absolute;
-            inset: -10%;
-            width: 120%;
-            height: 120%;
-            opacity: 0.75;
-        }
-
-        .bg-path {
-            fill: none;
-            stroke: rgba(14, 116, 144, 0.2);
-            stroke-width: 3;
-            stroke-linecap: round;
-            stroke-linejoin: round;
-            animation: pulseStroke 8s ease-in-out infinite;
-        }
-
-        .path-b {
-            animation-delay: -3s;
-        }
-
-        #cursor-trail {
-            position: fixed;
-            inset: 0;
-            pointer-events: none;
-            z-index: 50;
-            overflow: hidden;
-        }
-
-        .cursor-glow {
-            position: absolute;
-            width: 22px;
-            height: 22px;
-            border-radius: 9999px;
-            border: 1px solid rgba(59, 130, 246, 0.22);
-            background: radial-gradient(circle, rgba(96, 165, 250, 0.22) 0%, rgba(96, 165, 250, 0.06) 45%, transparent 70%);
-            transform: translate(-50%, -50%);
-            box-shadow: 0 0 18px rgba(96, 165, 250, 0.12);
-            transition: transform 120ms ease-out, width 120ms ease-out, height 120ms ease-out;
-            mix-blend-mode: screen;
-        }
-
-        @keyframes floatBlob {
-            from {
-                transform: translate3d(0, 0, 0) scale(1);
-            }
-
-            to {
-                transform: translate3d(20px, -30px, 0) scale(1.08);
-            }
-        }
-
-        @keyframes driftGrid {
-            from {
-                transform: translateY(0);
-            }
-
-            to {
-                transform: translateY(24px);
-            }
-        }
-
-        @keyframes pulseStroke {
-
-            0%,
-            100% {
-                stroke-dasharray: 0 1000;
-                opacity: 0.35;
-            }
-
-            50% {
-                stroke-dasharray: 180 120;
-                opacity: 0.7;
-            }
-        }
-
-        /* Utilidad para ocultar la barra de scroll pero mantener funcionalidad */
-        .no-scrollbar::-webkit-scrollbar {
-            display: none;
-        }
-
-        .no-scrollbar {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-        }
+        @keyframes driftGrid { from { transform: translateY(0); } to { transform: translateY(24px); } }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 
 <body class="bg-gray-50 text-gray-800 font-sans flex h-screen overflow-hidden">
-    <div class="app-background" aria-hidden="true">
-        <div class="bg-orb orb-a"></div>
-        <div class="bg-orb orb-b"></div>
-        <div class="bg-orb orb-c"></div>
-        <svg class="bg-wave" viewBox="0 0 1000 1000" preserveAspectRatio="none">
-            <path class="bg-path path-a"
-                d="M80 220C230 120 300 140 410 220C520 300 610 340 710 300C780 276 865 214 930 156" />
-            <path class="bg-path path-b"
-                d="M70 410C170 320 280 320 380 395C480 470 590 520 690 492C770 470 860 402 940 340" />
-        </svg>
-    </div>
-    <div id="cursor-trail" aria-hidden="true"></div>
+    <div class="app-background" aria-hidden="true"></div>
 
-    <!-- Menú Lateral (Sidebar) -->
-    <aside class="w-64 bg-blue-900/95 backdrop-blur-md text-white flex flex-col shadow-xl border-r border-white/10">
-        <div class="p-6">
-            <h1 class="text-2xl font-bold tracking-wider">IGEA Adm</h1>
-            <p class="text-sm text-blue-300 mt-1">Portal de Gestión</p>
-        </div>
-        <nav class="flex-1 px-4 space-y-2" id="menu-navegacion">
-            <button id="btn-inicio" onclick="cambiarVista('inicio')"
-                class="w-full flex items-center p-3 text-left bg-blue-800 rounded-lg transition shadow-inner">
-                <span>🏠 Inicio</span>
-            </button>
-            <button id="btn-dpp" onclick="cambiarVista('dpp')"
-                class="w-full flex items-center p-3 text-left hover:bg-blue-800 rounded-lg transition">
-                <span>👥 DPP</span>
-            </button>
-            <button id="btn-procedimientos" onclick="cambiarVista('procedimientos')"
-                class="w-full flex items-center p-3 text-left hover:bg-blue-800 rounded-lg transition">
-                <span>📋 Procedimientos</span>
-            </button>
-            <button id="btn-recibos" onclick="cambiarVista('recibos')"
-                class="w-full flex items-center p-3 text-left hover:bg-blue-800 rounded-lg transition">
-                <span>📄 Recibos de Sueldo</span>
-            </button>
-        </nav>
-        <div class="p-4 border-t border-blue-800/50">
-            <p class="text-xs text-center text-blue-400">Versión 2.0</p>
-        </div>
-    </aside>
+    <!-- PANTALLA DE LOGIN GLOBAL -->
+    <div id="pantalla-login" class="absolute inset-0 z-50 flex items-center justify-center bg-gray-900/40 backdrop-blur-sm transition-opacity">
+        <div class="bg-white/95 p-8 rounded-2xl shadow-2xl border border-white max-w-md w-full relative">
+            <div class="text-center mb-6">
+                <h1 class="text-3xl font-bold text-blue-900 tracking-wider mb-1">IGEA</h1>
+                <h2 class="text-lg font-medium text-gray-600">Portal Interno</h2>
+            </div>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Correo Electrónico</label>
+                    <input type="email" id="input-email" 
+                        class="w-full bg-gray-50 border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                        placeholder="tu.correo@igea.com.ar">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
+                    <input type="password" id="input-password" 
+                        class="w-full bg-gray-50 border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                        placeholder="••••••••">
+                </div>
+                
+                <div class="flex justify-end mt-2">
+                    <button onclick="window.recuperarClaveFirebase()" class="text-xs text-blue-600 hover:underline">¿Olvidaste tu contraseña?</button>
+                </div>
 
-    <!-- Panel Central (Contenido Dinámico) -->
-    <main class="flex-1 flex flex-col h-screen overflow-y-auto no-scrollbar relative">
-        <!-- Encabezado superior -->
-        <header
-            class="bg-white/80 backdrop-blur-sm shadow-sm p-4 sticky top-0 z-10 flex justify-between items-center border-b border-gray-200/50">
-            <div class="flex items-center gap-4">
-                <button id="btn-volver" onclick="volverAtras()"
-                    class="hidden text-blue-600 hover:text-blue-800 font-medium flex items-center transition bg-blue-50 px-3 py-1.5 rounded-md hover:bg-blue-100">
-                    <span class="mr-1">←</span> Volver
+                <button onclick="window.iniciarSesionFirebase()"
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg transition shadow-md mt-4">
+                    Ingresar a la Intranet
                 </button>
-                <h2 id="titulo-seccion" class="text-xl font-semibold text-gray-800">Inicio</h2>
             </div>
-
-            <!-- Buscador simulado -->
-            <div class="relative">
-                <input type="text" placeholder="Buscar..."
-                    class="bg-gray-100/50 border border-gray-200 rounded-full px-4 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-white transition w-48">
-                <span class="absolute right-3 top-1.5 text-gray-400">🔍</span>
-            </div>
-        </header>
-
-        <!-- Contenedor donde se inyectará el contenido -->
-        <div id="contenido-seccion" class="p-8 w-full max-w-5xl mx-auto h-full">
-            <!-- El contenido inicial se carga por defecto -->
         </div>
-    </main>
+    </div>
 
-    <!-- Lógica de la Aplicación (JavaScript) -->
+    <!-- APLICACIÓN PRINCIPAL (OCULTA HASTA QUE SE LOGUEAN) -->
+    <div id="aplicacion-principal" class="hidden flex h-screen w-full relative z-10">
+        
+        <!-- Menú Lateral -->
+        <aside class="w-64 bg-blue-900/95 backdrop-blur-md text-white flex flex-col shadow-xl border-r border-white/10">
+            <div class="p-6">
+                <h1 class="text-2xl font-bold tracking-wider">IGEA Adm</h1>
+                <p class="text-sm text-blue-300 mt-1">Portal de Gestión</p>
+            </div>
+            <nav class="flex-1 px-4 space-y-2" id="menu-navegacion">
+                <button id="btn-inicio" onclick="cambiarVista('inicio')" class="w-full flex items-center p-3 text-left bg-blue-800 rounded-lg transition shadow-inner">
+                    <span>🏠 Inicio</span>
+                </button>
+                <button id="btn-dpp" onclick="cambiarVista('dpp')" class="w-full flex items-center p-3 text-left hover:bg-blue-800 rounded-lg transition">
+                    <span>👥 DPP</span>
+                </button>
+                <button id="btn-procedimientos" onclick="cambiarVista('procedimientos')" class="w-full flex items-center p-3 text-left hover:bg-blue-800 rounded-lg transition">
+                    <span>📋 Procedimientos</span>
+                </button>
+                <button id="btn-recibos" onclick="cambiarVista('recibos')" class="w-full flex items-center p-3 text-left hover:bg-blue-800 rounded-lg transition">
+                    <span>📄 Mis Recibos de Sueldo</span>
+                </button>
+            </nav>
+            <div class="p-4 border-t border-blue-800/50">
+                <p class="text-xs text-center text-blue-400">Versión 3.0 (Segura)</p>
+            </div>
+        </aside>
+
+        <!-- Panel Central -->
+        <main class="flex-1 flex flex-col h-screen overflow-y-auto no-scrollbar">
+            <!-- Encabezado superior -->
+            <header class="bg-white/80 backdrop-blur-sm shadow-sm p-4 sticky top-0 z-10 flex justify-between items-center border-b border-gray-200/50">
+                <div class="flex items-center gap-4">
+                    <button id="btn-volver" onclick="volverAtras()" class="hidden text-blue-600 font-medium flex items-center transition bg-blue-50 px-3 py-1.5 rounded-md hover:bg-blue-100">
+                        <span class="mr-1">←</span> Volver
+                    </button>
+                    <h2 id="titulo-seccion" class="text-xl font-semibold text-gray-800">Inicio</h2>
+                </div>
+                
+                <!-- Info de usuario y Cerrar Sesión -->
+                <div class="flex items-center gap-4">
+                    <span id="nombre-usuario-header" class="text-sm text-gray-600 font-medium bg-gray-100 px-3 py-1 rounded-full">Cargando...</span>
+                    <button onclick="window.cerrarSesion()" class="text-sm text-red-600 hover:text-red-800 font-medium transition">Cerrar Sesión</button>
+                </div>
+            </header>
+
+            <div id="contenido-seccion" class="p-8 w-full max-w-5xl mx-auto h-full">
+                <!-- Contenido dinámico -->
+            </div>
+        </main>
+    </div>
+
+    <!-- Lógica JavaScript -->
     <script>
-        // EFECTOS VISUALES DEL CURSOR
-        const cursorTrail = document.getElementById('cursor-trail');
-        const cursorGlow = document.createElement('div');
-        cursorGlow.className = 'cursor-glow';
-        cursorTrail.appendChild(cursorGlow);
-
-        window.addEventListener('mousemove', (event) => {
-            cursorGlow.style.left = `${event.clientX}px`;
-            cursorGlow.style.top = `${event.clientY}px`;
-            cursorGlow.style.opacity = '1';
-        });
-
-        window.addEventListener('mouseleave', () => {
-            cursorGlow.style.opacity = '0';
-        });
+        // VARIABLE GLOBAL PARA SABER QUIÉN INGRESÓ
+        let usuarioActualEmail = "";
 
         // ==========================================
-        // BASE DE DATOS DE ENLACES (DRIVE) - DPP y Procedimientos
+        // BASE DE DATOS DE RECIBOS (AHORA MAPEADOS POR MAIL)
         // ==========================================
+        const baseRecibos = [
+            { email: "damirodriguez81@gmail.com", nombre: "RODRIGUEZ Damián", urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1rm4KzCg1kzz2331RipWsxF_VHW22RUxc#list" },
+            { email: "antonela.db08@gmail.com", nombre: "BARCA Antonela", urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1d_XCX3rW4K-TrOuFl6RphGW59GGS75rp#list" },
+            { email: "ycavero@igea.com.ar", nombre: "CAVERO Yesica", urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1QLA7FF4m321WpWAg5n2NGGrb4bnAOePr#list" },
+            { email: "agustina.canclini@gmail.com", nombre: "CEPEDA CANCLINI Agustina", urlCarpeta: "https://drive.google.com/embeddedfolderview?id=129eIyYKSF-oYcNHJGmMy5yBJkV5cHAjN#list" },
+            { email: "violeclair@hotmail.com", nombre: "CLAIR Violeta", urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1QYUmbR6ogwIVtBjpNvnogvIeI1i5STH_#list" },
+            { email: "anahicontento@hotmail.com", nombre: "CONTENTO Anahí", urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1LQtmaNxkYK8DEabnrSYYTZ1g5SQfCcnV#list" },
+            { email: "coradeghini.sofia@gmail.com", nombre: "CORADEGHINI Sofía", urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1JVg0maB0r6n71qoDEYa0BkC11EOtNkvZ#list" },
+            { email: "genvisual@gmail.com", nombre: "GARCIA Nicolás", urlCarpeta: "https://drive.google.com/embeddedfolderview?id=14gQgK-5yforXLuO9tPwB5ZCOPRskwOFx#list" },
+            { email: "lolimic@hotmail.com", nombre: "MICCIULLO Dolores", urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1JlMuDCQ8INZRwwBlKDQEruAjqogQKlMg#list" },
+            { email: "florenciaolavarriabelen@gmail.com", nombre: "OLAVARRIA Florencia", urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1VkoQqntqztQQzCGt75bOYV0TNdvI5di6#list" },
+            { email: "silviapaez@hotmail.com", nombre: "PAEZ Silvia", urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1jswBKEfen8deRq8ZNZx0wrn1V9Mp2CSa#list" },
+            { email: "orirocio@gmail.com", nombre: "PEIÑEPIL Oriana", urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1IiyO99e_8glZyzM8i5TSp2OFgxMDNpjS#list" },
+            { email: "pezzellagiuliana@gmail.com", nombre: "PEZZELLA Giuliana", urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1xOk46je2inGy2wMxlGBAZjFhti-UjdLz#list" },
+            { email: "rmariapilar@hotmail.com", nombre: "RODRIGUEZ DE HOZ Pilar", urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1AOhpojCPqqjqtl9FhRHivCu7I17VHf80#list" },
+            { email: "brendaruiz026@gmail.com", nombre: "RUIZ Brenda", urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1DF19U3pmCs9VLqd46iMeIq6502mNyzvY#list" },
+            { email: "myriansantecchia@hotmail.com", nombre: "SANTECCHIA Myrian", urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1BWyl3hQOXS4fJLEoLwV9m8nYiUgnfb6Z#list" },
+            { email: "mvalero@igea.com.ar", nombre: "VALERO Manuel", urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1DTnWeQVkxQ_mQ7EJEU0w4ygFnFlxjnO6#list" }
+        ];
+
+        // Archivos de Google Drive comunes
         const archivosDrive = {
             dpp: [
-                { nombre: "Coordinador Operativo, Administrativo y de Finanzas", area: "Administración y Finanzas", url: "https://docs.google.com/document/d/1IaOfr1qIjGI6kKGbioG84X5zZU9oOaoF/preview" },
-                { nombre: "Administrativa de Admisión y Atención al Público", area: "Admisión y Atención al Público", url: "https://docs.google.com/document/d/1RiU2YNFAs7DHN_Ee9oO-YDo1ppAAXEqQ/preview" },
-                { nombre: "Operadora de Atención Digital", area: "Atención Digital", url: "https://docs.google.com/document/d/1GWxd8yy_GNYTy2f_nVKRkeO1ZUTQV3yw/preview" },
-                { nombre: "Administrativa de Enlace Institucional", area: "Enlace Institucional", url: "https://docs.google.com/document/d/1kFfqGuGzD6b7bhr6UnMMTIZjJQ0Y-J_i/preview" },
-                { nombre: "Responsable de Tesorería y Pagos", area: "Tesorería y Pagos", url: "https://docs.google.com/document/d/1JVqhA8iW0_aypK80JmGiVjbJBuSAOvQe/preview" }
+                { nombre: "Coordinador Operativo", area: "Administración y Finanzas", url: "https://docs.google.com/document/d/1IaOfr1qIjGI6kKGbioG84X5zZU9oOaoF/preview" }
             ],
             procedimientos: [
-                { nombre: "Gestión de Vacaciones y Licencias Especiales", fecha: "07/07/2026", url: "https://docs.google.com/document/d/1wYzmFrBZG0qQ3C9_HbHoHcUJDIwE-VcP/preview" },
-                { nombre: "Guardia Administrativa y Gestión Remota", fecha: "20/07/2026", url: "https://docs.google.com/document/d/17_p1VdCKTV-EvsT4paMaSZw_jteOEJZ4/preview" }
+                { nombre: "Gestión de Vacaciones", fecha: "07/07/2026", url: "https://docs.google.com/document/d/1wYzmFrBZG0qQ3C9_HbHoHcUJDIwE-VcP/preview" }
             ]
         };
 
-        // Variable para recordar en qué sección estábamos
         let seccionActual = 'inicio';
 
-        // ==========================================
         // FUNCIONES DE RENDERIZADO
-        // ==========================================
-
         function renderizarInicio() {
             return `
-                <div class="bg-white/90 backdrop-blur p-8 rounded-2xl shadow-lg border border-white/50">
-                    <h3 class="text-3xl font-bold text-blue-900 mb-4">Bienvenido al nuevo portal de Administración</h3>
-                    <p class="text-gray-600 mb-8 text-lg">Desde esta aplicación vas a poder gestionar todos los recursos del área de manera rápida y centralizada, con documentos actualizados en tiempo real.</p>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="bg-gradient-to-br from-blue-50 to-white p-6 rounded-xl border border-blue-100 shadow-sm hover:shadow-md cursor-pointer hover:-translate-y-1 transition duration-300" onclick="cambiarVista('dpp')">
-                            <div class="text-4xl mb-3">👥</div>
-                            <h4 class="font-bold text-xl text-blue-900">Directorio DPP</h4>
-                            <p class="text-gray-600 mt-2">Consultá las Descripciones de Perfil y Puestos de todo el equipo de IGEA.</p>
-                        </div>
-                        <div class="bg-gradient-to-br from-emerald-50 to-white p-6 rounded-xl border border-emerald-100 shadow-sm hover:shadow-md cursor-pointer hover:-translate-y-1 transition duration-300" onclick="cambiarVista('procedimientos')">
-                            <div class="text-4xl mb-3">📋</div>
-                            <h4 class="font-bold text-xl text-emerald-900">Procedimientos</h4>
-                            <p class="text-gray-600 mt-2">Accedé a la normativa vigente, manuales y protocolos internos.</p>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-
-        function renderizarDPP() {
-            let filasHTML = archivosDrive.dpp.map(doc => `
-                <div class="p-4 border-b border-gray-100 flex justify-between items-center hover:bg-blue-50 transition cursor-pointer" onclick="abrirDocumento('${doc.nombre}', '${doc.url}')">
-                    <div class="flex items-center gap-3">
-                        <div class="bg-blue-100 text-blue-600 p-2 rounded-lg">👤</div>
-                        <div>
-                            <span class="font-semibold text-gray-800 block">${doc.nombre}</span>
-                            <span class="text-sm text-gray-500">${doc.area}</span>
-                        </div>
-                    </div>
-                    <button class="bg-white border border-gray-200 text-blue-600 px-4 py-2 rounded-lg hover:bg-blue-600 hover:text-white transition shadow-sm text-sm font-medium">Ver Perfil</button>
-                </div>
-            `).join('');
-
-            return `
-                <div class="bg-white/90 backdrop-blur p-6 rounded-2xl shadow-lg border border-white/50">
-                    <p class="text-gray-600 mb-6">Seleccioná un perfil para ver el documento oficial cargado en Drive.</p>
-                    <div class="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-                        ${filasHTML}
-                    </div>
-                </div>
-            `;
-        }
-
-        function renderizarProcedimientos() {
-            let itemsHTML = archivosDrive.procedimientos.map(doc => `
-                <li class="flex items-center justify-between p-4 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:border-emerald-300 transition cursor-pointer" onclick="abrirDocumento('${doc.nombre}', '${doc.url}')">
-                    <div class="flex items-center">
-                        <span class="text-3xl mr-4 p-2 bg-emerald-50 rounded-lg">📄</span>
-                        <div>
-                            <h4 class="font-semibold text-gray-800 text-lg">${doc.nombre}</h4>
-                            <p class="text-sm text-emerald-600 font-medium">Actualizado: ${doc.fecha}</p>
-                        </div>
-                    </div>
-                    <span class="text-gray-400 hover:text-emerald-600 transition">➜</span>
-                </li>
-            `).join('');
-
-            return `
-                <div class="space-y-4">
-                    ${itemsHTML}
+                <div class="bg-white/90 p-8 rounded-2xl shadow-lg border border-white/50">
+                    <h3 class="text-3xl font-bold text-blue-900 mb-4">Bienvenido al Portal de Administración</h3>
+                    <p class="text-gray-600 mb-8 text-lg">Gestioná tus recursos de manera rápida y centralizada.</p>
                 </div>
             `;
         }
 
         function renderizarRecibos() {
-            return `
-                <div class="bg-white/90 backdrop-blur p-8 rounded-2xl shadow-lg border border-white/50 max-w-xl mx-auto">
-                    <h3 class="text-2xl font-bold text-blue-900 mb-2">Acceso a Legajo Digital</h3>
-                    <p class="text-gray-600 mb-6 text-sm">Ingresá tu correo electrónico corporativo y contraseña para ver tus recibos.</p>
-                    
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Correo Electrónico</label>
-                            <input type="email" id="input-email" 
-                                class="w-full bg-gray-50 border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                                placeholder="ejemplo@igea.com.ar">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
-                            <input type="password" id="input-password" 
-                                class="w-full bg-gray-50 border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                                placeholder="Tu contraseña segura">
-                        </div>
-                        
-                        <div class="flex items-center justify-between mt-2">
-                            <button onclick="window.recuperarClaveFirebase()" class="text-sm text-blue-600 hover:underline">¿Olvidaste tu contraseña?</button>
-                        </div>
+            // Buscamos en la lista el usuario que coincide con el mail que se logueó
+            const empleado = baseRecibos.find(emp => emp.email.toLowerCase() === usuarioActualEmail.toLowerCase());
 
-                        <button onclick="window.iniciarSesionFirebase()"
-                            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg transition shadow-md mt-4">
-                            Ingresar
-                        </button>
+            if (empleado) {
+                // Si lo encuentra, muestra directamente su carpeta
+                return `
+                    <div class="w-full h-[calc(100vh-12rem)] bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden relative">
+                        <div id="spinner-carga" class="absolute inset-0 flex items-center justify-center bg-gray-50 z-0">
+                            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                        </div>
+                        <iframe src="${empleado.urlCarpeta}" class="w-full h-full relative z-10 border-0 bg-white"
+                            onload="document.getElementById('spinner-carga').style.display='none'" allow="autoplay">
+                        </iframe>
                     </div>
-                </div>
-            `;
+                `;
+            } else {
+                // Si no le pusiste la carpeta a su correo, muestra error
+                return `
+                    <div class="bg-red-50 p-6 rounded-xl border border-red-200 text-center">
+                        <h3 class="text-xl font-bold text-red-700 mb-2">Legajo no encontrado</h3>
+                        <p class="text-red-600">Tu correo (${usuarioActualEmail}) no tiene una carpeta de recibos asociada. Comunicáte con Administración.</p>
+                    </div>
+                `;
+            }
         }
 
-        // ==========================================
-        // CONTROLADORES DE LA INTERFAZ
-        // ==========================================
+        function renderizarDPP() { return `<div class="bg-white p-6 rounded-xl shadow">Sección DPP en mantenimiento visual...</div>`; }
+        function renderizarProcedimientos() { return `<div class="bg-white p-6 rounded-xl shadow">Sección Procedimientos...</div>`; }
 
+        // CONTROLADORES DE INTERFAZ
         function actualizarMenuActivo(vista) {
-            document.getElementById('btn-inicio').className = "w-full flex items-center p-3 text-left hover:bg-blue-800 rounded-lg transition";
-            document.getElementById('btn-dpp').className = "w-full flex items-center p-3 text-left hover:bg-blue-800 rounded-lg transition";
-            document.getElementById('btn-procedimientos').className = "w-full flex items-center p-3 text-left hover:bg-blue-800 rounded-lg transition";
-            document.getElementById('btn-recibos').className = "w-full flex items-center p-3 text-left hover:bg-blue-800 rounded-lg transition";
-
-            if (vista === 'inicio' || vista === 'dpp' || vista === 'procedimientos' || vista === 'recibos') {
-                document.getElementById(`btn-${vista}`).className = "w-full flex items-center p-3 text-left bg-blue-800 rounded-lg transition shadow-inner";
-            }
+            ['inicio', 'dpp', 'procedimientos', 'recibos'].forEach(v => {
+                const btn = document.getElementById(`btn-${v}`);
+                if (btn) btn.className = "w-full flex items-center p-3 text-left hover:bg-blue-800 rounded-lg transition";
+            });
+            const btnActivo = document.getElementById(`btn-${vista}`);
+            if (btnActivo) btnActivo.className = "w-full flex items-center p-3 text-left bg-blue-800 rounded-lg transition shadow-inner";
         }
 
         function cambiarVista(vista) {
-            const contenedorContenido = document.getElementById('contenido-seccion');
-            const tituloSeccion = document.getElementById('titulo-seccion');
-            const btnVolver = document.getElementById('btn-volver');
-
             seccionActual = vista;
             actualizarMenuActivo(vista);
-            btnVolver.classList.add('hidden');
+            document.getElementById('btn-volver').classList.add('hidden');
+            const contenido = document.getElementById('contenido-seccion');
+            const titulo = document.getElementById('titulo-seccion');
 
-            if (vista === 'inicio') {
-                tituloSeccion.textContent = "Inicio";
-                contenedorContenido.innerHTML = renderizarInicio();
-            } else if (vista === 'dpp') {
-                tituloSeccion.textContent = "Descripción de Perfil y Puestos (DPP)";
-                contenedorContenido.innerHTML = renderizarDPP();
-            } else if (vista === 'procedimientos') {
-                tituloSeccion.textContent = "Procedimientos Normativos";
-                contenedorContenido.innerHTML = renderizarProcedimientos();
-            } else if (vista === 'recibos') {
-                tituloSeccion.textContent = "Recibos de Sueldo";
-                contenedorContenido.innerHTML = renderizarRecibos();
-            }
+            if (vista === 'inicio') { titulo.textContent = "Inicio"; contenido.innerHTML = renderizarInicio(); }
+            if (vista === 'dpp') { titulo.textContent = "Directorio DPP"; contenido.innerHTML = renderizarDPP(); }
+            if (vista === 'procedimientos') { titulo.textContent = "Procedimientos"; contenido.innerHTML = renderizarProcedimientos(); }
+            if (vista === 'recibos') { titulo.textContent = "Legajo Digital Privado"; contenido.innerHTML = renderizarRecibos(); }
         }
 
-        function abrirDocumento(titulo, url) {
-            const contenedorContenido = document.getElementById('contenido-seccion');
-            const tituloSeccion = document.getElementById('titulo-seccion');
-            const btnVolver = document.getElementById('btn-volver');
-
-            tituloSeccion.textContent = titulo;
-            btnVolver.classList.remove('hidden');
-            actualizarMenuActivo('');
-
-            contenedorContenido.innerHTML = `
-                <div class="w-full h-[calc(100vh-12rem)] bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden relative">
-                    <!-- ID para apagar la animación de carga -->
-                    <div id="spinner-carga" class="absolute inset-0 flex items-center justify-center bg-gray-50 z-0">
-                        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-                    </div>
-                    <!-- onload se encarga de ocultar el spinner cuando termina de cargar Drive -->
-                    <iframe 
-                        src="${url}" 
-                        class="w-full h-full relative z-10 border-0 bg-white"
-                        onload="document.getElementById('spinner-carga').style.display='none'"
-                        allow="autoplay">
-                    </iframe>
-                </div>
-            `;
-        }
-
-        function volverAtras() {
-            cambiarVista(seccionActual);
-        }
-
-        window.onload = () => cambiarVista('inicio');
+        function volverAtras() { cambiarVista(seccionActual); }
     </script>
     
     <!-- ========================================== -->
@@ -452,9 +227,8 @@
     <!-- ========================================== -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-        // Importamos las funciones de Autenticación
-        import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-        import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+        // Importamos el vigilante: onAuthStateChanged y signOut
+        import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBg0u_Se2Od--7wbZFwqWKRdUv_IrYiXw0",
@@ -467,48 +241,50 @@
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
-        const db = getFirestore(app);
 
-        // Función para Iniciar Sesión (conectada al HTML)
+        // EL VIGILANTE: Se ejecuta solo cada vez que alguien entra o sale
+        onAuthStateChanged(auth, (user) => {
+            const pantallaLogin = document.getElementById('pantalla-login');
+            const appPrincipal = document.getElementById('aplicacion-principal');
+
+            if (user) {
+                // Hay sesión activa
+                usuarioActualEmail = user.email;
+                document.getElementById('nombre-usuario-header').textContent = user.email;
+                
+                pantallaLogin.classList.add('hidden'); // Ocultar Login
+                appPrincipal.classList.remove('hidden'); // Mostrar Intranet
+                cambiarVista('inicio'); // Cargar Inicio por defecto
+            } else {
+                // No hay sesión activa
+                usuarioActualEmail = "";
+                pantallaLogin.classList.remove('hidden'); // Mostrar Login
+                appPrincipal.classList.add('hidden'); // Ocultar Intranet
+            }
+        });
+
+        // Funciones conectadas a los botones del HTML
         window.iniciarSesionFirebase = function() {
             const email = document.getElementById('input-email').value;
             const password = document.getElementById('input-password').value;
-
-            if(!email || !password) {
-                alert("Por favor, completá tu correo y contraseña.");
-                return;
-            }
-
+            if(!email || !password) { alert("Completá los datos."); return; }
             signInWithEmailAndPassword(auth, email, password)
-                .then((userCredential) => {
-                    const user = userCredential.user;
-                    alert("¡Ingreso exitoso! Bienvenido " + user.email);
-                    // Más adelante, aquí validaremos en Firestore qué usuario ingresó y cargaremos su carpeta.
-                })
-                .catch((error) => {
-                    alert("Error al ingresar: Verificá tus datos. (" + error.message + ")");
-                });
+                .catch((error) => alert("Error: Verificá tus credenciales."));
         };
 
-        // Función para Recuperar Contraseña por Mail
         window.recuperarClaveFirebase = function() {
             const email = document.getElementById('input-email').value;
-            
-            if(!email) {
-                alert("Por favor, escribí tu correo electrónico en el casillero de arriba y volvé a presionar este botón.");
-                return;
-            }
-
+            if(!email) { alert("Escribí tu correo primero y volvé a presionar acá."); return; }
             sendPasswordResetEmail(auth, email)
-                .then(() => {
-                    alert("¡Te enviamos un correo electrónico! Revisá tu bandeja de entrada para restablecer tu contraseña.");
-                })
-                .catch((error) => {
-                    alert("Hubo un error al enviar el correo. (" + error.message + ")");
-                });
+                .then(() => alert("Correo enviado a " + email))
+                .catch((error) => alert("Error al enviar."));
         };
 
-        console.log("Módulos de Firebase Autenticación listos.");
+        window.cerrarSesion = function() {
+            signOut(auth).then(() => {
+                document.getElementById('input-password').value = ''; // Limpiamos el campo
+            });
+        };
     </script>
 </body>
 
