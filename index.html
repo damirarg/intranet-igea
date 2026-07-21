@@ -62,20 +62,20 @@
     <div class="app-background" aria-hidden="true"></div>
 
     <!-- PANTALLA DE LOGIN GLOBAL -->
-    <div id="pantalla-login" class="absolute inset-0 z-50 flex items-center justify-center transition-opacity" 
+    <div id="pantalla-login" class="absolute inset-0 z-50 flex items-center justify-center p-4 transition-opacity" 
          style="background-image: url('./assets/consultorio.jpg'); background-size: cover; background-position: center;">
         
         <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"></div>
 
-        <div class="bg-white/95 p-10 rounded-3xl shadow-2xl border border-white/40 max-w-md w-full relative z-10">
-            <div class="text-center mb-8">
+        <div class="bg-white/95 p-6 md:p-10 rounded-3xl shadow-2xl border border-white/40 max-w-md w-full relative z-10">
+            <div class="text-center mb-6 md:mb-8">
                 <div class="mx-auto mb-4 flex justify-center animar-entrada">
-                    <img src="./assets/logo.jpg" alt="Logo IGEA" class="h-20 object-contain drop-shadow-lg">
+                    <img src="./assets/logo.jpg" alt="Logo IGEA" class="h-16 md:h-20 object-contain drop-shadow-lg">
                 </div>
-                <h2 class="text-sm font-bold text-slate-500 uppercase tracking-widest">Portal de Gestión</h2>
+                <h2 class="text-xs md:text-sm font-bold text-slate-500 uppercase tracking-widest">Portal de Gestión</h2>
             </div>
             
-            <div class="space-y-5">
+            <div class="space-y-4 md:space-y-5">
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Correo Electrónico</label>
                     <div class="relative">
@@ -108,8 +108,8 @@
     </div>
 
     <!-- MODAL DE CAMBIO DE CLAVE -->
-    <div id="modal-clave" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm">
-        <div class="bg-white p-8 rounded-2xl shadow-xl w-96 relative border border-slate-100">
+    <div id="modal-clave" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+        <div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-sm relative border border-slate-100">
             <div class="flex items-center gap-3 mb-4">
                 <span class="material-symbols-rounded text-blue-600">key</span>
                 <h3 class="text-lg font-bold text-slate-800">Cambiar contraseña</h3>
@@ -124,75 +124,78 @@
     </div>
 
     <!-- APLICACIÓN PRINCIPAL -->
-    <div id="aplicacion-principal" class="hidden flex h-screen w-full relative z-10">
+    <div id="aplicacion-principal" class="hidden flex flex-col md:flex-row h-screen w-full relative z-10">
         
-        <!-- Menú Lateral -->
-        <aside class="w-72 bg-white/90 backdrop-blur-xl border-r border-slate-200 flex flex-col shadow-sm">
-            <div class="p-8 flex items-center gap-3">
-                <div class="animar-flotar">
-                    <img src="./assets/logo.jpg" alt="Logo Pequeño" class="h-10 object-contain drop-shadow-sm">
-                </div>
-                <div>
-                    <h1 class="text-sm font-bold text-slate-500 uppercase tracking-widest">Administración</h1>
+        <!-- Menú Lateral (Adaptable: barra superior en celu, lateral en compu) -->
+        <aside class="w-full md:w-72 bg-white/90 backdrop-blur-xl border-b md:border-r border-slate-200 flex flex-col shadow-sm shrink-0">
+            <div class="p-4 md:p-8 flex items-center justify-between md:justify-start gap-3">
+                <div class="flex items-center gap-3">
+                    <div class="animar-flotar">
+                        <img src="./assets/logo.jpg" alt="Logo Pequeño" class="h-8 md:h-10 object-contain drop-shadow-sm">
+                    </div>
+                    <div>
+                        <h1 class="text-xs md:text-sm font-bold text-slate-500 uppercase tracking-widest">Administración</h1>
+                    </div>
                 </div>
             </div>
-            <nav class="flex-1 px-4 space-y-2" id="menu-navegacion">
-                <button id="btn-inicio" onclick="cambiarVista('inicio')" class="w-full flex items-center gap-3 p-3 text-left bg-blue-50 text-blue-700 font-medium rounded-xl transition">
+            <!-- Navegación oculta o compacta en móvil para evitar desbordes -->
+            <nav class="flex md:flex-1 flex-row md:flex-col overflow-x-auto md:overflow-visible px-4 py-2 md:py-0 space-x-2 md:space-x-0 md:space-y-2 no-scrollbar" id="menu-navegacion">
+                <button id="btn-inicio" onclick="cambiarVista('inicio')" class="flex items-center gap-2 md:gap-3 p-2.5 md:p-3 text-left bg-blue-50 text-blue-700 font-medium rounded-xl transition shrink-0">
                     <span class="material-symbols-rounded">space_dashboard</span>
-                    <span>Inicio</span>
+                    <span class="text-xs md:text-sm">Inicio</span>
                 </button>
-                <button id="btn-dpp" onclick="cambiarVista('dpp')" class="w-full flex items-center gap-3 p-3 text-left text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium rounded-xl transition">
+                <button id="btn-dpp" onclick="cambiarVista('dpp')" class="flex items-center gap-2 md:gap-3 p-2.5 md:p-3 text-left text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium rounded-xl transition shrink-0">
                     <span class="material-symbols-rounded">badge</span>
-                    <span>Directorio DPP</span>
+                    <span class="text-xs md:text-sm">DPP</span>
                 </button>
-                <button id="btn-procedimientos" onclick="cambiarVista('procedimientos')" class="w-full flex items-center gap-3 p-3 text-left text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium rounded-xl transition">
+                <button id="btn-procedimientos" onclick="cambiarVista('procedimientos')" class="flex items-center gap-2 md:gap-3 p-2.5 md:p-3 text-left text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium rounded-xl transition shrink-0">
                     <span class="material-symbols-rounded">rule</span>
-                    <span>Procedimientos</span>
+                    <span class="text-xs md:text-sm">Normativa</span>
                 </button>
-                <button id="btn-recibos" onclick="cambiarVista('recibos')" class="w-full flex items-center gap-3 p-3 text-left text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium rounded-xl transition">
+                <button id="btn-recibos" onclick="cambiarVista('recibos')" class="flex items-center gap-2 md:gap-3 p-2.5 md:p-3 text-left text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium rounded-xl transition shrink-0">
                     <span class="material-symbols-rounded">receipt_long</span>
-                    <span>Mis Recibos</span>
+                    <span class="text-xs md:text-sm">Recibos</span>
                 </button>
-                <a href="https://app.absentify.com" target="_blank" class="w-full flex items-center gap-3 p-3 text-left text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium rounded-xl transition">
+                <a href="https://app.absentify.com" target="_blank" class="flex items-center gap-2 md:gap-3 p-2.5 md:p-3 text-left text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium rounded-xl transition shrink-0">
                     <span class="material-symbols-rounded">event_note</span>
-                    <span>Absentify (Vacaciones)</span>
+                    <span class="text-xs md:text-sm">Absentify</span>
                 </a>
             </nav>
-            <div class="p-6">
+            <div class="hidden md:block p-6">
                 <div class="bg-slate-50 rounded-xl p-4 border border-slate-100 text-center">
-                    <p class="text-xs font-medium text-slate-500">Intranet Segura v4.8</p>
+                    <p class="text-xs font-medium text-slate-500">Intranet Segura v4.9</p>
                 </div>
             </div>
         </aside>
 
         <!-- Panel Central -->
         <main class="flex-1 flex flex-col h-screen overflow-y-auto no-scrollbar">
-            <header class="bg-white/70 backdrop-blur-md px-8 py-4 sticky top-0 z-10 flex justify-between items-center border-b border-slate-200">
+            <header class="bg-white/70 backdrop-blur-md px-4 md:px-8 py-3 md:py-4 sticky top-0 z-10 flex justify-between items-center border-b border-slate-200">
                 <div class="flex items-center gap-4">
                     <button id="btn-volver" onclick="volverAtras()" class="hidden text-slate-500 hover:text-slate-800 font-medium flex items-center transition bg-slate-100 px-3 py-1.5 rounded-lg hover:bg-slate-200 text-sm">
                         <span class="material-symbols-rounded mr-1" style="font-size: 18px;">arrow_back</span> Volver
                     </button>
-                    <h2 id="titulo-seccion" class="text-2xl font-bold text-slate-800 tracking-tight">Inicio</h2>
+                    <h2 id="titulo-seccion" class="text-lg md:text-2xl font-bold text-slate-800 tracking-tight">Inicio</h2>
                 </div>
                 
-                <div class="flex items-center gap-5">
+                <div class="flex items-center gap-3 md:gap-5">
                     <div class="flex items-center gap-2">
-                        <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
-                            <span class="material-symbols-rounded" style="font-size: 18px;">person</span>
+                        <div class="w-7 h-7 md:w-8 md:h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                            <span class="material-symbols-rounded" style="font-size: 16px;">person</span>
                         </div>
-                        <span id="nombre-usuario-header" class="text-sm text-slate-700 font-semibold">Cargando...</span>
+                        <span id="nombre-usuario-header" class="text-xs md:text-sm text-slate-700 font-semibold truncate max-w-[120px] md:max-w-none">Cargando...</span>
                     </div>
-                    <div class="w-px h-6 bg-slate-200"></div>
+                    <div class="w-px h-5 bg-slate-200"></div>
                     <button onclick="abrirModalClave()" class="text-slate-500 hover:text-blue-600 transition flex items-center gap-1" title="Cambiar Clave">
-                        <span class="material-symbols-rounded">settings</span>
+                        <span class="material-symbols-rounded" style="font-size: 18px;">settings</span>
                     </button>
                     <button onclick="window.cerrarSesion()" class="text-slate-500 hover:text-red-600 transition flex items-center gap-1" title="Cerrar Sesión">
-                        <span class="material-symbols-rounded">logout</span>
+                        <span class="material-symbols-rounded" style="font-size: 18px;">logout</span>
                     </button>
                 </div>
             </header>
 
-            <div id="contenido-seccion" class="p-8 w-full max-w-6xl mx-auto h-full">
+            <div id="contenido-seccion" class="p-4 md:p-8 w-full max-w-6xl mx-auto h-full">
                 <!-- Contenido dinámico -->
             </div>
         </main>
@@ -256,49 +259,49 @@
             }
 
             return `
-                <div class="relative w-full h-48 md:h-56 rounded-3xl overflow-hidden mb-8 shadow-sm flex items-center px-10 border border-slate-200">
+                <div class="relative w-full h-36 md:h-56 rounded-3xl overflow-hidden mb-6 md:mb-8 shadow-sm flex items-center px-6 md:px-10 border border-slate-200">
                     <video autoplay loop muted playsinline class="absolute inset-0 w-full h-full object-cover opacity-20">
                         <source src="./assets/helice-adn.mp4" type="video/mp4">
                     </video>
                     <div class="absolute inset-0 bg-gradient-to-r from-white via-white/80 to-transparent"></div>
                     
                     <div class="relative z-10">
-                        <h3 class="text-3xl md:text-4xl font-bold text-slate-800 mb-2 tracking-tight">Hola, ${nombreSaludo}</h3>
-                        <p class="text-slate-600 text-lg font-medium">Centralizá y gestioná tu documentación operativa y legajo personal.</p>
+                        <h3 class="text-2xl md:text-4xl font-bold text-slate-800 mb-1 md:mb-2 tracking-tight">Hola, ${nombreSaludo}</h3>
+                        <p class="text-slate-600 text-xs md:text-lg font-medium">Centralizá y gestioná tu documentación operativa y legajo personal.</p>
                     </div>
                 </div>
                 
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
                     
-                    <div class="bg-white p-6 rounded-3xl border-t-4 border-t-blue-500 border-x border-b border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group" onclick="cambiarVista('dpp')">
-                        <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-4 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                    <div class="bg-white p-5 md:p-6 rounded-3xl border-t-4 border-t-blue-500 border-x border-b border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group" onclick="cambiarVista('dpp')">
+                        <div class="w-10 h-10 md:w-12 md:h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-3 md:mb-4 group-hover:bg-blue-600 group-hover:text-white transition-colors">
                             <span class="material-symbols-rounded icon-large">badge</span>
                         </div>
-                        <h4 class="font-bold text-lg text-slate-800 mb-1">Directorio DPP</h4>
+                        <h4 class="font-bold text-base md:text-lg text-slate-800 mb-1">Directorio DPP</h4>
                         <p class="text-slate-500 leading-relaxed text-xs">Descripciones de perfil y puestos.</p>
                     </div>
                     
-                    <div class="bg-white p-6 rounded-3xl border-t-4 border-t-emerald-500 border-x border-b border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group" onclick="cambiarVista('procedimientos')">
-                        <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mb-4 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+                    <div class="bg-white p-5 md:p-6 rounded-3xl border-t-4 border-t-emerald-500 border-x border-b border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group" onclick="cambiarVista('procedimientos')">
+                        <div class="w-10 h-10 md:w-12 md:h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mb-3 md:mb-4 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
                             <span class="material-symbols-rounded icon-large">rule</span>
                         </div>
-                        <h4 class="font-bold text-lg text-slate-800 mb-1">Procedimientos</h4>
+                        <h4 class="font-bold text-base md:text-lg text-slate-800 mb-1">Procedimientos</h4>
                         <p class="text-slate-500 leading-relaxed text-xs">Normativa vigente y protocolos.</p>
                     </div>
 
-                    <div class="bg-white p-6 rounded-3xl border-t-4 border-t-indigo-500 border-x border-b border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group" onclick="cambiarVista('recibos')">
-                        <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mb-4 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                    <div class="bg-white p-5 md:p-6 rounded-3xl border-t-4 border-t-indigo-500 border-x border-b border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group" onclick="cambiarVista('recibos')">
+                        <div class="w-10 h-10 md:w-12 md:h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mb-3 md:mb-4 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
                             <span class="material-symbols-rounded icon-large">receipt_long</span>
                         </div>
-                        <h4 class="font-bold text-lg text-slate-800 mb-1">Mis Recibos</h4>
+                        <h4 class="font-bold text-base md:text-lg text-slate-800 mb-1">Mis Recibos</h4>
                         <p class="text-slate-500 leading-relaxed text-xs">Carpeta privada de sueldos.</p>
                     </div>
 
-                    <a href="https://app.absentify.com" target="_blank" class="bg-white p-6 rounded-3xl border-t-4 border-t-amber-500 border-x border-b border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group block">
-                        <div class="w-12 h-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center mb-4 group-hover:bg-amber-600 group-hover:text-white transition-colors">
+                    <a href="https://app.absentify.com" target="_blank" class="bg-white p-5 md:p-6 rounded-3xl border-t-4 border-t-amber-500 border-x border-b border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group block">
+                        <div class="w-10 h-10 md:w-12 md:h-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center mb-3 md:mb-4 group-hover:bg-amber-600 group-hover:text-white transition-colors">
                             <span class="material-symbols-rounded icon-large">event_note</span>
                         </div>
-                        <h4 class="font-bold text-lg text-slate-800 mb-1">Absentify ↗</h4>
+                        <h4 class="font-bold text-base md:text-lg text-slate-800 mb-1">Absentify ↗</h4>
                         <p class="text-slate-500 leading-relaxed text-xs">Gestión de vacaciones y licencias.</p>
                     </a>
 
@@ -308,14 +311,14 @@
 
         function renderizarDPP() {
             let filasHTML = archivosDrive.dpp.map(doc => `
-                <div class="p-5 border-b border-slate-100 flex justify-between items-center hover:bg-slate-50 transition cursor-pointer group" onclick="abrirDocumento('${doc.nombre}', '${doc.url}')">
-                    <div class="flex items-center gap-4">
-                        <div class="bg-blue-50 text-blue-600 p-3 rounded-xl group-hover:bg-blue-100 transition">
+                <div class="p-4 md:p-5 border-b border-slate-100 flex justify-between items-center hover:bg-slate-50 transition cursor-pointer group" onclick="abrirDocumento('${doc.nombre}', '${doc.url}')">
+                    <div class="flex items-center gap-3 md:gap-4">
+                        <div class="bg-blue-50 text-blue-600 p-2.5 md:p-3 rounded-xl group-hover:bg-blue-100 transition">
                             <span class="material-symbols-rounded">person_pin</span>
                         </div>
                         <div>
-                            <span class="font-bold text-slate-800 block text-lg">${doc.nombre}</span>
-                            <span class="text-sm font-medium text-slate-500">${doc.area}</span>
+                            <span class="font-bold text-slate-800 block text-sm md:text-lg">${doc.nombre}</span>
+                            <span class="text-xs md:text-sm font-medium text-slate-500">${doc.area}</span>
                         </div>
                     </div>
                     <button class="text-slate-400 group-hover:text-blue-600 transition flex items-center">
@@ -326,8 +329,8 @@
 
             return `
                 <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
-                    <div class="p-6 border-b border-slate-100 bg-slate-50/50">
-                        <p class="text-slate-600 font-medium">Seleccioná un perfil de la lista para visualizar el documento oficial.</p>
+                    <div class="p-4 md:p-6 border-b border-slate-100 bg-slate-50/50">
+                        <p class="text-xs md:text-sm text-slate-600 font-medium">Seleccioná un perfil de la lista para visualizar el documento oficial.</p>
                     </div>
                     <div>${filasHTML}</div>
                 </div>
@@ -336,14 +339,14 @@
 
         function renderizarProcedimientos() {
             let itemsHTML = archivosDrive.procedimientos.map(doc => `
-                <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:border-emerald-200 transition cursor-pointer flex justify-between items-center group" onclick="abrirDocumento('${doc.nombre}', '${doc.url}')">
-                    <div class="flex items-center gap-4">
-                        <div class="bg-emerald-50 text-emerald-600 p-3 rounded-xl group-hover:bg-emerald-100 transition">
+                <div class="bg-white p-4 md:p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:border-emerald-200 transition cursor-pointer flex justify-between items-center group" onclick="abrirDocumento('${doc.nombre}', '${doc.url}')">
+                    <div class="flex items-center gap-3 md:gap-4">
+                        <div class="bg-emerald-50 text-emerald-600 p-2.5 md:p-3 rounded-xl group-hover:bg-emerald-100 transition">
                             <span class="material-symbols-rounded">description</span>
                         </div>
                         <div>
-                            <h4 class="font-bold text-slate-800 text-lg">${doc.nombre}</h4>
-                            <p class="text-sm text-slate-500 font-medium mt-1 flex items-center gap-1">
+                            <h4 class="font-bold text-slate-800 text-sm md:text-lg">${doc.nombre}</h4>
+                            <p class="text-xs md:text-sm text-slate-500 font-medium mt-1 flex items-center gap-1">
                                 <span class="material-symbols-rounded" style="font-size: 14px;">update</span> Actualizado: ${doc.fecha}
                             </p>
                         </div>
@@ -355,26 +358,24 @@
             return `<div class="space-y-4">${itemsHTML}</div>`;
         }
 
-        // FUNCIÓN MEJORADA: Incluye visor de Drive + Botón directo de respaldo por si el navegador bloquea la carpeta
         function renderizarRecibos() {
             const empleado = baseRecibos.find(emp => emp.email.toLowerCase() === usuarioActualEmail.toLowerCase());
 
             if (empleado) {
-                // Extraemos dinámicamente el ID de la carpeta para armar el botón de enlace directo
                 let idCarpeta = empleado.urlCarpeta.split('id=')[1].split('#')[0];
                 let linkDirecto = `https://drive.google.com/drive/folders/${idCarpeta}`;
 
                 return `
                     <div class="mb-4 flex flex-col sm:flex-row justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-slate-200 gap-3">
-                        <span class="text-sm text-slate-600 font-medium text-center sm:text-left">¿Problemas para visualizar tus recibos? Abrílos en una pestaña nueva:</span>
+                        <span class="text-xs md:text-sm text-slate-600 font-medium text-center sm:text-left">¿Problemas para visualizar abajo? Abrila en una pestaña nueva:</span>
                         <a href="${linkDirecto}" target="_blank" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition shadow-sm flex items-center gap-1.5 shrink-0">
                             <span class="material-symbols-rounded" style="font-size: 16px;">open_in_new</span> Abrir en Google Drive
                         </a>
                     </div>
-                    <div class="w-full h-[calc(100vh-16rem)] bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden relative">
+                    <div class="w-full h-[calc(100vh-14rem)] md:h-[calc(100vh-16rem)] bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden relative">
                         <div id="spinner-carga" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-50 z-0">
                             <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mb-4"></div>
-                            <span class="text-sm font-medium text-slate-500">Conectando con Google Drive...</span>
+                            <span class="text-xs md:text-sm font-medium text-slate-500">Conectando con Google Drive...</span>
                         </div>
                         <iframe src="${empleado.urlCarpeta}" class="w-full h-full relative z-10 border-0 bg-white"
                             onload="document.getElementById('spinner-carga').style.display='none'" allow="autoplay">
@@ -383,10 +384,10 @@
                 `;
             } else {
                 return `
-                    <div class="bg-red-50 p-8 rounded-3xl border border-red-100 text-center flex flex-col items-center">
+                    <div class="bg-red-50 p-6 md:p-8 rounded-3xl border border-red-100 text-center flex flex-col items-center">
                         <span class="material-symbols-rounded text-red-400 text-5xl mb-3">error</span>
-                        <h3 class="text-xl font-bold text-red-800 mb-2">Legajo no vinculado</h3>
-                        <p class="text-red-600 font-medium">El correo ${usuarioActualEmail} no tiene una carpeta asociada en el sistema.</p>
+                        <h3 class="text-lg md:text-xl font-bold text-red-800 mb-2">Legajo no vinculado</h3>
+                        <p class="text-xs md:text-sm text-red-600 font-medium">El correo ${usuarioActualEmail} no tiene una carpeta asociada en el sistema.</p>
                     </div>
                 `;
             }
@@ -395,10 +396,10 @@
         function actualizarMenuActivo(vista) {
             ['inicio', 'dpp', 'procedimientos', 'recibos'].forEach(v => {
                 const btn = document.getElementById(`btn-${v}`);
-                if (btn) btn.className = "w-full flex items-center gap-3 p-3 text-left text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium rounded-xl transition";
+                if (btn) btn.className = "flex items-center gap-2 md:gap-3 p-2.5 md:p-3 text-left text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium rounded-xl transition shrink-0";
             });
             const btnActivo = document.getElementById(`btn-${vista}`);
-            if (btnActivo) btnActivo.className = "w-full flex items-center gap-3 p-3 text-left bg-blue-50 text-blue-700 font-medium rounded-xl transition shadow-sm";
+            if (btnActivo) btnActivo.className = "flex items-center gap-2 md:gap-3 p-2.5 md:p-3 text-left bg-blue-50 text-blue-700 font-medium rounded-xl transition shadow-sm shrink-0";
         }
 
         function cambiarVista(vista) {
@@ -424,10 +425,10 @@
             actualizarMenuActivo('');
 
             contenedorContenido.innerHTML = `
-                <div class="w-full h-[calc(100vh-12rem)] bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden relative">
+                <div class="w-full h-[calc(100vh-14rem)] md:h-[calc(100vh-12rem)] bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden relative">
                     <div id="spinner-carga" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-50 z-0">
                         <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mb-4"></div>
-                        <span class="text-sm font-medium text-slate-500">Cargando documento...</span>
+                        <span class="text-xs md:text-sm font-medium text-slate-500">Cargando documento...</span>
                     </div>
                     <iframe 
                         src="${url}" 
