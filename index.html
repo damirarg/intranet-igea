@@ -11,28 +11,23 @@
         body { position: relative; background-color: #f8fafc; }
         .app-background {
             position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
+            /* Dejamos un degradado suave y limpio, eliminando las líneas molestas */
             background:
-                radial-gradient(circle at 20% 20%, rgba(56, 189, 248, 0.18), transparent 28%),
-                radial-gradient(circle at 80% 16%, rgba(16, 185, 129, 0.16), transparent 24%),
-                linear-gradient(135deg, #f7fbff 0%, #eef8ff 45%, #f8fff9 100%);
+                radial-gradient(circle at 20% 20%, rgba(56, 189, 248, 0.12), transparent 35%),
+                radial-gradient(circle at 80% 16%, rgba(16, 185, 129, 0.10), transparent 30%),
+                linear-gradient(135deg, #f0f7ff 0%, #e6f4ff 50%, #f0fbf4 100%);
         }
-        .app-background::before {
-            content: ""; position: absolute; inset: 0;
-            background-image: linear-gradient(rgba(14, 116, 144, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(14, 116, 144, 0.05) 1px, transparent 1px);
-            background-size: 40px 40px; opacity: 0.35; animation: driftGrid 18s linear infinite;
-        }
-        @keyframes driftGrid { from { transform: translateY(0); } to { transform: translateY(24px); } }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 
-<body class="bg-gray-50 text-gray-800 font-sans flex h-screen overflow-hidden">
+<body class="text-gray-800 font-sans flex h-screen overflow-hidden">
     <div class="app-background" aria-hidden="true"></div>
 
     <!-- PANTALLA DE LOGIN GLOBAL -->
-    <div id="pantalla-login" class="absolute inset-0 z-50 flex items-center justify-center bg-gray-900/40 backdrop-blur-sm transition-opacity">
-        <div class="bg-white/95 p-8 rounded-2xl shadow-2xl border border-white max-w-md w-full relative">
+    <div id="pantalla-login" class="absolute inset-0 z-50 flex items-center justify-center bg-gray-900/60 backdrop-blur-sm transition-opacity">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl border border-gray-100 max-w-md w-full relative">
             <div class="text-center mb-6">
                 <h1 class="text-3xl font-bold text-blue-900 tracking-wider mb-1">IGEA</h1>
                 <h2 class="text-lg font-medium text-gray-600">Portal Interno</h2>
@@ -122,7 +117,7 @@
         let usuarioActualEmail = "";
 
         // ==========================================
-        // BASE DE DATOS DE RECIBOS (AHORA MAPEADOS POR MAIL)
+        // BASE DE DATOS DE RECIBOS (MAPEADOS POR MAIL)
         // ==========================================
         const baseRecibos = [
             { email: "damirodriguez81@gmail.com", nombre: "RODRIGUEZ Damián", urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1rm4KzCg1kzz2331RipWsxF_VHW22RUxc#list" },
@@ -144,34 +139,97 @@
             { email: "mvalero@igea.com.ar", nombre: "VALERO Manuel", urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1DTnWeQVkxQ_mQ7EJEU0w4ygFnFlxjnO6#list" }
         ];
 
-        // Archivos de Google Drive comunes
+        // ==========================================
+        // ARCHIVOS DE DRIVE COMUNES (RESTAURADOS)
+        // ==========================================
         const archivosDrive = {
             dpp: [
-                { nombre: "Coordinador Operativo", area: "Administración y Finanzas", url: "https://docs.google.com/document/d/1IaOfr1qIjGI6kKGbioG84X5zZU9oOaoF/preview" }
+                { nombre: "Coordinador Operativo, Administrativo y de Finanzas", area: "Administración y Finanzas", url: "https://docs.google.com/document/d/1IaOfr1qIjGI6kKGbioG84X5zZU9oOaoF/preview" },
+                { nombre: "Administrativa de Admisión y Atención al Público", area: "Admisión y Atención al Público", url: "https://docs.google.com/document/d/1RiU2YNFAs7DHN_Ee9oO-YDo1ppAAXEqQ/preview" },
+                { nombre: "Operadora de Atención Digital", area: "Atención Digital", url: "https://docs.google.com/document/d/1GWxd8yy_GNYTy2f_nVKRkeO1ZUTQV3yw/preview" },
+                { nombre: "Administrativa de Enlace Institucional", area: "Enlace Institucional", url: "https://docs.google.com/document/d/1kFfqGuGzD6b7bhr6UnMMTIZjJQ0Y-J_i/preview" },
+                { nombre: "Responsable de Tesorería y Pagos", area: "Tesorería y Pagos", url: "https://docs.google.com/document/d/1JVqhA8iW0_aypK80JmGiVjbJBuSAOvQe/preview" }
             ],
             procedimientos: [
-                { nombre: "Gestión de Vacaciones", fecha: "07/07/2026", url: "https://docs.google.com/document/d/1wYzmFrBZG0qQ3C9_HbHoHcUJDIwE-VcP/preview" }
+                { nombre: "Gestión de Vacaciones y Licencias Especiales", fecha: "07/07/2026", url: "https://docs.google.com/document/d/1wYzmFrBZG0qQ3C9_HbHoHcUJDIwE-VcP/preview" },
+                { nombre: "Guardia Administrativa y Gestión Remota", fecha: "20/07/2026", url: "https://docs.google.com/document/d/17_p1VdCKTV-EvsT4paMaSZw_jteOEJZ4/preview" }
             ]
         };
 
         let seccionActual = 'inicio';
 
+        // ==========================================
         // FUNCIONES DE RENDERIZADO
+        // ==========================================
         function renderizarInicio() {
             return `
                 <div class="bg-white/90 p-8 rounded-2xl shadow-lg border border-white/50">
                     <h3 class="text-3xl font-bold text-blue-900 mb-4">Bienvenido al Portal de Administración</h3>
-                    <p class="text-gray-600 mb-8 text-lg">Gestioná tus recursos de manera rápida y centralizada.</p>
+                    <p class="text-gray-600 mb-8 text-lg">Gestioná los recursos de manera rápida y centralizada.</p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="bg-gradient-to-br from-blue-50 to-white p-6 rounded-xl border border-blue-100 shadow-sm hover:shadow-md cursor-pointer hover:-translate-y-1 transition duration-300" onclick="cambiarVista('dpp')">
+                            <div class="text-4xl mb-3">👥</div>
+                            <h4 class="font-bold text-xl text-blue-900">Directorio DPP</h4>
+                            <p class="text-gray-600 mt-2">Consultá las Descripciones de Perfil y Puestos del equipo de IGEA.</p>
+                        </div>
+                        <div class="bg-gradient-to-br from-emerald-50 to-white p-6 rounded-xl border border-emerald-100 shadow-sm hover:shadow-md cursor-pointer hover:-translate-y-1 transition duration-300" onclick="cambiarVista('procedimientos')">
+                            <div class="text-4xl mb-3">📋</div>
+                            <h4 class="font-bold text-xl text-emerald-900">Procedimientos</h4>
+                            <p class="text-gray-600 mt-2">Accedé a la normativa vigente y protocolos internos.</p>
+                        </div>
+                    </div>
                 </div>
             `;
         }
 
+        // Restauramos el renderizado completo de DPP
+        function renderizarDPP() {
+            let filasHTML = archivosDrive.dpp.map(doc => `
+                <div class="p-4 border-b border-gray-100 flex justify-between items-center hover:bg-blue-50 transition cursor-pointer" onclick="abrirDocumento('${doc.nombre}', '${doc.url}')">
+                    <div class="flex items-center gap-3">
+                        <div class="bg-blue-100 text-blue-600 p-2 rounded-lg">👤</div>
+                        <div>
+                            <span class="font-semibold text-gray-800 block">${doc.nombre}</span>
+                            <span class="text-sm text-gray-500">${doc.area}</span>
+                        </div>
+                    </div>
+                    <button class="bg-white border border-gray-200 text-blue-600 px-4 py-2 rounded-lg hover:bg-blue-600 hover:text-white transition shadow-sm text-sm font-medium">Ver Perfil</button>
+                </div>
+            `).join('');
+
+            return `
+                <div class="bg-white/90 p-6 rounded-2xl shadow-lg border border-white/50">
+                    <p class="text-gray-600 mb-6">Seleccioná un perfil para ver el documento oficial.</p>
+                    <div class="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                        ${filasHTML}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Restauramos el renderizado completo de Procedimientos
+        function renderizarProcedimientos() {
+            let itemsHTML = archivosDrive.procedimientos.map(doc => `
+                <li class="flex items-center justify-between p-4 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:border-emerald-300 transition cursor-pointer" onclick="abrirDocumento('${doc.nombre}', '${doc.url}')">
+                    <div class="flex items-center">
+                        <span class="text-3xl mr-4 p-2 bg-emerald-50 rounded-lg">📄</span>
+                        <div>
+                            <h4 class="font-semibold text-gray-800 text-lg">${doc.nombre}</h4>
+                            <p class="text-sm text-emerald-600 font-medium">Actualizado: ${doc.fecha}</p>
+                        </div>
+                    </div>
+                    <span class="text-gray-400 hover:text-emerald-600 transition">➜</span>
+                </li>
+            `).join('');
+
+            return `<div class="space-y-4">${itemsHTML}</div>`;
+        }
+
         function renderizarRecibos() {
-            // Buscamos en la lista el usuario que coincide con el mail que se logueó
             const empleado = baseRecibos.find(emp => emp.email.toLowerCase() === usuarioActualEmail.toLowerCase());
 
             if (empleado) {
-                // Si lo encuentra, muestra directamente su carpeta
                 return `
                     <div class="w-full h-[calc(100vh-12rem)] bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden relative">
                         <div id="spinner-carga" class="absolute inset-0 flex items-center justify-center bg-gray-50 z-0">
@@ -183,9 +241,8 @@
                     </div>
                 `;
             } else {
-                // Si no le pusiste la carpeta a su correo, muestra error
                 return `
-                    <div class="bg-red-50 p-6 rounded-xl border border-red-200 text-center">
+                    <div class="bg-red-50 p-6 rounded-xl border border-red-200 text-center shadow-sm">
                         <h3 class="text-xl font-bold text-red-700 mb-2">Legajo no encontrado</h3>
                         <p class="text-red-600">Tu correo (${usuarioActualEmail}) no tiene una carpeta de recibos asociada. Comunicáte con Administración.</p>
                     </div>
@@ -193,10 +250,9 @@
             }
         }
 
-        function renderizarDPP() { return `<div class="bg-white p-6 rounded-xl shadow">Sección DPP en mantenimiento visual...</div>`; }
-        function renderizarProcedimientos() { return `<div class="bg-white p-6 rounded-xl shadow">Sección Procedimientos...</div>`; }
-
+        // ==========================================
         // CONTROLADORES DE INTERFAZ
+        // ==========================================
         function actualizarMenuActivo(vista) {
             ['inicio', 'dpp', 'procedimientos', 'recibos'].forEach(v => {
                 const btn = document.getElementById(`btn-${v}`);
@@ -219,6 +275,31 @@
             if (vista === 'recibos') { titulo.textContent = "Legajo Digital Privado"; contenido.innerHTML = renderizarRecibos(); }
         }
 
+        // Agregamos la función abrirDocumento que se había perdido
+        function abrirDocumento(titulo, url) {
+            const contenedorContenido = document.getElementById('contenido-seccion');
+            const tituloSeccion = document.getElementById('titulo-seccion');
+            const btnVolver = document.getElementById('btn-volver');
+
+            tituloSeccion.textContent = titulo;
+            btnVolver.classList.remove('hidden');
+            actualizarMenuActivo('');
+
+            contenedorContenido.innerHTML = `
+                <div class="w-full h-[calc(100vh-12rem)] bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden relative">
+                    <div id="spinner-carga" class="absolute inset-0 flex items-center justify-center bg-gray-50 z-0">
+                        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                    </div>
+                    <iframe 
+                        src="${url}" 
+                        class="w-full h-full relative z-10 border-0 bg-white"
+                        onload="document.getElementById('spinner-carga').style.display='none'"
+                        allow="autoplay">
+                    </iframe>
+                </div>
+            `;
+        }
+
         function volverAtras() { cambiarVista(seccionActual); }
     </script>
     
@@ -227,7 +308,6 @@
     <!-- ========================================== -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-        // Importamos el vigilante: onAuthStateChanged y signOut
         import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
         const firebaseConfig = {
@@ -267,22 +347,23 @@
         window.iniciarSesionFirebase = function() {
             const email = document.getElementById('input-email').value;
             const password = document.getElementById('input-password').value;
-            if(!email || !password) { alert("Completá los datos."); return; }
+            if(!email || !password) { alert("Por favor, completá todos los datos."); return; }
             signInWithEmailAndPassword(auth, email, password)
-                .catch((error) => alert("Error: Verificá tus credenciales."));
+                .catch((error) => alert("Error: Verificá tus credenciales. (" + error.message + ")"));
         };
 
         window.recuperarClaveFirebase = function() {
             const email = document.getElementById('input-email').value;
-            if(!email) { alert("Escribí tu correo primero y volvé a presionar acá."); return; }
+            if(!email) { alert("Por favor, escribí tu correo electrónico arriba y volvé a presionar este botón."); return; }
             sendPasswordResetEmail(auth, email)
-                .then(() => alert("Correo enviado a " + email))
-                .catch((error) => alert("Error al enviar."));
+                .then(() => alert("¡Correo enviado a " + email + "! Revisá tu bandeja de entrada."))
+                .catch((error) => alert("Error al enviar el correo. (" + error.message + ")"));
         };
 
         window.cerrarSesion = function() {
             signOut(auth).then(() => {
-                document.getElementById('input-password').value = ''; // Limpiamos el campo
+                document.getElementById('input-password').value = ''; // Limpiamos el campo de contraseña
+                document.getElementById('input-email').value = ''; // Limpiamos el campo de correo
             });
         };
     </script>
