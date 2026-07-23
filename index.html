@@ -126,6 +126,34 @@
         </div>
     </div>
 
+    <!-- MODAL DE NUEVA SUGERENCIA -->
+    <div id="modal-sugerencia" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+        <div class="bg-white p-6 md:p-8 rounded-3xl shadow-xl w-full max-w-md relative border border-slate-100">
+            <div class="flex items-center gap-3 mb-4">
+                <span class="material-symbols-rounded text-amber-500">lightbulb</span>
+                <h3 class="text-lg font-bold text-slate-800">Nueva Sugerencia o Idea</h3>
+            </div>
+            <p class="text-xs text-slate-500 mb-4">Compartí tu propuesta para seguir mejorando los procesos de IGEA.</p>
+            
+            <textarea id="texto-sugerencia" rows="4" class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3.5 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none mb-4" placeholder="Escribí tu idea acá..."></textarea>
+            
+            <div class="mb-6">
+                <label class="block text-xs font-semibold text-slate-600 mb-2 uppercase">Color del Post-It</label>
+                <div class="flex gap-3">
+                    <button type="button" onclick="seleccionarColorPostit('yellow')" id="color-yellow" class="w-8 h-8 rounded-full bg-yellow-200 border-2 border-yellow-400 focus:scale-110 transition"></button>
+                    <button type="button" onclick="seleccionarColorPostit('emerald')" id="color-emerald" class="w-8 h-8 rounded-full bg-emerald-200 border-2 border-transparent focus:scale-110 transition"></button>
+                    <button type="button" onclick="seleccionarColorPostit('sky')" id="color-sky" class="w-8 h-8 rounded-full bg-sky-200 border-2 border-transparent focus:scale-110 transition"></button>
+                    <button type="button" onclick="seleccionarColorPostit('rose')" id="color-rose" class="w-8 h-8 rounded-full bg-rose-200 border-2 border-transparent focus:scale-110 transition"></button>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-3">
+                <button onclick="cerrarModalSugerencia()" class="px-5 py-2.5 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition">Cancelar</button>
+                <button onclick="window.guardarSugerenciaFirebase()" class="px-5 py-2.5 text-sm font-semibold bg-amber-500 hover:bg-amber-600 text-white rounded-xl transition shadow-md shadow-amber-200">Publicar Idea</button>
+            </div>
+        </div>
+    </div>
+
     <!-- APLICACIÓN PRINCIPAL -->
     <div id="aplicacion-principal" class="hidden flex flex-col md:flex-row h-screen w-full relative z-10">
         
@@ -158,6 +186,10 @@
                     <span class="material-symbols-rounded">receipt_long</span>
                     <span class="text-xs md:text-sm">Recibos</span>
                 </button>
+                <button id="btn-sugerencias" onclick="cambiarVista('sugerencias')" class="flex items-center gap-2 md:gap-3 p-2.5 md:p-3 text-left text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium rounded-xl transition shrink-0">
+                    <span class="material-symbols-rounded">sticky_note_2</span>
+                    <span class="text-xs md:text-sm">Sugerencias</span>
+                </button>
                 <a href="https://app.absentify.com" target="_blank" class="flex items-center gap-2 md:gap-3 p-2.5 md:p-3 text-left text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium rounded-xl transition shrink-0">
                     <span class="material-symbols-rounded">event_note</span>
                     <span class="text-xs md:text-sm">Absentify</span>
@@ -165,7 +197,7 @@
             </nav>
             <div class="hidden md:block p-6">
                 <div class="bg-slate-50 rounded-xl p-4 border border-slate-100 text-center">
-                    <p class="text-xs font-medium text-slate-500">Intranet Segura v5.6</p>
+                    <p class="text-xs font-medium text-slate-500">Intranet Segura v6.4</p>
                 </div>
             </div>
         </aside>
@@ -206,6 +238,8 @@
     <!-- Lógica JavaScript -->
     <script>
         let usuarioActualEmail = "";
+        let colorPostitSeleccionado = "yellow";
+        let listaSugerencias = [];
 
         const baseRecibos = [
             { email: "damirodriguez81@gmail.com", nombre: "RODRIGUEZ Damián", urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1rm4KzCg1kzz2331RipWsxF_VHW22RUxc#list" },
@@ -228,7 +262,6 @@
             { email: "mvalero@igea.com.ar", nombre: "VALERO Manuel", urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1DTnWeQVkxQ_mQ7EJEU0w4ygFnFlxjnO6#list" }
         ];
 
-        // ESTRUCTURA ACTUALIZADA CON LOS ENLACES REALES DE GOOGLE DRIVE (convertidos a /preview)
         const archivosDrive = {
             dpp: [
                 { nombre: "Coordinador Operativo, Administrativo y de Finanzas", area: "Administración y Finanzas", url: "https://docs.google.com/document/d/1IaOfr1qIjGI6kKGbioG84X5zZU9oOaoF/preview" },
@@ -242,7 +275,7 @@
                     nombre: "Gestión de Vacaciones y Licencias Especiales", 
                     fecha: "07/07/2026", 
                     url: "https://docs.google.com/document/d/1wYzmFrBZG0qQ3C9_HbHoHcUJDIwE-VcP/preview",
-                    materialesDidacticos: [] // Podrás sumar enlaces cuando los tengas
+                    materialesDidacticos: []
                 },
                 { 
                     nombre: "Guardia Administrativa y Gestión Remota", 
@@ -251,11 +284,13 @@
                     materialesDidacticos: [
                         { 
                             nombre: "Guía Operativa Guardias", 
-                            url: "https://drive.google.com/file/d/1dGcliSo96DjmV4uXRRJkHI-1zRCx3N83/preview" 
+                            url: "./assets/guia-guardias.jpg",
+                            esImagen: true
                         },
                         { 
                             nombre: "Protocolo Guardias", 
-                            url: "https://drive.google.com/file/d/1pYG074yYvug1IpN5_enMXtED0x-yPBD0/preview" 
+                            url: "https://docs.google.com/document/d/1mj1OiZXwkSljWkmSyHufEJanZ6wLG395/preview",
+                            esImagen: false
                         }
                     ]
                 }
@@ -270,6 +305,23 @@
         }
         function cerrarModalClave() {
             document.getElementById('modal-clave').classList.add('hidden');
+        }
+
+        function abrirModalSugerencia() {
+            document.getElementById('modal-sugerencia').classList.remove('hidden');
+            document.getElementById('texto-sugerencia').value = '';
+            seleccionarColorPostit('yellow');
+        }
+        function cerrarModalSugerencia() {
+            document.getElementById('modal-sugerencia').classList.add('hidden');
+        }
+
+        function seleccionarColorPostit(color) {
+            colorPostitSeleccionado = color;
+            ['yellow', 'emerald', 'sky', 'rose'].forEach(c => {
+                const btn = document.getElementById(`color-${c}`);
+                if(btn) btn.className = `w-8 h-8 rounded-full bg-${c}-200 border-2 ${c === color ? `border-${c}-500 scale-110` : 'border-transparent'} transition`;
+            });
         }
 
         function renderizarInicio() {
@@ -320,13 +372,13 @@
                         <p class="text-slate-500 leading-relaxed text-xs">Carpeta privada de sueldos.</p>
                     </div>
 
-                    <a href="https://app.absentify.com" target="_blank" class="bg-white p-5 md:p-6 rounded-3xl border-t-4 border-t-amber-500 border-x border-b border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group block">
+                    <div class="bg-white p-5 md:p-6 rounded-3xl border-t-4 border-t-amber-500 border-x border-b border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group" onclick="cambiarVista('sugerencias')">
                         <div class="w-10 h-10 md:w-12 md:h-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center mb-3 md:mb-4 group-hover:bg-amber-600 group-hover:text-white transition-colors">
-                            <span class="material-symbols-rounded icon-large">event_note</span>
+                            <span class="material-symbols-rounded icon-large">sticky_note_2</span>
                         </div>
-                        <h4 class="font-bold text-base md:text-lg text-slate-800 mb-1">Absentify ↗</h4>
-                        <p class="text-slate-500 leading-relaxed text-xs">Gestión de vacaciones y licencias.</p>
-                    </a>
+                        <h4 class="font-bold text-base md:text-lg text-slate-800 mb-1">Sugerencias</h4>
+                        <p class="text-slate-500 leading-relaxed text-xs">Mural de ideas y propuestas.</p>
+                    </div>
 
                 </div>
             `;
@@ -360,18 +412,37 @@
             `;
         }
 
-        // LÓGICA MEJORADA: Genera botones individuales según la cantidad de materiales didácticos cargados
+        function seleccionarMaterialDidactico(selectElement) {
+            let selectedOption = selectElement.options[selectElement.selectedIndex];
+            let url = selectedOption.value;
+            let titulo = selectedOption.text;
+            let esImagen = selectedOption.getAttribute('data-imagen') === 'true';
+
+            if (url) {
+                abrirDocumento(titulo, url, esImagen);
+                selectElement.selectedIndex = 0;
+            }
+        }
+
         function renderizarProcedimientos() {
-            let itemsHTML = archivosDrive.procedimientos.map(doc => {
+            let itemsHTML = archivosDrive.procedimientos.map((doc) => {
                 
-                // Generamos dinámicamente los botones de material didáctico si existen
-                let botonesDidacticosHTML = "";
+                let desplegableHTML = "";
                 if (doc.materialesDidacticos && doc.materialesDidacticos.length > 0) {
-                    botonesDidacticosHTML = doc.materialesDidacticos.map(mat => `
-                        <button onclick="abrirDocumento('${mat.nombre}', '${mat.url}')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3.5 py-2.5 rounded-xl transition shadow-sm flex items-center gap-1.5 shrink-0">
-                            <span class="material-symbols-rounded" style="font-size: 16px;">school</span> ${mat.nombre}
-                        </button>
+                    let opcionesHTML = doc.materialesDidacticos.map(mat => `
+                        <option value="${mat.url}" data-imagen="${mat.esImagen}">${mat.nombre}</option>
                     `).join('');
+
+                    desplegableHTML = `
+                        <div class="relative shrink-0">
+                            <select onchange="seleccionarMaterialDidactico(this)" 
+                                class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-2.5 rounded-xl transition shadow-sm cursor-pointer outline-none appearance-none pr-8">
+                                <option value="" selected disabled>Material Didáctico ▾</option>
+                                ${opcionesHTML}
+                            </select>
+                            <span class="material-symbols-rounded absolute right-2 top-2.5 pointer-events-none text-white" style="font-size: 16px;">school</span>
+                        </div>
+                    `;
                 }
 
                 return `
@@ -392,13 +463,61 @@
                             <button onclick="abrirDocumento('${doc.nombre}', '${doc.url}')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3.5 py-2.5 rounded-xl transition flex items-center gap-1.5 shrink-0">
                                 <span class="material-symbols-rounded" style="font-size: 16px;">visibility</span> Ver Procedimiento
                             </button>
-                            ${botonesDidacticosHTML}
+                            ${desplegableHTML}
                         </div>
                     </div>
                 `;
             }).join('');
 
             return `<div class="space-y-4">${itemsHTML}</div>`;
+        }
+
+        // RENDERIZADO DE LA NUEVA PIZARRA DE SUGERENCIAS
+        function renderizarSugerencias() {
+            let postitsHTML = "";
+            
+            if (listaSugerencias.length === 0) {
+                postitsHTML = `
+                    <div class="col-span-full bg-white p-8 rounded-3xl border border-dashed border-slate-300 text-center">
+                        <span class="material-symbols-rounded text-slate-300 text-5xl mb-2">sticky_note_2</span>
+                        <h4 class="text-slate-600 font-bold mb-1">¡El mural está listo!</h4>
+                        <p class="text-xs text-slate-400">Sé el primero en dejar una sugerencia usando el botón superior.</p>
+                    </div>
+                `;
+            } else {
+                postitsHTML = listaSugerencias.map(sug => {
+                    let colorBg = "bg-yellow-100 border-yellow-300 text-yellow-900";
+                    if(sug.color === 'emerald') colorBg = "bg-emerald-100 border-emerald-300 text-emerald-900";
+                    if(sug.color === 'sky') colorBg = "bg-sky-100 border-sky-300 text-sky-900";
+                    if(sug.color === 'rose') colorBg = "bg-rose-100 border-rose-300 text-rose-900";
+
+                    return `
+                        <div class="${colorBg} p-5 rounded-2xl shadow-sm border hover:shadow-md transition flex flex-col justify-between h-48 transform hover:-rotate-1">
+                            <p class="text-xs md:text-sm font-medium leading-relaxed overflow-y-auto no-scrollbar">${sug.texto}</p>
+                            <div class="pt-3 border-t border-black/10 flex justify-between items-center text-[10px] opacity-75">
+                                <span class="font-bold">${sug.autor}</span>
+                                <span>${sug.fecha}</span>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            return `
+                <div class="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-lg">Mural Colaborativo de Ideas</h3>
+                        <p class="text-xs text-slate-500">Espacio para proponer mejoras operativas y organizacionales.</p>
+                    </div>
+                    <button onclick="abrirModalSugerencia()" class="bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition shadow-md shadow-amber-100 flex items-center gap-1.5 shrink-0">
+                        <span class="material-symbols-rounded" style="font-size: 18px;">add_comment</span> + Nueva Idea
+                    </button>
+                </div>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    ${postitsHTML}
+                </div>
+            `;
         }
 
         function renderizarRecibos() {
@@ -449,7 +568,7 @@
         }
 
         function actualizarMenuActivo(vista) {
-            ['inicio', 'dpp', 'procedimientos', 'recibos'].forEach(v => {
+            ['inicio', 'dpp', 'procedimientos', 'recibos', 'sugerencias'].forEach(v => {
                 const btn = document.getElementById(`btn-${v}`);
                 if (btn) btn.className = "flex items-center gap-2 md:gap-3 p-2.5 md:p-3 text-left text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium rounded-xl transition shrink-0";
             });
@@ -468,9 +587,10 @@
             if (vista === 'dpp') { titulo.textContent = "Directorio de Perfiles"; contenido.innerHTML = renderizarDPP(); }
             if (vista === 'procedimientos') { titulo.textContent = "Procedimientos Internos"; contenido.innerHTML = renderizarProcedimientos(); }
             if (vista === 'recibos') { titulo.textContent = "Legajo Digital"; contenido.innerHTML = renderizarRecibos(); }
+            if (vista === 'sugerencias') { titulo.textContent = "Buzón de Sugerencias"; contenido.innerHTML = renderizarSugerencias(); }
         }
 
-        function abrirDocumento(titulo, url) {
+        function abrirDocumento(titulo, url, esImagen = false) {
             const contenedorContenido = document.getElementById('contenido-seccion');
             const tituloSeccion = document.getElementById('titulo-seccion');
             const btnVolver = document.getElementById('btn-volver');
@@ -479,31 +599,40 @@
             btnVolver.classList.remove('hidden');
             actualizarMenuActivo('');
 
-            contenedorContenido.innerHTML = `
-                <div class="w-full h-[calc(100vh-14rem)] md:h-[calc(100vh-12rem)] bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden relative">
-                    <div id="spinner-carga" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-50 z-0">
-                        <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mb-4"></div>
-                        <span class="text-xs md:text-sm font-medium text-slate-500">Cargando documento...</span>
+            if (esImagen) {
+                contenedorContenido.innerHTML = `
+                    <div class="w-full h-[calc(100vh-12rem)] bg-white rounded-3xl shadow-sm border border-slate-200 overflow-y-auto p-4 md:p-6 flex flex-col items-center">
+                        <img src="${url}" alt="${titulo}" class="max-w-full h-auto rounded-2xl shadow-sm object-contain" />
                     </div>
-                    <iframe 
-                        src="${url}" 
-                        class="w-full h-full relative z-10 border-0 bg-white"
-                        onload="document.getElementById('spinner-carga').style.display='none'"
-                        allow="autoplay">
-                    </iframe>
-                </div>
-            `;
+                `;
+            } else {
+                contenedorContenido.innerHTML = `
+                    <div class="w-full h-[calc(100vh-12rem)] bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden relative">
+                        <div id="spinner-carga" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-50 z-0">
+                            <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-emerald-600 mb-4"></div>
+                            <span class="text-xs md:text-sm font-medium text-slate-500">Cargando documento...</span>
+                        </div>
+                        <iframe 
+                            src="${url}" 
+                            class="w-full h-full relative z-10 border-0 bg-white"
+                            onload="document.getElementById('spinner-carga').style.display='none'"
+                            allow="autoplay">
+                        </iframe>
+                    </div>
+                `;
+            }
         }
 
         function volverAtras() { cambiarVista(seccionActual); }
     </script>
     
     <!-- ========================================== -->
-    <!-- CONFIGURACIÓN DE FIREBASE                  -->
+    <!-- CONFIGURACIÓN DE FIREBASE Y FIRESTORE      -->
     <!-- ========================================== -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail, onAuthStateChanged, signOut, updatePassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBg0u_Se2Od--7wbZFwqWKRdUv_IrYiXw0",
@@ -516,6 +645,21 @@
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Escucha en tiempo real de nuevas sugerencias creadas
+        const sugerenciasRef = collection(db, "sugerencias");
+        const q = query(sugerenciasRef, orderBy("fechaCreacion", "desc"));
+
+        onSnapshot(q, (snapshot) => {
+            listaSugerencias = [];
+            snapshot.forEach((doc) => {
+                listaSugerencias.push(doc.data());
+            });
+            if (seccionActual === 'sugerencias') {
+                cambiarVista('sugerencias');
+            }
+        });
 
         onAuthStateChanged(auth, (user) => {
             const pantallaLogin = document.getElementById('pantalla-login');
@@ -541,6 +685,32 @@
                 appPrincipal.classList.add('hidden');
             }
         });
+
+        window.guardarSugerenciaFirebase = function() {
+            const texto = document.getElementById('texto-sugerencia').value.trim();
+            if(!texto) { alert("Por favor, escribí un texto para tu idea."); return; }
+
+            const empleadoEncontrado = baseRecibos.find(emp => emp.email.toLowerCase() === usuarioActualEmail.toLowerCase());
+            let nombreAutor = "Anónimo";
+            if (empleadoEncontrado) {
+                let partesDelNombre = empleadoEncontrado.nombre.trim().split(/\s+/);
+                nombreAutor = partesDelNombre.pop();
+            }
+
+            const nuevaIdea = {
+                texto: texto,
+                color: colorPostitSeleccionado,
+                autor: nombreAutor,
+                fecha: new Date().toLocaleDateString('es-AR'),
+                fechaCreacion: new Date()
+            };
+
+            addDoc(sugerenciasRef, nuevaIdea).then(() => {
+                cerrarModalSugerencia();
+            }).catch((error) => {
+                alert("Error al guardar la sugerencia: " + error.message);
+            });
+        };
 
         window.iniciarSesionFirebase = function() {
             const email = document.getElementById('input-email').value;
