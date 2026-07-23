@@ -165,7 +165,7 @@
             </nav>
             <div class="hidden md:block p-6">
                 <div class="bg-slate-50 rounded-xl p-4 border border-slate-100 text-center">
-                    <p class="text-xs font-medium text-slate-500">Intranet Segura v5.4</p>
+                    <p class="text-xs font-medium text-slate-500">Intranet Segura v5.5</p>
                 </div>
             </div>
         </aside>
@@ -228,6 +228,7 @@
             { email: "mvalero@igea.com.ar", nombre: "VALERO Manuel", urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1DTnWeQVkxQ_mQ7EJEU0w4ygFnFlxjnO6#list" }
         ];
 
+        // Se agregó la propiedad 'urlDidactico' para albergar el material de apoyo de cada procedimiento
         const archivosDrive = {
             dpp: [
                 { nombre: "Coordinador Operativo, Administrativo y de Finanzas", area: "Administración y Finanzas", url: "https://docs.google.com/document/d/1IaOfr1qIjGI6kKGbioG84X5zZU9oOaoF/preview" },
@@ -237,8 +238,18 @@
                 { nombre: "Responsable de Tesorería y Pagos", area: "Tesorería y Pagos", url: "https://docs.google.com/document/d/1JVqhA8iW0_aypK80JmGiVjbJBuSAOvQe/preview" }
             ],
             procedimientos: [
-                { nombre: "Gestión de Vacaciones y Licencias Especiales", fecha: "07/07/2026", url: "https://docs.google.com/document/d/1wYzmFrBZG0qQ3C9_HbHoHcUJDIwE-VcP/preview" },
-                { nombre: "Guardia Administrativa y Gestión Remota", fecha: "20/07/2026", url: "https://docs.google.com/document/d/17_p1VdCKTV-EvsT4paMaSZw_jteOEJZ4/preview" }
+                { 
+                    nombre: "Gestión de Vacaciones y Licencias Especiales", 
+                    fecha: "07/07/2026", 
+                    url: "https://docs.google.com/document/d/1wYzmFrBZG0qQ3C9_HbHoHcUJDIwE-VcP/preview",
+                    urlDidactico: "https://docs.google.com/document/d/1wYzmFrBZG0qQ3C9_HbHoHcUJDIwE-VcP/preview" // Reemplazar con el link didáctico real cuando lo tengas
+                },
+                { 
+                    nombre: "Guardia Administrativa y Gestión Remota", 
+                    fecha: "20/07/2026", 
+                    url: "https://docs.google.com/document/d/17_p1VdCKTV-EvsT4paMaSZw_jteOEJZ4/preview",
+                    urlDidactico: "https://docs.google.com/document/d/17_p1VdCKTV-EvsT4paMaSZw_jteOEJZ4/preview" // Reemplazar con el link didáctico real cuando lo tengas
+                }
             ]
         };
 
@@ -340,21 +351,30 @@
             `;
         }
 
+        // INTERFAZ ACTUALIZADA: Cada procedimiento ahora incluye su botón dedicado para el material didáctico
         function renderizarProcedimientos() {
             let itemsHTML = archivosDrive.procedimientos.map(doc => `
-                <div class="bg-white p-4 md:p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:border-emerald-200 transition cursor-pointer flex justify-between items-center group" onclick="abrirDocumento('${doc.nombre}', '${doc.url}')">
-                    <div class="flex items-center gap-3 md:gap-4">
-                        <div class="bg-emerald-50 text-emerald-600 p-2.5 md:p-3 rounded-xl group-hover:bg-emerald-100 transition">
+                <div class="bg-white p-5 md:p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition flex flex-col md:flex-row justify-between items-start md:items-center gap-4 group">
+                    <div class="flex items-center gap-4 cursor-pointer flex-1" onclick="abrirDocumento('${doc.nombre}', '${doc.url}')">
+                        <div class="bg-emerald-50 text-emerald-600 p-3 rounded-xl group-hover:bg-emerald-100 transition shrink-0">
                             <span class="material-symbols-rounded">description</span>
                         </div>
                         <div>
-                            <h4 class="font-bold text-slate-800 text-sm md:text-lg">${doc.nombre}</h4>
+                            <h4 class="font-bold text-slate-800 text-base md:text-lg">${doc.nombre}</h4>
                             <p class="text-xs md:text-sm text-slate-500 font-medium mt-1 flex items-center gap-1">
                                 <span class="material-symbols-rounded" style="font-size: 14px;">update</span> Actualizado: ${doc.fecha}
                             </p>
                         </div>
                     </div>
-                    <span class="material-symbols-rounded text-slate-300 group-hover:text-emerald-500 transition">arrow_forward_ios</span>
+                    
+                    <div class="flex items-center gap-2.5 w-full md:w-auto justify-end">
+                        <button onclick="abrirDocumento('${doc.nombre}', '${doc.url}')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-4 py-2.5 rounded-xl transition flex items-center gap-1.5">
+                            <span class="material-symbols-rounded" style="font-size: 16px;">visibility</span> Ver Procedimiento
+                        </button>
+                        <button onclick="abrirDocumento('Material Didáctico: ${doc.nombre}', '${doc.urlDidactico}')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition shadow-sm flex items-center gap-1.5">
+                            <span class="material-symbols-rounded" style="font-size: 16px;">school</span> Material Didáctico
+                        </button>
+                    </div>
                 </div>
             `).join('');
 
@@ -538,7 +558,7 @@
                 updatePassword(user, nuevaClave).then(() => {
                     alert("¡Excelente! Tecnológicamente tu contraseña se actualizó correctamente.");
                     cerrarModalClave(); 
-                }).catch((error) => {
+                }).catch((error) =>{
                     if(error.code === 'auth/requires-recent-login') {
                         alert("Por seguridad, cerrá sesión y volvé a ingresar para cambiar la clave.");
                     } else {
