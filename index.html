@@ -203,7 +203,7 @@
             </nav>
             <div class="hidden md:block p-6">
                 <div class="bg-slate-50 rounded-xl p-4 border border-slate-100 text-center">
-                    <p class="text-xs font-medium text-slate-500">Intranet Segura v6.6</p>
+                    <p class="text-xs font-medium text-slate-500">Intranet Segura v6.7</p>
                 </div>
             </div>
         </aside>
@@ -246,6 +246,7 @@
         let usuarioActualEmail = "";
         let colorPostitSeleccionado = "yellow";
         let listaSugerencias = [];
+        let verArchivadas = false; // Estado del filtro de sugerencias
 
         const baseRecibos = [
             { email: "damirodriguez81@gmail.com", nombre: "RODRIGUEZ Damián", urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1rm4KzCg1kzz2331RipWsxF_VHW22RUxc#list" },
@@ -479,47 +480,89 @@
             return `<div class="space-y-4">${itemsHTML}</div>`;
         }
 
-        // RENDERIZADO DE LA PIZARRA DE SUGERENCIAS CON TOOLTIPS Y CONTROL DE REACCIÓN
+        // ALTERNA FILTRO DE ARCHIVADAS (SÓLO DANIEL / ADMIN PUEDE ALTERNAR Y ARCHIVAR)
+        function alternarVistaArchivadas(estado) {
+            verArchivadas = estado;
+            cambiarVista('sugerencias');
+        }
+
+        // RENDERIZADO DEL MURAL DE SUGERENCIAS CON FILTROS, ELIMINACIÓN Y ARCHIVADO
         function renderizarSugerencias() {
+            let esAdmin = usuarioActualEmail.toLowerCase() === "damirodriguez81@gmail.com";
+            
+            // Filtrar sugerencias según la pestaña activa (activas o archivadas)
+            let sugerenciasFiltradas = listaSugerencias.filter(sug => {
+                let estaArchivada = sug.archivada === true;
+                return verArchivadas ? estaArchivada : !estaArchivada;
+            });
+
             let postitsHTML = "";
             
-            if (listaSugerencias.length === 0) {
+            if (sugerenciasFiltradas.length === 0) {
                 postitsHTML = `
                     <div class="col-span-full bg-white p-8 rounded-3xl border border-dashed border-slate-300 text-center">
                         <span class="material-symbols-rounded text-slate-300 text-5xl mb-2">sticky_note_2</span>
-                        <h4 class="text-slate-600 font-bold mb-1">¡El mural está listo!</h4>
-                        <p class="text-xs text-slate-400">Sé el primero en dejar una sugerencia usando el botón superior.</p>
+                        <h4 class="text-slate-600 font-bold mb-1">${verArchivadas ? 'No hay sugerencias archivadas' : '¡El mural está listo!'}</h4>
+                        <p class="text-xs text-slate-400">${verArchivadas ? 'Las sugerencias archivadas por la administración aparecerán acá.' : 'Sé el primero en dejar una sugerencia usando el botón superior.'}</p>
                     </div>
                 `;
             } else {
-                postitsHTML = listaSugerencias.map(sug => {
+                postitsHTML = sugerenciasFiltradas.map(sug => {
                     let colorBg = "bg-yellow-100 border-yellow-300 text-yellow-900";
                     if(sug.color === 'emerald') colorBg = "bg-emerald-100 border-emerald-300 text-emerald-900";
                     if(sug.color === 'sky') colorBg = "bg-sky-100 border-sky-300 text-sky-900";
                     if(sug.color === 'rose') colorBg = "bg-rose-100 border-rose-300 text-rose-900";
 
-                    let r = sug.reacciones || { meGusta: 0, buenaIdea: 0, meEncanta: 0 };
-                    let reaccionados = sug.reaccionados || {};
-                    let miVoto = reaccionados[usuarioActualEmail.toLowerCase()];
+                    let votos = sug.votosReacciones || { meGusta: [], buenaIdea: [], meEncanta: [] };
+                    
+                    let userMail = usuarioActualEmail.toLowerCase();
+                    let votoMeGusta = (votos.meGusta || []).includes(userMail);
+                    let votoBuenaIdea = (votos.buenaIdea || []).includes(userMail);
+                    let votoMeEncanta = (votos.meEncanta || []).includes(userMail);
+
+                    // Verificación si el usuario es el autor para mostrar botón de eliminar
+                    let esAutor = sug.emailAutor && sug.emailAutor.toLowerCase() === userMail;
+
+                    // Botón de eliminar (exclusivo del autor)
+                    let btnEliminarHTML = esAutor ? `
+                        <button onclick="window.eliminarSugerenciaFirebase('${sug.id}')" title="Eliminar mi sugerencia" class="text-slate-400 hover:text-red-600 transition">
+                            <span class="material-symbols-rounded" style="font-size: 16px;">delete</span>
+                        </button>
+                    ` : '';
+
+                    // Botón de archivar (exclusivo de Damián)
+                    let btnArchivarHTML = esAdmin ? `
+                        <button onclick="window.archivarSugerenciaFirebase('${sug.id}', ${!sug.archivada})" title="${sug.archivada ? 'Desarchivar' : 'Archivar'}" class="text-slate-400 hover:text-amber-600 transition">
+                            <span class="material-symbols-rounded" style="font-size: 16px;">${sug.archivada ? 'unarchive' : 'archive'}</span>
+                        </button>
+                    ` : '';
 
                     return `
-                        <div class="${colorBg} p-5 rounded-2xl shadow-sm border hover:shadow-md transition flex flex-col justify-between h-56 transform hover:-rotate-1">
-                            <p class="text-xs md:text-sm font-medium leading-relaxed overflow-y-auto no-scrollbar mb-2">${sug.texto}</p>
+                        <div class="${colorBg} p-5 rounded-2xl shadow-sm border hover:shadow-md transition flex flex-col justify-between h-60 transform hover:-rotate-1 relative group">
+                            
+                            <!-- Acciones de Cabecera (Eliminar / Archivar) -->
+                            <div class="flex justify-between items-start gap-2 mb-2">
+                                <p class="text-xs md:text-sm font-medium leading-relaxed overflow-y-auto no-scrollbar flex-1 max-h-28">${sug.texto}</p>
+                                <div class="flex items-center gap-1 shrink-0">
+                                    ${btnArchivarHTML}
+                                    ${btnEliminarHTML}
+                                </div>
+                            </div>
                             
                             <div>
-                                <!-- Emojis de Reacción con Tooltips (title) y estilo si es el voto actual del usuario -->
+                                <!-- Emojis de Reacción (Independientes hasta 3) con Tooltips -->
                                 <div class="flex items-center gap-1.5 mb-3 pt-2 border-t border-black/10">
                                     <button title="Me gusta" onclick="window.reaccionarFirebase('${sug.id}', 'meGusta')" 
-                                        class="${miVoto === 'meGusta' ? 'bg-amber-400/50 ring-2 ring-amber-500 font-bold' : 'bg-white/60 hover:bg-white'} text-[11px] px-2 py-0.5 rounded-lg transition flex items-center gap-1 border border-black/5 shadow-2xs">
-                                        👍 <span>${r.meGusta || 0}</span>
+                                        class="${votoMeGusta ? 'bg-amber-400/60 ring-2 ring-amber-500 font-bold' : 'bg-white/60 hover:bg-white'} text-[11px] px-2 py-1 rounded-lg transition flex items-center gap-1 border border-black/5">
+                                        👍 <span>${(votos.meGusta || []).length}</span>
                                     </button>
                                     <button title="Buena idea" onclick="window.reaccionarFirebase('${sug.id}', 'buenaIdea')" 
-                                        class="${miVoto === 'buenaIdea' ? 'bg-amber-400/50 ring-2 ring-amber-500 font-bold' : 'bg-white/60 hover:bg-white'} text-[11px] px-2 py-0.5 rounded-lg transition flex items-center gap-1 border border-black/5 shadow-2xs">
-                                        💡 <span>${r.buenaIdea || 0}</span>
+                                        class="${votoBuenaIdea ? 'bg-amber-400/60 ring-2 ring-amber-500 font-bold' : 'bg-white/60 hover:bg-white'} text-[11px] px-2 py-1 rounded-lg transition flex items-center gap-1 border border-black/5">
+                                        💡 <span>${(votos.buenaIdea || []).length}</span>
                                     </button>
                                     <button title="Me encanta" onclick="window.reaccionarFirebase('${sug.id}', 'meEncanta')" 
-                                        class="${miVoto === 'meEncanta' ? 'bg-amber-400/50 ring-2 ring-amber-500 font-bold' : 'bg-white/60 hover:bg-white'} text-[11px] px-2 py-0.5 rounded-lg transition flex items-center gap-1 border border-black/5 shadow-2xs">
-                                        ❤️ <span>${r.meEncanta || 0}</span>
+                                        class="${votoMeEncanta ? 'bg-amber-400/60 ring-2 ring-amber-500 font-bold' : 'bg-white/60 hover:bg-white'} text-[11px] px-2 py-1 rounded-lg transition flex items-center gap-1 border border-black/5">
+                                        ❤️ <span>${(votos.meEncanta || []).length}</span>
                                     </button>
                                 </div>
 
@@ -539,9 +582,18 @@
                         <h3 class="font-bold text-slate-800 text-lg">Mural Colaborativo de Ideas</h3>
                         <p class="text-xs text-slate-500">Espacio para proponer mejoras operativas y organizacionales.</p>
                     </div>
-                    <button onclick="abrirModalSugerencia()" class="bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition shadow-md shadow-amber-100 flex items-center gap-1.5 shrink-0">
-                        <span class="material-symbols-rounded" style="font-size: 18px;">add_comment</span> + Nueva Idea
-                    </button>
+                    
+                    <div class="flex items-center gap-2 shrink-0">
+                        <!-- Filtro de Archivadas sólo visible o accesible ordenadamente -->
+                        <div class="bg-slate-100 p-1 rounded-xl flex gap-1">
+                            <button onclick="alternarVistaArchivadas(false)" class="px-3 py-1.5 text-xs font-semibold rounded-lg transition ${!verArchivadas ? 'bg-white shadow-xs text-slate-800' : 'text-slate-500 hover:text-slate-800'}">Activas</button>
+                            <button onclick="alternarVistaArchivadas(true)" class="px-3 py-1.5 text-xs font-semibold rounded-lg transition ${verArchivadas ? 'bg-white shadow-xs text-slate-800' : 'text-slate-500 hover:text-slate-800'}">Archivadas</button>
+                        </div>
+
+                        <button onclick="abrirModalSugerencia()" class="bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition shadow-md shadow-amber-100 flex items-center gap-1.5">
+                            <span class="material-symbols-rounded" style="font-size: 18px;">add_comment</span> + Nueva Idea
+                        </button>
+                    </div>
                 </div>
                 
                 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -662,7 +714,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail, onAuthStateChanged, signOut, updatePassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBg0u_Se2Od--7wbZFwqWKRdUv_IrYiXw0",
@@ -677,7 +729,7 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // Escucha en tiempo real de sugerencias
+        // Escucha en tiempo real
         const sugerenciasRef = collection(db, "sugerencias");
         const q = query(sugerenciasRef, orderBy("fechaCreacion", "desc"));
 
@@ -719,7 +771,7 @@
             }
         });
 
-        // Guardado de sugerencias
+        // Guardar sugerencia registrando el emailAutor
         window.guardarSugerenciaFirebase = function() {
             const texto = document.getElementById('texto-sugerencia').value.trim();
             const esAnonimo = document.getElementById('check-anonimo').checked;
@@ -739,10 +791,15 @@
                 texto: texto,
                 color: colorPostitSeleccionado,
                 autor: nombreAutor,
+                emailAutor: usuarioActualEmail.toLowerCase(), // Se guarda para verificar borrado
+                archivada: false,
                 fecha: new Date().toLocaleDateString('es-AR'),
                 fechaCreacion: new Date(),
-                reacciones: { meGusta: 0, buenaIdea: 0, meEncanta: 0 },
-                reaccionados: {} // Registro de correos de usuarios que ya votaron
+                votosReacciones: {
+                    meGusta: [],
+                    buenaIdea: [],
+                    meEncanta: []
+                }
             };
 
             addDoc(sugerenciasRef, nuevaIdea).then(() => {
@@ -752,7 +809,7 @@
             });
         };
 
-        // LÓGICA DE CONTROL: 1 voto por usuario con posibilidad de cambiar de opinión
+        // LÓGICA DE HASTA 3 REACCIONES INDEPENDIENTES CON CONMUTACIÓN (TOGGLE)
         window.reaccionarFirebase = function(docId, tipoReaccion) {
             if (!usuarioActualEmail) return;
 
@@ -760,30 +817,45 @@
             const sug = listaSugerencias.find(s => s.id === docId);
             if (!sug) return;
 
-            let userKey = usuarioActualEmail.toLowerCase().replace(/\./g, '_'); // Clave limpia para el mapa
-            let reaccionados = sug.reaccionados || {};
-            let reaccionAnterior = reaccionados[userKey];
+            let userMail = usuarioActualEmail.toLowerCase();
+            let votos = sug.votosReacciones || { meGusta: [], buenaIdea: [], meEncanta: [] };
 
-            let cambios = {};
+            let listaActual = votos[tipoReaccion] ? [...votos[tipoReaccion]] : [];
 
-            if (reaccionAnterior) {
-                if (reaccionAnterior === tipoReaccion) {
-                    alert("Ya reaccionaste con este emoji a esta sugerencia.");
-                    return;
-                } else {
-                    // Cambió su voto: restamos el anterior, sumamos el nuevo
-                    cambios[`reacciones.${reaccionAnterior}`] = increment(-1);
-                    cambios[`reacciones.${tipoReaccion}`] = increment(1);
-                    cambios[`reaccionados.${userKey}`] = tipoReaccion;
-                }
+            if (listaActual.includes(userMail)) {
+                // Si ya había votado en este emoji, se lo quita (cancelar reacción)
+                listaActual = listaActual.filter(e => e !== userMail);
             } else {
-                // Primer voto del usuario en esta sugerencia
-                cambios[`reacciones.${tipoReaccion}`] = increment(1);
-                cambios[`reaccionados.${userKey}`] = tipoReaccion;
+                // Si no había votado en este emoji específico, se le suma
+                listaActual.push(userMail);
             }
 
-            updateDoc(sugerenciaDocRef, cambios).catch((error) => {
-                console.error("Error al registrar la reacción: ", error);
+            votos[tipoReaccion] = listaActual;
+
+            updateDoc(sugerenciaDocRef, {
+                votosReacciones: votos
+            }).catch((error) => {
+                console.error("Error al registrar reacción: ", error);
+            });
+        };
+
+        // ELIMINACIÓN (Exclusiva del autor)
+        window.eliminarSugerenciaFirebase = function(docId) {
+            if (confirm("¿Estás seguro de que querés eliminar tu sugerencia? Esta acción no se puede deshacer.")) {
+                const sugerenciaDocRef = doc(db, "sugerencias", docId);
+                deleteDoc(sugerenciaDocRef).catch((error) => {
+                    alert("Error al eliminar la sugerencia: " + error.message);
+                });
+            }
+        };
+
+        // ARCHIVADO (Exclusivo de damirodriguez81@gmail.com)
+        window.archivarSugerenciaFirebase = function(docId, nuevoEstadoArchivado) {
+            const sugerenciaDocRef = doc(db, "sugerencias", docId);
+            updateDoc(sugerenciaDocRef, {
+                archivada: nuevoEstadoArchivado
+            }).catch((error) => {
+                alert("Error al archivar la sugerencia: " + error.message);
             });
         };
 
