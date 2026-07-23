@@ -6,12 +6,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IGEA - Portal Interno</title>
     
+    <!-- FAVICON: Logo del estómago institucional -->
     <link rel="icon" href="./assets/logo-estomago.jpg" type="image/jpeg">
     
+    <!-- Importamos Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
+    <!-- Fuente Corporativa Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
+    <!-- Iconografía Profesional de Google -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0" />
 
     <style>
@@ -60,6 +64,7 @@
 <body class="text-slate-800 flex h-screen overflow-hidden">
     <div class="app-background" aria-hidden="true"></div>
 
+    <!-- PANTALLA DE LOGIN GLOBAL -->
     <div id="pantalla-login" class="absolute inset-0 z-50 flex items-center justify-center p-4 transition-opacity" 
          style="background-image: url('./assets/consultorio.jpg'); background-size: cover; background-position: center;">
         
@@ -105,6 +110,7 @@
         </div>
     </div>
 
+    <!-- MODAL DE CAMBIO DE CLAVE -->
     <div id="modal-clave" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
         <div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-sm relative border border-slate-100">
             <div class="flex items-center gap-3 mb-4">
@@ -120,8 +126,10 @@
         </div>
     </div>
 
+    <!-- APLICACIÓN PRINCIPAL -->
     <div id="aplicacion-principal" class="hidden flex flex-col md:flex-row h-screen w-full relative z-10">
         
+        <!-- Menú Lateral -->
         <aside class="w-full md:w-72 bg-white/90 backdrop-blur-xl border-b md:border-r border-slate-200 flex flex-col shadow-sm shrink-0">
             <div class="p-4 md:p-8 flex items-center justify-between md:justify-start gap-3">
                 <div class="flex items-center gap-3">
@@ -157,11 +165,12 @@
             </nav>
             <div class="hidden md:block p-6">
                 <div class="bg-slate-50 rounded-xl p-4 border border-slate-100 text-center">
-                    <p class="text-xs font-medium text-slate-500">Intranet Segura v5.3</p>
+                    <p class="text-xs font-medium text-slate-500">Intranet Segura v5.4</p>
                 </div>
             </div>
         </aside>
 
+        <!-- Panel Central -->
         <main class="flex-1 flex flex-col h-screen overflow-y-auto no-scrollbar">
             <header class="bg-white/70 backdrop-blur-md px-4 md:px-8 py-3 md:py-4 sticky top-0 z-10 flex justify-between items-center border-b border-slate-200">
                 <div class="flex items-center gap-4">
@@ -189,10 +198,12 @@
             </header>
 
             <div id="contenido-seccion" class="p-4 md:p-8 w-full max-w-6xl mx-auto h-full">
-                </div>
+                <!-- Contenido dinámico -->
+            </div>
         </main>
     </div>
 
+    <!-- Lógica JavaScript -->
     <script>
         let usuarioActualEmail = "";
 
@@ -241,14 +252,13 @@
             document.getElementById('modal-clave').classList.add('hidden');
         }
 
-        // SALUDO INTELIGENTE: Garantiza que se muestre únicamente el nombre de pila
         function renderizarInicio() {
             let nombreSaludo = usuarioActualEmail; 
             const empleado = baseRecibos.find(emp => emp.email.toLowerCase() === usuarioActualEmail.toLowerCase());
             
             if(empleado && empleado.nombre) {
                 let partesDelNombre = empleado.nombre.trim().split(/\s+/);
-                nombreSaludo = partesDelNombre.pop(); // Extrae siempre la última palabra (el nombre)
+                nombreSaludo = partesDelNombre.pop();
             }
 
             return `
@@ -370,7 +380,9 @@
 
                 return `
                     <div class="mb-4 flex flex-col sm:flex-row justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-slate-200 gap-3">
-                        <span class="text-xs md:text-sm text-slate-600 font-medium text-center sm:text-left">¿Problemas para visualizar abajo? Abrila en una pestaña nueva:</span>
+                        <span class="text-xs md:text-sm text-slate-600 font-medium text-center sm:text-left flex items-center gap-2">
+                            ¿Problemas para ver tus recibos? Abrilos en una nueva pestaña: <span class="text-blue-600 font-bold text-base">→</span>
+                        </span>
                         <a href="${linkDirecto}" target="_blank" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition shadow-sm flex items-center gap-1.5 shrink-0">
                             <span class="material-symbols-rounded" style="font-size: 16px;">open_in_new</span> Abrir en Google Drive
                         </a>
@@ -446,6 +458,9 @@
         function volverAtras() { cambiarVista(seccionActual); }
     </script>
     
+    <!-- ========================================== -->
+    <!-- CONFIGURACIÓN DE FIREBASE                  -->
+    <!-- ========================================== -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail, onAuthStateChanged, signOut, updatePassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
