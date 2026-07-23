@@ -197,13 +197,13 @@
                     <span class="text-xs md:text-sm">Sugerencias</span>
                 </button>
                 <a href="https://app.absentify.com" target="_blank" class="flex items-center gap-2 md:gap-3 p-2.5 md:p-3 text-left text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium rounded-xl transition shrink-0">
-                    <span class="material-symbols-rounded">event_note</span>
+                    <span class="material-symbols-rounded">beach_access</span>
                     <span class="text-xs md:text-sm">Absentify</span>
                 </a>
             </nav>
             <div class="hidden md:block p-6">
                 <div class="bg-slate-50 rounded-xl p-4 border border-slate-100 text-center">
-                    <p class="text-xs font-medium text-slate-500">Intranet Segura v6.8</p>
+                    <p class="text-xs font-medium text-slate-500">Intranet Segura v7.1</p>
                 </div>
             </div>
         </aside>
@@ -212,7 +212,7 @@
         <main class="flex-1 flex flex-col h-screen overflow-y-auto no-scrollbar">
             <header class="bg-white/70 backdrop-blur-md px-4 md:px-8 py-3 md:py-4 sticky top-0 z-10 flex justify-between items-center border-b border-slate-200">
                 <div class="flex items-center gap-4">
-                    <button id="btn-volver" onclick="volverAtras()" class="hidden text-slate-500 hover:text-slate-800 font-medium flex items-center transition bg-slate-100 px-3 py-1.5 rounded-lg hover:bg-slate-200 text-sm">
+                    <button id="btn-volver" onclick="volverAtras()" class="hidden text-slate-600 hover:text-slate-900 font-semibold flex items-center transition bg-slate-100 px-3.5 py-1.5 rounded-xl hover:bg-slate-200 text-xs md:text-sm shadow-2xs">
                         <span class="material-symbols-rounded mr-1" style="font-size: 18px;">arrow_back</span> Volver
                     </button>
                     <h2 id="titulo-seccion" class="text-lg md:text-2xl font-bold text-slate-800 tracking-tight">Inicio</h2>
@@ -247,6 +247,9 @@
         let colorPostitSeleccionado = "yellow";
         let listaSugerencias = [];
         let verArchivadas = false;
+        
+        let seccionActual = 'inicio';
+        let viendoDocumento = false; // Bandera para saber si el usuario está mirando un documento abierto
 
         const baseRecibos = [
             { email: "damirodriguez81@gmail.com", nombre: "RODRIGUEZ Damián", urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1rm4KzCg1kzz2331RipWsxF_VHW22RUxc#list" },
@@ -304,8 +307,6 @@
             ]
         };
 
-        let seccionActual = 'inicio';
-
         function abrirModalClave() {
             document.getElementById('modal-clave').classList.remove('hidden');
             document.getElementById('input-nueva-clave').value = ''; 
@@ -354,7 +355,7 @@
                     </div>
                 </div>
                 
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6">
                     
                     <div class="bg-white p-5 md:p-6 rounded-3xl border-t-4 border-t-blue-500 border-x border-b border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group" onclick="cambiarVista('dpp')">
                         <div class="w-10 h-10 md:w-12 md:h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-3 md:mb-4 group-hover:bg-blue-600 group-hover:text-white transition-colors">
@@ -387,6 +388,14 @@
                         <h4 class="font-bold text-base md:text-lg text-slate-800 mb-1">Sugerencias</h4>
                         <p class="text-slate-500 leading-relaxed text-xs">Mural de ideas y propuestas.</p>
                     </div>
+
+                    <a href="https://app.absentify.com" target="_blank" class="bg-white p-5 md:p-6 rounded-3xl border-t-4 border-t-teal-500 border-x border-b border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group block">
+                        <div class="w-10 h-10 md:w-12 md:h-12 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center mb-3 md:mb-4 group-hover:bg-teal-600 group-hover:text-white transition-colors">
+                            <span class="material-symbols-rounded icon-large">beach_access</span>
+                        </div>
+                        <h4 class="font-bold text-base md:text-lg text-slate-800 mb-1">Absentify ↗</h4>
+                        <p class="text-slate-500 leading-relaxed text-xs">Gestión de vacaciones y licencias.</p>
+                    </a>
 
                 </div>
             `;
@@ -485,10 +494,13 @@
             cambiarVista('sugerencias');
         }
 
-        // RENDERIZADO DEL MURAL CON CONTROL DE VOTO ÚNICO
         function renderizarSugerencias() {
-            let esAdmin = usuarioActualEmail.toLowerCase() === "damirodriguez81@gmail.com";
-            let userKey = usuarioActualEmail.toLowerCase().replace(/\./g, '_');
+            let esAdmin = usuarioActualEmail && usuarioActualEmail.toLowerCase() === "damirodriguez81@gmail.com";
+            let userKey = usuarioActualEmail ? usuarioActualEmail.toLowerCase().replace(/\./g, '_') : "";
+
+            if (!esAdmin) {
+                verArchivadas = false;
+            }
 
             let sugerenciasFiltradas = listaSugerencias.filter(sug => {
                 let estaArchivada = sug.archivada === true;
@@ -513,9 +525,8 @@
                     if(sug.color === 'rose') colorBg = "bg-rose-100 border-rose-300 text-rose-900";
 
                     let votosMap = sug.votosMap || {};
-                    let miVotoUnico = votosMap[userKey]; // Retorna 'meGusta', 'buenaIdea', 'meEncanta' o undefined
+                    let miVotoUnico = votosMap[userKey];
 
-                    // Calcular contadores por cada emoji
                     let cantMeGusta = 0, cantBuenaIdea = 0, cantMeEncanta = 0;
                     Object.values(votosMap).forEach(voto => {
                         if (voto === 'meGusta') cantMeGusta++;
@@ -523,8 +534,7 @@
                         if (voto === 'meEncanta') cantMeEncanta++;
                     });
 
-                    let esAutor = sug.emailAutor && sug.emailAutor.toLowerCase() === usuarioActualEmail.toLowerCase();
-
+                    let esAutor = sug.emailAutor && usuarioActualEmail && sug.emailAutor.toLowerCase() === usuarioActualEmail.toLowerCase();
                     let btnEliminarHTML = esAutor ? `
                         <button onclick="window.eliminarSugerenciaFirebase('${sug.id}')" title="Eliminar mi sugerencia" class="text-slate-400 hover:text-red-600 transition">
                             <span class="material-symbols-rounded" style="font-size: 16px;">delete</span>
@@ -549,7 +559,6 @@
                             </div>
                             
                             <div>
-                                <!-- Emojis con VOTO ÚNICO y Tooltips (title) -->
                                 <div class="flex items-center gap-1.5 mb-3 pt-2 border-t border-black/10">
                                     <button title="Me gusta" onclick="window.reaccionarFirebase('${sug.id}', 'meGusta')" 
                                         class="${miVotoUnico === 'meGusta' ? 'bg-amber-400/80 ring-2 ring-amber-500 font-bold' : 'bg-white/60 hover:bg-white'} text-[11px] px-2 py-1 rounded-lg transition flex items-center gap-1 border border-black/5">
@@ -575,6 +584,13 @@
                 }).join('');
             }
 
+            let selectorPestanasHTML = esAdmin ? `
+                <div class="bg-slate-100 p-1 rounded-xl flex gap-1">
+                    <button onclick="alternarVistaArchivadas(false)" class="px-3 py-1.5 text-xs font-semibold rounded-lg transition ${!verArchivadas ? 'bg-white shadow-xs text-slate-800' : 'text-slate-500 hover:text-slate-800'}">Activas</button>
+                    <button onclick="alternarVistaArchivadas(true)" class="px-3 py-1.5 text-xs font-semibold rounded-lg transition ${verArchivadas ? 'bg-white shadow-xs text-slate-800' : 'text-slate-500 hover:text-slate-800'}">Archivadas</button>
+                </div>
+            ` : '';
+
             return `
                 <div class="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
                     <div>
@@ -583,10 +599,7 @@
                     </div>
                     
                     <div class="flex items-center gap-2 shrink-0">
-                        <div class="bg-slate-100 p-1 rounded-xl flex gap-1">
-                            <button onclick="alternarVistaArchivadas(false)" class="px-3 py-1.5 text-xs font-semibold rounded-lg transition ${!verArchivadas ? 'bg-white shadow-xs text-slate-800' : 'text-slate-500 hover:text-slate-800'}">Activas</button>
-                            <button onclick="alternarVistaArchivadas(true)" class="px-3 py-1.5 text-xs font-semibold rounded-lg transition ${verArchivadas ? 'bg-white shadow-xs text-slate-800' : 'text-slate-500 hover:text-slate-800'}">Archivadas</button>
-                        </div>
+                        ${selectorPestanasHTML}
 
                         <button onclick="abrirModalSugerencia()" class="bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition shadow-md shadow-amber-100 flex items-center gap-1.5">
                             <span class="material-symbols-rounded" style="font-size: 18px;">add_comment</span> + Nueva Idea
@@ -656,21 +669,33 @@
             if (btnActivo) btnActivo.className = "flex items-center gap-2 md:gap-3 p-2.5 md:p-3 text-left bg-blue-50 text-blue-700 font-medium rounded-xl transition shadow-sm shrink-0";
         }
 
+        // LÓGICA DE NAVEGACIÓN ACTUALIZADA: Muestra el botón 'Volver' en cualquier sección excepto 'inicio'
         function cambiarVista(vista) {
             seccionActual = vista;
+            viendoDocumento = false; // Ya no estamos viendo un documento individual
             actualizarMenuActivo(vista);
-            document.getElementById('btn-volver').classList.add('hidden');
+
+            const btnVolver = document.getElementById('btn-volver');
             const contenido = document.getElementById('contenido-seccion');
             const titulo = document.getElementById('titulo-seccion');
 
-            if (vista === 'inicio') { titulo.textContent = "Inicio"; contenido.innerHTML = renderizarInicio(); }
-            if (vista === 'dpp') { titulo.textContent = "Directorio de Perfiles"; contenido.innerHTML = renderizarDPP(); }
-            if (vista === 'procedimientos') { titulo.textContent = "Procedimientos Internos"; contenido.innerHTML = renderizarProcedimientos(); }
-            if (vista === 'recibos') { titulo.textContent = "Legajo Digital"; contenido.innerHTML = renderizarRecibos(); }
-            if (vista === 'sugerencias') { titulo.textContent = "Buzón de Sugerencias"; contenido.innerHTML = renderizarSugerencias(); }
+            // El botón 'Volver' se muestra siempre salvo en la pantalla de inicio
+            if (vista === 'inicio') {
+                btnVolver.classList.add('hidden');
+                titulo.textContent = "Inicio";
+                contenido.innerHTML = renderizarInicio();
+            } else {
+                btnVolver.classList.remove('hidden');
+                if (vista === 'dpp') { titulo.textContent = "Directorio de Perfiles"; contenido.innerHTML = renderizarDPP(); }
+                if (vista === 'procedimientos') { titulo.textContent = "Procedimientos Internos"; contenido.innerHTML = renderizarProcedimientos(); }
+                if (vista === 'recibos') { titulo.textContent = "Legajo Digital"; contenido.innerHTML = renderizarRecibos(); }
+                if (vista === 'sugerencias') { titulo.textContent = "Buzón de Sugerencias"; contenido.innerHTML = renderizarSugerencias(); }
+            }
         }
 
+        // Al abrir un documento o imagen individual, indicamos que 'viendoDocumento = true'
         function abrirDocumento(titulo, url, esImagen = false) {
+            viendoDocumento = true;
             const contenedorContenido = document.getElementById('contenido-seccion');
             const tituloSeccion = document.getElementById('titulo-seccion');
             const btnVolver = document.getElementById('btn-volver');
@@ -703,7 +728,14 @@
             }
         }
 
-        function volverAtras() { cambiarVista(seccionActual); }
+        // LÓGICA DEL BOTÓN VOLVER: Si estaba en documento vuelve a la sección, si estaba en la sección vuelve a inicio
+        function volverAtras() { 
+            if (viendoDocumento) {
+                cambiarVista(seccionActual);
+            } else {
+                cambiarVista('inicio');
+            }
+        }
     </script>
     
     <!-- ========================================== -->
@@ -739,7 +771,7 @@
                     ...docSnap.data()
                 });
             });
-            if (seccionActual === 'sugerencias') {
+            if (seccionActual === 'sugerencias' && !viendoDocumento) {
                 cambiarVista('sugerencias');
             }
         });
@@ -769,7 +801,6 @@
             }
         });
 
-        // Guardar sugerencia registrando el emailAutor y el mapa de votos vacío
         window.guardarSugerenciaFirebase = function() {
             const texto = document.getElementById('texto-sugerencia').value.trim();
             const esAnonimo = document.getElementById('check-anonimo').checked;
@@ -793,7 +824,7 @@
                 archivada: false,
                 fecha: new Date().toLocaleDateString('es-AR'),
                 fechaCreacion: new Date(),
-                votosMap: {} // Mapa único: emailUsuario -> 'meGusta' | 'buenaIdea' | 'meEncanta'
+                votosMap: {}
             };
 
             addDoc(sugerenciasRef, nuevaIdea).then(() => {
@@ -803,7 +834,6 @@
             });
         };
 
-        // LÓGICA DE VOTO ÚNICO TOTAL (Un solo voto por usuario por post-it)
         window.reaccionarFirebase = function(docId, tipoReaccion) {
             if (!usuarioActualEmail) return;
 
@@ -818,10 +848,8 @@
             let cambios = {};
 
             if (votoAnterior === tipoReaccion) {
-                // Si hace clic de nuevo en la reacción que ya tenía, se CANCELA la reacción (se elimina)
                 cambios[`votosMap.${userKey}`] = deleteField();
             } else {
-                // Si es un nuevo voto o cambia de opinión, se actualiza al nuevo emoji
                 cambios[`votosMap.${userKey}`] = tipoReaccion;
             }
 
@@ -830,7 +858,6 @@
             });
         };
 
-        // ELIMINACIÓN (Exclusiva del autor)
         window.eliminarSugerenciaFirebase = function(docId) {
             if (confirm("¿Estás seguro de que querés eliminar tu sugerencia? Esta acción no se puede deshacer.")) {
                 const sugerenciaDocRef = doc(db, "sugerencias", docId);
@@ -840,8 +867,8 @@
             }
         };
 
-        // ARCHIVADO (Exclusivo de damirodriguez81@gmail.com)
         window.archivarSugerenciaFirebase = function(docId, nuevoEstadoArchivado) {
+            if (usuarioActualEmail.toLowerCase() !== "damirodriguez81@gmail.com") return;
             const sugerenciaDocRef = doc(db, "sugerencias", docId);
             updateDoc(sugerenciaDocRef, {
                 archivada: nuevoEstadoArchivado
