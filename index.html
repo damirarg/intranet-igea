@@ -203,7 +203,7 @@
             </nav>
             <div class="hidden md:block p-6">
                 <div class="bg-slate-50 rounded-xl p-4 border border-slate-100 text-center">
-                    <p class="text-xs font-medium text-slate-500">Intranet Segura v6.7</p>
+                    <p class="text-xs font-medium text-slate-500">Intranet Segura v6.8</p>
                 </div>
             </div>
         </aside>
@@ -246,7 +246,7 @@
         let usuarioActualEmail = "";
         let colorPostitSeleccionado = "yellow";
         let listaSugerencias = [];
-        let verArchivadas = false; // Estado del filtro de sugerencias
+        let verArchivadas = false;
 
         const baseRecibos = [
             { email: "damirodriguez81@gmail.com", nombre: "RODRIGUEZ Damián", urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1rm4KzCg1kzz2331RipWsxF_VHW22RUxc#list" },
@@ -480,17 +480,16 @@
             return `<div class="space-y-4">${itemsHTML}</div>`;
         }
 
-        // ALTERNA FILTRO DE ARCHIVADAS (SÓLO DANIEL / ADMIN PUEDE ALTERNAR Y ARCHIVAR)
         function alternarVistaArchivadas(estado) {
             verArchivadas = estado;
             cambiarVista('sugerencias');
         }
 
-        // RENDERIZADO DEL MURAL DE SUGERENCIAS CON FILTROS, ELIMINACIÓN Y ARCHIVADO
+        // RENDERIZADO DEL MURAL CON CONTROL DE VOTO ÚNICO
         function renderizarSugerencias() {
             let esAdmin = usuarioActualEmail.toLowerCase() === "damirodriguez81@gmail.com";
-            
-            // Filtrar sugerencias según la pestaña activa (activas o archivadas)
+            let userKey = usuarioActualEmail.toLowerCase().replace(/\./g, '_');
+
             let sugerenciasFiltradas = listaSugerencias.filter(sug => {
                 let estaArchivada = sug.archivada === true;
                 return verArchivadas ? estaArchivada : !estaArchivada;
@@ -513,24 +512,25 @@
                     if(sug.color === 'sky') colorBg = "bg-sky-100 border-sky-300 text-sky-900";
                     if(sug.color === 'rose') colorBg = "bg-rose-100 border-rose-300 text-rose-900";
 
-                    let votos = sug.votosReacciones || { meGusta: [], buenaIdea: [], meEncanta: [] };
-                    
-                    let userMail = usuarioActualEmail.toLowerCase();
-                    let votoMeGusta = (votos.meGusta || []).includes(userMail);
-                    let votoBuenaIdea = (votos.buenaIdea || []).includes(userMail);
-                    let votoMeEncanta = (votos.meEncanta || []).includes(userMail);
+                    let votosMap = sug.votosMap || {};
+                    let miVotoUnico = votosMap[userKey]; // Retorna 'meGusta', 'buenaIdea', 'meEncanta' o undefined
 
-                    // Verificación si el usuario es el autor para mostrar botón de eliminar
-                    let esAutor = sug.emailAutor && sug.emailAutor.toLowerCase() === userMail;
+                    // Calcular contadores por cada emoji
+                    let cantMeGusta = 0, cantBuenaIdea = 0, cantMeEncanta = 0;
+                    Object.values(votosMap).forEach(voto => {
+                        if (voto === 'meGusta') cantMeGusta++;
+                        if (voto === 'buenaIdea') cantBuenaIdea++;
+                        if (voto === 'meEncanta') cantMeEncanta++;
+                    });
 
-                    // Botón de eliminar (exclusivo del autor)
+                    let esAutor = sug.emailAutor && sug.emailAutor.toLowerCase() === usuarioActualEmail.toLowerCase();
+
                     let btnEliminarHTML = esAutor ? `
                         <button onclick="window.eliminarSugerenciaFirebase('${sug.id}')" title="Eliminar mi sugerencia" class="text-slate-400 hover:text-red-600 transition">
                             <span class="material-symbols-rounded" style="font-size: 16px;">delete</span>
                         </button>
                     ` : '';
 
-                    // Botón de archivar (exclusivo de Damián)
                     let btnArchivarHTML = esAdmin ? `
                         <button onclick="window.archivarSugerenciaFirebase('${sug.id}', ${!sug.archivada})" title="${sug.archivada ? 'Desarchivar' : 'Archivar'}" class="text-slate-400 hover:text-amber-600 transition">
                             <span class="material-symbols-rounded" style="font-size: 16px;">${sug.archivada ? 'unarchive' : 'archive'}</span>
@@ -540,7 +540,6 @@
                     return `
                         <div class="${colorBg} p-5 rounded-2xl shadow-sm border hover:shadow-md transition flex flex-col justify-between h-60 transform hover:-rotate-1 relative group">
                             
-                            <!-- Acciones de Cabecera (Eliminar / Archivar) -->
                             <div class="flex justify-between items-start gap-2 mb-2">
                                 <p class="text-xs md:text-sm font-medium leading-relaxed overflow-y-auto no-scrollbar flex-1 max-h-28">${sug.texto}</p>
                                 <div class="flex items-center gap-1 shrink-0">
@@ -550,19 +549,19 @@
                             </div>
                             
                             <div>
-                                <!-- Emojis de Reacción (Independientes hasta 3) con Tooltips -->
+                                <!-- Emojis con VOTO ÚNICO y Tooltips (title) -->
                                 <div class="flex items-center gap-1.5 mb-3 pt-2 border-t border-black/10">
                                     <button title="Me gusta" onclick="window.reaccionarFirebase('${sug.id}', 'meGusta')" 
-                                        class="${votoMeGusta ? 'bg-amber-400/60 ring-2 ring-amber-500 font-bold' : 'bg-white/60 hover:bg-white'} text-[11px] px-2 py-1 rounded-lg transition flex items-center gap-1 border border-black/5">
-                                        👍 <span>${(votos.meGusta || []).length}</span>
+                                        class="${miVotoUnico === 'meGusta' ? 'bg-amber-400/80 ring-2 ring-amber-500 font-bold' : 'bg-white/60 hover:bg-white'} text-[11px] px-2 py-1 rounded-lg transition flex items-center gap-1 border border-black/5">
+                                        👍 <span>${cantMeGusta}</span>
                                     </button>
                                     <button title="Buena idea" onclick="window.reaccionarFirebase('${sug.id}', 'buenaIdea')" 
-                                        class="${votoBuenaIdea ? 'bg-amber-400/60 ring-2 ring-amber-500 font-bold' : 'bg-white/60 hover:bg-white'} text-[11px] px-2 py-1 rounded-lg transition flex items-center gap-1 border border-black/5">
-                                        💡 <span>${(votos.buenaIdea || []).length}</span>
+                                        class="${miVotoUnico === 'buenaIdea' ? 'bg-amber-400/80 ring-2 ring-amber-500 font-bold' : 'bg-white/60 hover:bg-white'} text-[11px] px-2 py-1 rounded-lg transition flex items-center gap-1 border border-black/5">
+                                        💡 <span>${cantBuenaIdea}</span>
                                     </button>
                                     <button title="Me encanta" onclick="window.reaccionarFirebase('${sug.id}', 'meEncanta')" 
-                                        class="${votoMeEncanta ? 'bg-amber-400/60 ring-2 ring-amber-500 font-bold' : 'bg-white/60 hover:bg-white'} text-[11px] px-2 py-1 rounded-lg transition flex items-center gap-1 border border-black/5">
-                                        ❤️ <span>${(votos.meEncanta || []).length}</span>
+                                        class="${miVotoUnico === 'meEncanta' ? 'bg-amber-400/80 ring-2 ring-amber-500 font-bold' : 'bg-white/60 hover:bg-white'} text-[11px] px-2 py-1 rounded-lg transition flex items-center gap-1 border border-black/5">
+                                        ❤️ <span>${cantMeEncanta}</span>
                                     </button>
                                 </div>
 
@@ -584,7 +583,6 @@
                     </div>
                     
                     <div class="flex items-center gap-2 shrink-0">
-                        <!-- Filtro de Archivadas sólo visible o accesible ordenadamente -->
                         <div class="bg-slate-100 p-1 rounded-xl flex gap-1">
                             <button onclick="alternarVistaArchivadas(false)" class="px-3 py-1.5 text-xs font-semibold rounded-lg transition ${!verArchivadas ? 'bg-white shadow-xs text-slate-800' : 'text-slate-500 hover:text-slate-800'}">Activas</button>
                             <button onclick="alternarVistaArchivadas(true)" class="px-3 py-1.5 text-xs font-semibold rounded-lg transition ${verArchivadas ? 'bg-white shadow-xs text-slate-800' : 'text-slate-500 hover:text-slate-800'}">Archivadas</button>
@@ -714,7 +712,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail, onAuthStateChanged, signOut, updatePassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, updateDoc, deleteDoc, deleteField } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBg0u_Se2Od--7wbZFwqWKRdUv_IrYiXw0",
@@ -729,7 +727,7 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // Escucha en tiempo real
+        // Escucha en tiempo real de sugerencias
         const sugerenciasRef = collection(db, "sugerencias");
         const q = query(sugerenciasRef, orderBy("fechaCreacion", "desc"));
 
@@ -771,7 +769,7 @@
             }
         });
 
-        // Guardar sugerencia registrando el emailAutor
+        // Guardar sugerencia registrando el emailAutor y el mapa de votos vacío
         window.guardarSugerenciaFirebase = function() {
             const texto = document.getElementById('texto-sugerencia').value.trim();
             const esAnonimo = document.getElementById('check-anonimo').checked;
@@ -791,15 +789,11 @@
                 texto: texto,
                 color: colorPostitSeleccionado,
                 autor: nombreAutor,
-                emailAutor: usuarioActualEmail.toLowerCase(), // Se guarda para verificar borrado
+                emailAutor: usuarioActualEmail.toLowerCase(),
                 archivada: false,
                 fecha: new Date().toLocaleDateString('es-AR'),
                 fechaCreacion: new Date(),
-                votosReacciones: {
-                    meGusta: [],
-                    buenaIdea: [],
-                    meEncanta: []
-                }
+                votosMap: {} // Mapa único: emailUsuario -> 'meGusta' | 'buenaIdea' | 'meEncanta'
             };
 
             addDoc(sugerenciasRef, nuevaIdea).then(() => {
@@ -809,7 +803,7 @@
             });
         };
 
-        // LÓGICA DE HASTA 3 REACCIONES INDEPENDIENTES CON CONMUTACIÓN (TOGGLE)
+        // LÓGICA DE VOTO ÚNICO TOTAL (Un solo voto por usuario por post-it)
         window.reaccionarFirebase = function(docId, tipoReaccion) {
             if (!usuarioActualEmail) return;
 
@@ -817,24 +811,21 @@
             const sug = listaSugerencias.find(s => s.id === docId);
             if (!sug) return;
 
-            let userMail = usuarioActualEmail.toLowerCase();
-            let votos = sug.votosReacciones || { meGusta: [], buenaIdea: [], meEncanta: [] };
+            let userKey = usuarioActualEmail.toLowerCase().replace(/\./g, '_');
+            let votosMap = sug.votosMap || {};
+            let votoAnterior = votosMap[userKey];
 
-            let listaActual = votos[tipoReaccion] ? [...votos[tipoReaccion]] : [];
+            let cambios = {};
 
-            if (listaActual.includes(userMail)) {
-                // Si ya había votado en este emoji, se lo quita (cancelar reacción)
-                listaActual = listaActual.filter(e => e !== userMail);
+            if (votoAnterior === tipoReaccion) {
+                // Si hace clic de nuevo en la reacción que ya tenía, se CANCELA la reacción (se elimina)
+                cambios[`votosMap.${userKey}`] = deleteField();
             } else {
-                // Si no había votado en este emoji específico, se le suma
-                listaActual.push(userMail);
+                // Si es un nuevo voto o cambia de opinión, se actualiza al nuevo emoji
+                cambios[`votosMap.${userKey}`] = tipoReaccion;
             }
 
-            votos[tipoReaccion] = listaActual;
-
-            updateDoc(sugerenciaDocRef, {
-                votosReacciones: votos
-            }).catch((error) => {
+            updateDoc(sugerenciaDocRef, cambios).catch((error) => {
                 console.error("Error al registrar reacción: ", error);
             });
         };
