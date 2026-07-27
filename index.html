@@ -18,6 +18,9 @@
     <!-- Iconografía Profesional de Google -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0" />
 
+    <!-- LIBRERÍA PARA LEER ARCHIVOS CSV -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
     <style>
         body { 
             position: relative; 
@@ -126,7 +129,7 @@
         </div>
     </div>
 
-    <!-- MODAL DE NUEVA SUGERENCIA CON ANONIMATO -->
+    <!-- MODAL DE NUEVA SUGERENCIA -->
     <div id="modal-sugerencia" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
         <div class="bg-white p-6 md:p-8 rounded-3xl shadow-xl w-full max-w-md relative border border-slate-100">
             <div class="flex items-center gap-3 mb-4">
@@ -147,7 +150,6 @@
                 </div>
             </div>
 
-            <!-- Checkbox de Anonimato -->
             <div class="flex items-center gap-2 mb-6 bg-slate-50 p-3 rounded-xl border border-slate-200">
                 <input type="checkbox" id="check-anonimo" class="w-4 h-4 text-amber-500 rounded focus:ring-amber-400 cursor-pointer">
                 <label for="check-anonimo" class="text-xs font-semibold text-slate-700 cursor-pointer select-none">Publicar esta sugerencia de forma anónima</label>
@@ -160,10 +162,39 @@
         </div>
     </div>
 
+    <!-- MODAL DE GESTIÓN DE SALDOS (BITÁCORA) -->
+    <div id="modal-gestion" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+        <div class="bg-white p-6 md:p-8 rounded-3xl shadow-xl w-full max-w-lg relative border border-slate-100 flex flex-col max-h-[90vh]">
+            <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+                <div class="flex items-center gap-3">
+                    <span class="material-symbols-rounded text-rose-500">contact_phone</span>
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-800" id="nombre-paciente-gestion">Cargando...</h3>
+                        <p class="text-xs font-semibold text-rose-600">Saldo: <span id="saldo-paciente-gestion"></span></p>
+                    </div>
+                </div>
+                <button onclick="cerrarModalGestion()" class="text-slate-400 hover:text-slate-700 transition">
+                    <span class="material-symbols-rounded">close</span>
+                </button>
+            </div>
+            
+            <div class="flex-1 overflow-y-auto mb-4 pr-2 space-y-3" id="historial-gestiones"></div>
+
+            <div class="border-t border-slate-100 pt-4 mt-auto">
+                <label class="block text-xs font-semibold text-slate-600 mb-2 uppercase">Registrar Nuevo Contacto</label>
+                <textarea id="texto-nueva-gestion" rows="3" class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-sm focus:ring-2 focus:ring-rose-500 focus:outline-none mb-3" placeholder="Ej: Llamé al paciente, me indicó que abona el viernes por transferencia..."></textarea>
+                <div class="flex justify-end">
+                    <button onclick="window.guardarNuevaGestion()" class="px-5 py-2.5 text-sm font-semibold bg-rose-600 hover:bg-rose-700 text-white rounded-xl transition shadow-md shadow-rose-200 flex items-center gap-2">
+                        <span class="material-symbols-rounded" style="font-size: 16px;">save</span> Guardar Gestión
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- APLICACIÓN PRINCIPAL -->
     <div id="aplicacion-principal" class="hidden flex flex-col md:flex-row h-screen w-full relative z-10">
         
-        <!-- Menú Lateral -->
         <aside class="w-full md:w-72 bg-white/90 backdrop-blur-xl border-b md:border-r border-slate-200 flex flex-col shadow-sm shrink-0">
             <div class="p-4 md:p-8 flex items-center justify-between md:justify-start gap-3">
                 <div class="flex items-center gap-3">
@@ -175,40 +206,14 @@
                     </div>
                 </div>
             </div>
-            <nav class="flex md:flex-1 flex-row md:flex-col overflow-x-auto md:overflow-visible px-4 py-2 md:py-0 space-x-2 md:space-x-0 md:space-y-2 no-scrollbar" id="menu-navegacion">
-                <button id="btn-inicio" onclick="cambiarVista('inicio')" class="flex items-center gap-2 md:gap-3 p-2.5 md:p-3 text-left bg-blue-50 text-blue-700 font-medium rounded-xl transition shrink-0">
-                    <span class="material-symbols-rounded">space_dashboard</span>
-                    <span class="text-xs md:text-sm">Inicio</span>
-                </button>
-                <button id="btn-dpp" onclick="cambiarVista('dpp')" class="flex items-center gap-2 md:gap-3 p-2.5 md:p-3 text-left text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium rounded-xl transition shrink-0">
-                    <span class="material-symbols-rounded">badge</span>
-                    <span class="text-xs md:text-sm">DPP</span>
-                </button>
-                <button id="btn-procedimientos" onclick="cambiarVista('procedimientos')" class="flex items-center gap-2 md:gap-3 p-2.5 md:p-3 text-left text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium rounded-xl transition shrink-0">
-                    <span class="material-symbols-rounded">rule</span>
-                    <span class="text-xs md:text-sm">Normativa</span>
-                </button>
-                <button id="btn-recibos" onclick="cambiarVista('recibos')" class="flex items-center gap-2 md:gap-3 p-2.5 md:p-3 text-left text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium rounded-xl transition shrink-0">
-                    <span class="material-symbols-rounded">receipt_long</span>
-                    <span class="text-xs md:text-sm">Recibos</span>
-                </button>
-                <button id="btn-sugerencias" onclick="cambiarVista('sugerencias')" class="flex items-center gap-2 md:gap-3 p-2.5 md:p-3 text-left text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium rounded-xl transition shrink-0">
-                    <span class="material-symbols-rounded">sticky_note_2</span>
-                    <span class="text-xs md:text-sm">Sugerencias</span>
-                </button>
-                <a href="https://app.absentify.com" target="_blank" class="flex items-center gap-2 md:gap-3 p-2.5 md:p-3 text-left text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium rounded-xl transition shrink-0">
-                    <span class="material-symbols-rounded">beach_access</span>
-                    <span class="text-xs md:text-sm">Absentify</span>
-                </a>
-            </nav>
+            <nav class="flex md:flex-1 flex-row md:flex-col overflow-x-auto md:overflow-visible px-4 py-2 md:py-0 space-x-2 md:space-x-0 md:space-y-2 no-scrollbar" id="menu-navegacion"></nav>
             <div class="hidden md:block p-6">
                 <div class="bg-slate-50 rounded-xl p-4 border border-slate-100 text-center">
-                    <p class="text-xs font-medium text-slate-500">Intranet Segura v7.1</p>
+                    <p class="text-xs font-medium text-slate-500">Intranet Segura v8.2</p>
                 </div>
             </div>
         </aside>
 
-        <!-- Panel Central -->
         <main class="flex-1 flex flex-col h-screen overflow-y-auto no-scrollbar">
             <header class="bg-white/70 backdrop-blur-md px-4 md:px-8 py-3 md:py-4 sticky top-0 z-10 flex justify-between items-center border-b border-slate-200">
                 <div class="flex items-center gap-4">
@@ -235,21 +240,25 @@
                 </div>
             </header>
 
-            <div id="contenido-seccion" class="p-4 md:p-8 w-full max-w-6xl mx-auto h-full">
-                <!-- Contenido dinámico -->
-            </div>
+            <div id="contenido-seccion" class="p-4 md:p-8 w-full max-w-6xl mx-auto h-full flex flex-col"></div>
         </main>
     </div>
 
     <!-- Lógica JavaScript -->
     <script>
         let usuarioActualEmail = "";
+        let esAdminGlobal = false;
+        
         let colorPostitSeleccionado = "yellow";
         let listaSugerencias = [];
         let verArchivadas = false;
         
+        let datosCSVPrecargados = []; 
+        let listaSaldosFirebase = []; 
+        let saldoActualGestionId = null; 
+        
         let seccionActual = 'inicio';
-        let viendoDocumento = false; // Bandera para saber si el usuario está mirando un documento abierto
+        let viendoDocumento = false; 
 
         const baseRecibos = [
             { email: "damirodriguez81@gmail.com", nombre: "RODRIGUEZ Damián", urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1rm4KzCg1kzz2331RipWsxF_VHW22RUxc#list" },
@@ -307,6 +316,49 @@
             ]
         };
 
+        function dibujarMenuLateral() {
+            const nav = document.getElementById('menu-navegacion');
+            let menuHTML = `
+                <button id="btn-inicio" onclick="cambiarVista('inicio')" class="flex items-center gap-2 md:gap-3 p-2.5 md:p-3 text-left bg-blue-50 text-blue-700 font-medium rounded-xl transition shrink-0">
+                    <span class="material-symbols-rounded">space_dashboard</span>
+                    <span class="text-xs md:text-sm">Inicio</span>
+                </button>
+                <button id="btn-dpp" onclick="cambiarVista('dpp')" class="flex items-center gap-2 md:gap-3 p-2.5 md:p-3 text-left text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium rounded-xl transition shrink-0">
+                    <span class="material-symbols-rounded">badge</span>
+                    <span class="text-xs md:text-sm">DPP</span>
+                </button>
+                <button id="btn-procedimientos" onclick="cambiarVista('procedimientos')" class="flex items-center gap-2 md:gap-3 p-2.5 md:p-3 text-left text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium rounded-xl transition shrink-0">
+                    <span class="material-symbols-rounded">rule</span>
+                    <span class="text-xs md:text-sm">Normativa</span>
+                </button>
+                <button id="btn-recibos" onclick="cambiarVista('recibos')" class="flex items-center gap-2 md:gap-3 p-2.5 md:p-3 text-left text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium rounded-xl transition shrink-0">
+                    <span class="material-symbols-rounded">receipt_long</span>
+                    <span class="text-xs md:text-sm">Recibos</span>
+                </button>
+                <button id="btn-sugerencias" onclick="cambiarVista('sugerencias')" class="flex items-center gap-2 md:gap-3 p-2.5 md:p-3 text-left text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium rounded-xl transition shrink-0">
+                    <span class="material-symbols-rounded">sticky_note_2</span>
+                    <span class="text-xs md:text-sm">Sugerencias</span>
+                </button>
+                <a href="https://app.absentify.com" target="_blank" class="flex items-center gap-2 md:gap-3 p-2.5 md:p-3 text-left text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium rounded-xl transition shrink-0">
+                    <span class="material-symbols-rounded">beach_access</span>
+                    <span class="text-xs md:text-sm">Absentify</span>
+                </a>
+            `;
+
+            if (esAdminGlobal) {
+                menuHTML += `
+                    <div class="h-px bg-slate-200 my-2 mx-4 hidden md:block"></div>
+                    <button id="btn-saldos" onclick="cambiarVista('saldos')" class="flex items-center gap-2 md:gap-3 p-2.5 md:p-3 text-left text-rose-600 hover:bg-rose-50 hover:text-rose-800 font-semibold rounded-xl transition shrink-0">
+                        <span class="material-symbols-rounded">request_quote</span>
+                        <span class="text-xs md:text-sm">Gestión Saldos</span>
+                    </button>
+                `;
+            }
+
+            nav.innerHTML = menuHTML;
+            actualizarMenuActivo(seccionActual);
+        }
+
         function abrirModalClave() {
             document.getElementById('modal-clave').classList.remove('hidden');
             document.getElementById('input-nueva-clave').value = ''; 
@@ -324,7 +376,6 @@
         function cerrarModalSugerencia() {
             document.getElementById('modal-sugerencia').classList.add('hidden');
         }
-
         function seleccionarColorPostit(color) {
             colorPostitSeleccionado = color;
             ['yellow', 'emerald', 'sky', 'rose'].forEach(c => {
@@ -333,72 +384,340 @@
             });
         }
 
+        window.abrirModalGestion = function(docId) {
+            saldoActualGestionId = docId;
+            const cuenta = listaSaldosFirebase.find(c => c.id === docId);
+            if(!cuenta) return;
+
+            document.getElementById('nombre-paciente-gestion').textContent = cuenta.paciente;
+            document.getElementById('saldo-paciente-gestion').textContent = cuenta.saldo;
+            document.getElementById('texto-nueva-gestion').value = '';
+
+            let historialHTML = '';
+            if (cuenta.gestiones && cuenta.gestiones.length > 0) {
+                let gestionesReverse = [...cuenta.gestiones].reverse();
+                historialHTML = gestionesReverse.map(g => `
+                    <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl relative">
+                        <div class="text-[10px] text-slate-500 font-bold mb-1 flex items-center gap-1">
+                            <span class="material-symbols-rounded text-rose-500" style="font-size: 14px;">event</span> ${g.fecha}
+                        </div>
+                        <div class="text-sm text-slate-700 font-medium">${g.texto}</div>
+                    </div>
+                `).join('');
+            } else {
+                historialHTML = '<p class="text-xs text-slate-400 italic text-center mt-4">Aún no hay anotaciones para este paciente.</p>';
+            }
+            document.getElementById('historial-gestiones').innerHTML = historialHTML;
+
+            document.getElementById('modal-gestion').classList.remove('hidden');
+        }
+
+        window.cerrarModalGestion = function() {
+            document.getElementById('modal-gestion').classList.add('hidden');
+            saldoActualGestionId = null;
+        }
+
         function renderizarInicio() {
             let nombreSaludo = usuarioActualEmail; 
             const empleado = baseRecibos.find(emp => emp.email.toLowerCase() === usuarioActualEmail.toLowerCase());
-            
             if(empleado && empleado.nombre) {
                 let partesDelNombre = empleado.nombre.trim().split(/\s+/);
                 nombreSaludo = partesDelNombre.pop();
             }
 
             return `
-                <div class="relative w-full h-36 md:h-56 rounded-3xl overflow-hidden mb-6 md:mb-8 shadow-sm flex items-center px-6 md:px-10 border border-slate-200">
+                <div class="relative w-full h-36 md:h-56 rounded-3xl overflow-hidden mb-6 md:mb-8 shadow-sm flex items-center px-6 md:px-10 border border-slate-200 shrink-0">
                     <video autoplay loop muted playsinline class="absolute inset-0 w-full h-full object-cover opacity-20">
                         <source src="./assets/helice-adn.mp4" type="video/mp4">
                     </video>
                     <div class="absolute inset-0 bg-gradient-to-r from-white via-white/80 to-transparent"></div>
-                    
                     <div class="relative z-10">
                         <h3 class="text-2xl md:text-4xl font-bold text-slate-800 mb-1 md:mb-2 tracking-tight">Hola, ${nombreSaludo}</h3>
                         <p class="text-slate-600 text-xs md:text-lg font-medium">Centralizá y gestioná tu documentación operativa y legajo personal.</p>
                     </div>
                 </div>
                 
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6">
-                    
-                    <div class="bg-white p-5 md:p-6 rounded-3xl border-t-4 border-t-blue-500 border-x border-b border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group" onclick="cambiarVista('dpp')">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6 shrink-0">
+                    <div class="bg-white p-5 md:p-6 rounded-3xl border-t-4 border-t-blue-500 border-x border-b border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col justify-center" onclick="cambiarVista('dpp')">
                         <div class="w-10 h-10 md:w-12 md:h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-3 md:mb-4 group-hover:bg-blue-600 group-hover:text-white transition-colors">
                             <span class="material-symbols-rounded icon-large">badge</span>
                         </div>
-                        <h4 class="font-bold text-base md:text-lg text-slate-800 mb-1">Directorio DPP</h4>
+                        <h4 class="font-bold text-base md:text-lg text-slate-800 mb-1 leading-tight">Directorio DPP</h4>
                         <p class="text-slate-500 leading-relaxed text-xs">Descripciones de perfil y puestos.</p>
                     </div>
                     
-                    <div class="bg-white p-5 md:p-6 rounded-3xl border-t-4 border-t-emerald-500 border-x border-b border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group" onclick="cambiarVista('procedimientos')">
+                    <div class="bg-white p-5 md:p-6 rounded-3xl border-t-4 border-t-emerald-500 border-x border-b border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col justify-center" onclick="cambiarVista('procedimientos')">
                         <div class="w-10 h-10 md:w-12 md:h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mb-3 md:mb-4 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
                             <span class="material-symbols-rounded icon-large">rule</span>
                         </div>
-                        <h4 class="font-bold text-base md:text-lg text-slate-800 mb-1">Procedimientos</h4>
+                        <h4 class="font-bold text-base md:text-lg text-slate-800 mb-1 leading-tight">Procedimientos</h4>
                         <p class="text-slate-500 leading-relaxed text-xs">Normativa vigente y protocolos.</p>
                     </div>
 
-                    <div class="bg-white p-5 md:p-6 rounded-3xl border-t-4 border-t-indigo-500 border-x border-b border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group" onclick="cambiarVista('recibos')">
+                    <div class="bg-white p-5 md:p-6 rounded-3xl border-t-4 border-t-indigo-500 border-x border-b border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col justify-center" onclick="cambiarVista('recibos')">
                         <div class="w-10 h-10 md:w-12 md:h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mb-3 md:mb-4 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
                             <span class="material-symbols-rounded icon-large">receipt_long</span>
                         </div>
-                        <h4 class="font-bold text-base md:text-lg text-slate-800 mb-1">Mis Recibos</h4>
+                        <h4 class="font-bold text-base md:text-lg text-slate-800 mb-1 leading-tight">Mis Recibos</h4>
                         <p class="text-slate-500 leading-relaxed text-xs">Carpeta privada de sueldos.</p>
                     </div>
 
-                    <div class="bg-white p-5 md:p-6 rounded-3xl border-t-4 border-t-amber-500 border-x border-b border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group" onclick="cambiarVista('sugerencias')">
+                    <div class="bg-white p-5 md:p-6 rounded-3xl border-t-4 border-t-amber-500 border-x border-b border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col justify-center" onclick="cambiarVista('sugerencias')">
                         <div class="w-10 h-10 md:w-12 md:h-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center mb-3 md:mb-4 group-hover:bg-amber-600 group-hover:text-white transition-colors">
                             <span class="material-symbols-rounded icon-large">sticky_note_2</span>
                         </div>
-                        <h4 class="font-bold text-base md:text-lg text-slate-800 mb-1">Sugerencias</h4>
+                        <h4 class="font-bold text-base md:text-lg text-slate-800 mb-1 leading-tight">Sugerencias</h4>
                         <p class="text-slate-500 leading-relaxed text-xs">Mural de ideas y propuestas.</p>
                     </div>
 
-                    <a href="https://app.absentify.com" target="_blank" class="bg-white p-5 md:p-6 rounded-3xl border-t-4 border-t-teal-500 border-x border-b border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group block">
+                    <a href="https://app.absentify.com" target="_blank" class="bg-white p-5 md:p-6 rounded-3xl border-t-4 border-t-teal-500 border-x border-b border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col justify-center">
                         <div class="w-10 h-10 md:w-12 md:h-12 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center mb-3 md:mb-4 group-hover:bg-teal-600 group-hover:text-white transition-colors">
                             <span class="material-symbols-rounded icon-large">beach_access</span>
                         </div>
-                        <h4 class="font-bold text-base md:text-lg text-slate-800 mb-1">Absentify ↗</h4>
+                        <h4 class="font-bold text-base md:text-lg text-slate-800 mb-1 leading-tight">Absentify ↗</h4>
                         <p class="text-slate-500 leading-relaxed text-xs">Gestión de vacaciones y licencias.</p>
                     </a>
-
                 </div>
             `;
+        }
+
+        // ==========================================
+        // PROCESAMIENTO Y TABLA MODIFICADA DE SALDOS
+        // ==========================================
+        function procesarArchivoCSV(event) {
+            const archivo = event.target.files[0];
+            if (!archivo) return;
+
+            datosCSVPrecargados = [];
+
+            Papa.parse(archivo, {
+                header: true,
+                skipEmptyLines: true,
+                complete: function(resultados) {
+                    let datosBrutos = resultados.data;
+                    datosBrutos.forEach(fila => {
+                        let saldoTexto = fila.ventSaldo || "0";
+                        let saldoLimpio = saldoTexto.replace('$', '').replace(/\./g, '').replace(',', '.').trim();
+                        let saldoNumerico = parseFloat(saldoLimpio);
+
+                        if (!isNaN(saldoNumerico) && saldoNumerico > 0.01) {
+                            datosCSVPrecargados.push({
+                                paciente: fila.enfaRazonSocial ? fila.enfaRazonSocial.trim() : 'Sin Nombre',
+                                ultimoPago: fila.enfaUltimoPago || '-',
+                                periodo: fila.ventPeriodo || '-',
+                                fecha: fila.ventFecha || '-',
+                                comprobante: fila.ventFactura || '-',
+                                importeOrig: fila.ventImporteTotal || '-',
+                                saldo: fila.ventSaldo || '0'
+                            });
+                        }
+                    });
+                    cambiarVista('saldos');
+                },
+                error: function() { alert("Error al leer el archivo CSV."); }
+            });
+        }
+
+        function cancelarCargaCSV() {
+            datosCSVPrecargados = [];
+            document.getElementById('input-csv').value = '';
+            cambiarVista('saldos');
+        }
+
+        // Función JavaScript para seleccionar o deseleccionar todas las casillas a la vez
+        function seleccionarTodosSaldos(masterCheckbox) {
+            const checkboxes = document.querySelectorAll('.check-saldo-fbre');
+            checkboxes.forEach(cb => cb.checked = masterCheckbox.checked);
+        }
+
+        function renderizarSaldos() {
+            let htmlSuperior = `
+                <div class="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-rose-50 p-6 rounded-3xl border border-rose-100 shadow-sm shrink-0 relative overflow-hidden">
+                    <span class="material-symbols-rounded absolute -right-4 -bottom-4 text-9xl text-rose-100/50 pointer-events-none">request_quote</span>
+                    <div class="relative z-10">
+                        <h3 class="font-bold text-rose-900 text-xl">Gestión de Saldos de Cuentas</h3>
+                        <p class="text-xs md:text-sm text-rose-700 font-medium mt-1 max-w-xl">Módulo de administración para seguimiento de pagarés, obras sociales y cobranzas.</p>
+                    </div>
+                    
+                    <div class="relative z-10 shrink-0 w-full sm:w-auto">
+                        <label for="input-csv" class="cursor-pointer bg-white border border-rose-200 text-rose-700 hover:bg-rose-100 font-bold px-4 py-2.5 rounded-xl transition shadow-sm flex items-center justify-center gap-2 text-sm w-full">
+                            <span class="material-symbols-rounded" style="font-size: 18px;">upload_file</span> Cargar Nuevo CSV
+                        </label>
+                        <input type="file" id="input-csv" accept=".csv" class="hidden" onchange="procesarArchivoCSV(event)">
+                    </div>
+                </div>
+            `;
+
+            // SI HAY PRECARGA DE CSV
+            if (datosCSVPrecargados.length > 0) {
+                let filasHTML = datosCSVPrecargados.map((reg, index) => `
+                    <tr class="border-b border-slate-100 hover:bg-slate-50 transition">
+                        <td class="p-3 text-center">
+                            <input type="checkbox" class="check-saldo w-4 h-4 text-rose-600 rounded focus:ring-rose-500" data-index="${index}" checked>
+                        </td>
+                        <td class="p-3 font-semibold text-slate-800 text-xs">${reg.paciente}</td>
+                        <td class="p-3 text-slate-500 text-xs">${reg.ultimoPago}</td>
+                        <td class="p-3 text-slate-500 text-xs">${reg.periodo}</td>
+                        <td class="p-3 text-slate-500 text-xs text-center">${reg.comprobante}</td>
+                        <td class="p-3 text-slate-500 text-xs text-right">${reg.importeOrig}</td>
+                        <td class="p-3 text-rose-600 font-bold text-xs text-right">${reg.saldo}</td>
+                    </tr>
+                `).join('');
+
+                return htmlSuperior + `
+                    <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm shrink-0 mb-8">
+                        <div class="p-4 bg-amber-50 border-b border-amber-100 text-amber-800 text-sm font-semibold flex items-center justify-between">
+                            <span>Modo de Precarga: Seleccioná las cuentas a guardar en el módulo.</span>
+                            <button onclick="cancelarCargaCSV()" class="text-xs bg-white border border-amber-200 px-3 py-1.5 rounded-lg hover:bg-amber-100 transition">Cancelar</button>
+                        </div>
+                        <div class="overflow-x-auto max-h-[50vh]">
+                            <table class="w-full text-left border-collapse whitespace-nowrap">
+                                <thead class="sticky top-0 z-10 bg-slate-50 shadow-sm">
+                                    <tr class="border-b border-slate-200 text-slate-500 text-[10px] uppercase tracking-wider">
+                                        <th class="p-3 text-center w-10">Sel</th>
+                                        <th class="p-3">Paciente</th>
+                                        <th class="p-3">Último Pago</th>
+                                        <th class="p-3">Período</th>
+                                        <th class="p-3 text-center">Comprobante</th>
+                                        <th class="p-3 text-right">Imp. Orig.</th>
+                                        <th class="p-3 text-right">Saldo</th>
+                                    </tr>
+                                </thead>
+                                <tbody>${filasHTML}</tbody>
+                            </table>
+                        </div>
+                        <div class="p-4 bg-slate-50 border-t border-slate-200 flex justify-between items-center">
+                            <span class="text-xs text-slate-500 font-medium">${datosCSVPrecargados.length} cuentas pendientes de revisión.</span>
+                            <button onclick="window.guardarSaldosSeleccionados()" class="bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition shadow-md shadow-rose-200 flex items-center gap-1.5">
+                                <span class="material-symbols-rounded" style="font-size: 18px;">cloud_upload</span> Guardar Selección en Firebase
+                            </button>
+                        </div>
+                    </div>
+                `;
+            } 
+            
+            // TABLA DEFINITIVA DE FIREBASE (CON COLUMNAS EDITABLES Y SELECCIÓN)
+            else {
+                if (listaSaldosFirebase.length === 0) {
+                    return htmlSuperior + `
+                        <div class="p-8 text-center text-slate-400 border border-dashed border-slate-300 rounded-2xl shrink-0">
+                            <span class="material-symbols-rounded text-4xl mb-2 opacity-50">data_table</span>
+                            <p class="text-sm font-medium">No hay cuentas en seguimiento. Cargá un reporte CSV para empezar.</p>
+                        </div>
+                    `;
+                }
+
+                let filasFirebaseHTML = listaSaldosFirebase.map(cuenta => `
+                    <tr class="border-b border-slate-100 hover:bg-slate-50 transition">
+                        <td class="p-3 text-center">
+                            <input type="checkbox" class="check-saldo-fbre w-4 h-4 text-rose-600 rounded focus:ring-rose-500 cursor-pointer" data-id="${cuenta.id}">
+                        </td>
+                        <td class="p-3 font-semibold text-slate-800 text-xs">${cuenta.paciente}</td>
+                        
+                        <!-- Columna Editable: Obra Social -->
+                        <td class="p-2">
+                            <input type="text" 
+                                value="${cuenta.obraSocial || ''}" 
+                                placeholder="Ej: OSDE / Particular"
+                                onchange="window.actualizarCampoFirebase('${cuenta.id}', 'obraSocial', this.value)"
+                                class="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-xs focus:bg-white focus:ring-2 focus:ring-rose-400 focus:outline-none transition">
+                        </td>
+
+                        <!-- Columna Editable: Práctica -->
+                        <td class="p-2">
+                            <input type="text" 
+                                value="${cuenta.practica || ''}" 
+                                placeholder="Ej: VEDA / CPRE"
+                                onchange="window.actualizarCampoFirebase('${cuenta.id}', 'practica', this.value)"
+                                class="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-xs focus:bg-white focus:ring-2 focus:ring-rose-400 focus:outline-none transition">
+                        </td>
+
+                        <td class="p-3 text-slate-500 text-xs text-center">${cuenta.ultimoPago}</td>
+                        <td class="p-3 text-slate-500 text-xs text-center">${cuenta.periodo}</td>
+                        <td class="p-3 text-slate-500 text-xs text-center">${cuenta.comprobante}</td>
+                        <td class="p-3 text-slate-500 text-xs text-right">${cuenta.importeOrig}</td>
+                        <td class="p-3 text-rose-600 font-bold text-xs text-right">${cuenta.saldo}</td>
+                        <td class="p-3 text-right">
+                            <button onclick="abrirModalGestion('${cuenta.id}')" class="bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 border border-slate-200 px-3 py-1.5 rounded-lg transition text-xs font-semibold flex items-center justify-center gap-1 ml-auto">
+                                <span class="material-symbols-rounded" style="font-size: 14px;">edit_document</span> 
+                                Bitácora <span class="bg-slate-200 text-slate-500 px-1.5 rounded-full text-[10px] ml-1">${cuenta.gestiones ? cuenta.gestiones.length : 0}</span>
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+
+                return htmlSuperior + `
+                    <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm shrink-0 mb-8">
+                        <div class="p-4 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                            <h4 class="font-bold text-slate-700 text-sm">Cuentas Activas en Seguimiento (${listaSaldosFirebase.length})</h4>
+                            
+                            <button onclick="window.eliminarSaldosSeleccionados()" class="bg-slate-100 hover:bg-red-50 text-slate-600 hover:text-red-600 border border-slate-200 text-xs font-semibold px-3 py-2 rounded-xl transition flex items-center gap-1.5 shadow-2xs">
+                                <span class="material-symbols-rounded text-red-500" style="font-size: 16px;">delete</span> Eliminar Seleccionados
+                            </button>
+                        </div>
+                        <div class="overflow-x-auto max-h-[60vh]">
+                            <table class="w-full text-left border-collapse whitespace-nowrap">
+                                <thead class="sticky top-0 z-10 bg-slate-50 shadow-sm">
+                                    <tr class="border-b border-slate-200 text-slate-500 text-[10px] uppercase tracking-wider">
+                                        <th class="p-3 text-center w-10">
+                                            <input type="checkbox" onchange="seleccionarTodosSaldos(this)" class="w-4 h-4 text-rose-600 rounded focus:ring-rose-500 cursor-pointer" title="Seleccionar todos">
+                                        </th>
+                                        <th class="p-3">Paciente</th>
+                                        <th class="p-3 w-40">Obra Social</th>
+                                        <th class="p-3 w-40">Práctica</th>
+                                        <th class="p-3 text-center">Últ. Pago</th>
+                                        <th class="p-3 text-center">Período</th>
+                                        <th class="p-3 text-center">Comprobante</th>
+                                        <th class="p-3 text-right">Imp. Orig.</th>
+                                        <th class="p-3 text-right">Saldo Actual</th>
+                                        <th class="p-3 text-right">Bitácora</th>
+                                    </tr>
+                                </thead>
+                                <tbody>${filasFirebaseHTML}</tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // FUNCIONES DE NAVEGACIÓN BASICAS
+        function actualizarMenuActivo(vista) {
+            ['inicio', 'dpp', 'procedimientos', 'recibos', 'sugerencias', 'saldos'].forEach(v => {
+                const btn = document.getElementById(`btn-${v}`);
+                if (btn) btn.className = `flex items-center gap-2 md:gap-3 p-2.5 md:p-3 text-left font-medium rounded-xl transition shrink-0 ${v === 'saldos' ? 'text-rose-600 hover:bg-rose-50' : 'text-slate-600 hover:bg-slate-50'}`;
+            });
+            const btnActivo = document.getElementById(`btn-${vista}`);
+            if (btnActivo) {
+                if (vista === 'saldos') {
+                    btnActivo.className = "flex items-center gap-2 md:gap-3 p-2.5 md:p-3 text-left bg-rose-100 text-rose-800 font-bold rounded-xl transition shadow-sm shrink-0";
+                } else {
+                    btnActivo.className = "flex items-center gap-2 md:gap-3 p-2.5 md:p-3 text-left bg-blue-50 text-blue-700 font-medium rounded-xl transition shadow-sm shrink-0";
+                }
+            }
+        }
+
+        function cambiarVista(vista) {
+            seccionActual = vista;
+            viendoDocumento = false; 
+            actualizarMenuActivo(vista);
+
+            const btnVolver = document.getElementById('btn-volver');
+            const contenido = document.getElementById('contenido-seccion');
+            const titulo = document.getElementById('titulo-seccion');
+
+            if (vista === 'inicio') {
+                btnVolver.classList.add('hidden');
+                titulo.textContent = "Inicio";
+                contenido.innerHTML = renderizarInicio();
+            } else {
+                btnVolver.classList.remove('hidden');
+                if (vista === 'dpp') { titulo.textContent = "Directorio de Perfiles"; contenido.innerHTML = renderizarDPP(); }
+                if (vista === 'procedimientos') { titulo.textContent = "Procedimientos Internos"; contenido.innerHTML = renderizarProcedimientos(); }
+                if (vista === 'recibos') { titulo.textContent = "Legajo Digital"; contenido.innerHTML = renderizarRecibos(); }
+                if (vista === 'sugerencias') { titulo.textContent = "Buzón de Sugerencias"; contenido.innerHTML = renderizarSugerencias(); }
+                if (vista === 'saldos') { titulo.textContent = "Control Operativo"; contenido.innerHTML = renderizarSaldos(); }
+            }
         }
 
         function renderizarDPP() {
@@ -420,7 +739,7 @@
             `).join('');
 
             return `
-                <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+                <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden shrink-0">
                     <div class="p-4 md:p-6 border-b border-slate-100 bg-slate-50/50">
                         <p class="text-xs md:text-sm text-slate-600 font-medium">Seleccioná un perfil de la lista para visualizar el documento oficial.</p>
                     </div>
@@ -443,7 +762,6 @@
 
         function renderizarProcedimientos() {
             let itemsHTML = archivosDrive.procedimientos.map((doc) => {
-                
                 let desplegableHTML = "";
                 if (doc.materialesDidacticos && doc.materialesDidacticos.length > 0) {
                     let opcionesHTML = doc.materialesDidacticos.map(mat => `
@@ -486,7 +804,7 @@
                 `;
             }).join('');
 
-            return `<div class="space-y-4">${itemsHTML}</div>`;
+            return `<div class="space-y-4 shrink-0">${itemsHTML}</div>`;
         }
 
         function alternarVistaArchivadas(estado) {
@@ -495,12 +813,7 @@
         }
 
         function renderizarSugerencias() {
-            let esAdmin = usuarioActualEmail && usuarioActualEmail.toLowerCase() === "damirodriguez81@gmail.com";
-            let userKey = usuarioActualEmail ? usuarioActualEmail.toLowerCase().replace(/\./g, '_') : "";
-
-            if (!esAdmin) {
-                verArchivadas = false;
-            }
+            if (!esAdminGlobal) verArchivadas = false;
 
             let sugerenciasFiltradas = listaSugerencias.filter(sug => {
                 let estaArchivada = sug.archivada === true;
@@ -508,7 +821,6 @@
             });
 
             let postitsHTML = "";
-            
             if (sugerenciasFiltradas.length === 0) {
                 postitsHTML = `
                     <div class="col-span-full bg-white p-8 rounded-3xl border border-dashed border-slate-300 text-center">
@@ -524,6 +836,7 @@
                     if(sug.color === 'sky') colorBg = "bg-sky-100 border-sky-300 text-sky-900";
                     if(sug.color === 'rose') colorBg = "bg-rose-100 border-rose-300 text-rose-900";
 
+                    let userKey = usuarioActualEmail ? usuarioActualEmail.toLowerCase().replace(/\./g, '_') : "";
                     let votosMap = sug.votosMap || {};
                     let miVotoUnico = votosMap[userKey];
 
@@ -541,15 +854,14 @@
                         </button>
                     ` : '';
 
-                    let btnArchivarHTML = esAdmin ? `
+                    let btnArchivarHTML = esAdminGlobal ? `
                         <button onclick="window.archivarSugerenciaFirebase('${sug.id}', ${!sug.archivada})" title="${sug.archivada ? 'Desarchivar' : 'Archivar'}" class="text-slate-400 hover:text-amber-600 transition">
                             <span class="material-symbols-rounded" style="font-size: 16px;">${sug.archivada ? 'unarchive' : 'archive'}</span>
                         </button>
                     ` : '';
 
                     return `
-                        <div class="${colorBg} p-5 rounded-2xl shadow-sm border hover:shadow-md transition flex flex-col justify-between h-60 transform hover:-rotate-1 relative group">
-                            
+                        <div class="${colorBg} p-5 rounded-2xl shadow-sm border hover:shadow-md transition flex flex-col justify-between h-60 transform hover:-rotate-1 relative group shrink-0">
                             <div class="flex justify-between items-start gap-2 mb-2">
                                 <p class="text-xs md:text-sm font-medium leading-relaxed overflow-y-auto no-scrollbar flex-1 max-h-28">${sug.texto}</p>
                                 <div class="flex items-center gap-1 shrink-0">
@@ -557,7 +869,6 @@
                                     ${btnEliminarHTML}
                                 </div>
                             </div>
-                            
                             <div>
                                 <div class="flex items-center gap-1.5 mb-3 pt-2 border-t border-black/10">
                                     <button title="Me gusta" onclick="window.reaccionarFirebase('${sug.id}', 'meGusta')" 
@@ -573,7 +884,6 @@
                                         ❤️ <span>${cantMeEncanta}</span>
                                     </button>
                                 </div>
-
                                 <div class="flex justify-between items-center text-[10px] opacity-75">
                                     <span class="font-bold">${sug.autor}</span>
                                     <span>${sug.fecha}</span>
@@ -584,7 +894,7 @@
                 }).join('');
             }
 
-            let selectorPestanasHTML = esAdmin ? `
+            let selectorPestanasHTML = esAdminGlobal ? `
                 <div class="bg-slate-100 p-1 rounded-xl flex gap-1">
                     <button onclick="alternarVistaArchivadas(false)" class="px-3 py-1.5 text-xs font-semibold rounded-lg transition ${!verArchivadas ? 'bg-white shadow-xs text-slate-800' : 'text-slate-500 hover:text-slate-800'}">Activas</button>
                     <button onclick="alternarVistaArchivadas(true)" class="px-3 py-1.5 text-xs font-semibold rounded-lg transition ${verArchivadas ? 'bg-white shadow-xs text-slate-800' : 'text-slate-500 hover:text-slate-800'}">Archivadas</button>
@@ -592,22 +902,19 @@
             ` : '';
 
             return `
-                <div class="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                <div class="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm shrink-0">
                     <div>
                         <h3 class="font-bold text-slate-800 text-lg">Mural Colaborativo de Ideas</h3>
                         <p class="text-xs text-slate-500">Espacio para proponer mejoras operativas y organizacionales.</p>
                     </div>
-                    
                     <div class="flex items-center gap-2 shrink-0">
                         ${selectorPestanasHTML}
-
                         <button onclick="abrirModalSugerencia()" class="bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition shadow-md shadow-amber-100 flex items-center gap-1.5">
                             <span class="material-symbols-rounded" style="font-size: 18px;">add_comment</span> + Nueva Idea
                         </button>
                     </div>
                 </div>
-                
-                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 shrink-0 pb-10">
                     ${postitsHTML}
                 </div>
             `;
@@ -619,7 +926,7 @@
             if (empleado) {
                 if (!empleado.urlCarpeta || empleado.urlCarpeta === "") {
                     return `
-                        <div class="bg-amber-50 p-6 md:p-8 rounded-3xl border border-amber-200 text-center flex flex-col items-center">
+                        <div class="bg-amber-50 p-6 md:p-8 rounded-3xl border border-amber-200 text-center flex flex-col items-center shrink-0">
                             <span class="material-symbols-rounded text-amber-500 text-5xl mb-3">info</span>
                             <h3 class="text-lg md:text-xl font-bold text-amber-800 mb-2">Sección no disponible</h3>
                             <p class="text-xs md:text-sm text-amber-700 font-medium max-w-md">Tu usuario cuenta con acceso operativo al portal, pero esta sección de legajo digital de sueldos está destinada al personal interno.</p>
@@ -631,7 +938,7 @@
                 let linkDirecto = `https://drive.google.com/drive/folders/${idCarpeta}`;
 
                 return `
-                    <div class="mb-4 flex flex-col sm:flex-row justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-slate-200 gap-3">
+                    <div class="mb-4 flex flex-col sm:flex-row justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-slate-200 gap-3 shrink-0">
                         <span class="text-xs md:text-sm text-slate-600 font-medium text-center sm:text-left flex items-center gap-2">
                             ¿Problemas para ver tus recibos? Abrilos en una nueva pestaña: <span class="text-blue-600 font-bold text-base">→</span>
                         </span>
@@ -639,7 +946,7 @@
                             <span class="material-symbols-rounded" style="font-size: 16px;">open_in_new</span> Abrir en Google Drive
                         </a>
                     </div>
-                    <div class="w-full h-[calc(100vh-14rem)] md:h-[calc(100vh-16rem)] bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden relative">
+                    <div class="w-full flex-1 bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden relative min-h-[400px]">
                         <div id="spinner-carga" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-50 z-0">
                             <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mb-4"></div>
                             <span class="text-xs md:text-sm font-medium text-slate-500">Conectando con Google Drive...</span>
@@ -651,7 +958,7 @@
                 `;
             } else {
                 return `
-                    <div class="bg-red-50 p-6 md:p-8 rounded-3xl border border-red-100 text-center flex flex-col items-center">
+                    <div class="bg-red-50 p-6 md:p-8 rounded-3xl border border-red-100 text-center flex flex-col items-center shrink-0">
                         <span class="material-symbols-rounded text-red-400 text-5xl mb-3">error</span>
                         <h3 class="text-lg md:text-xl font-bold text-red-800 mb-2">Legajo no vinculado</h3>
                         <p class="text-xs md:text-sm text-red-600 font-medium">El correo ${usuarioActualEmail} no tiene una cuenta asociada en el sistema.</p>
@@ -660,40 +967,6 @@
             }
         }
 
-        function actualizarMenuActivo(vista) {
-            ['inicio', 'dpp', 'procedimientos', 'recibos', 'sugerencias'].forEach(v => {
-                const btn = document.getElementById(`btn-${v}`);
-                if (btn) btn.className = "flex items-center gap-2 md:gap-3 p-2.5 md:p-3 text-left text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium rounded-xl transition shrink-0";
-            });
-            const btnActivo = document.getElementById(`btn-${vista}`);
-            if (btnActivo) btnActivo.className = "flex items-center gap-2 md:gap-3 p-2.5 md:p-3 text-left bg-blue-50 text-blue-700 font-medium rounded-xl transition shadow-sm shrink-0";
-        }
-
-        // LÓGICA DE NAVEGACIÓN ACTUALIZADA: Muestra el botón 'Volver' en cualquier sección excepto 'inicio'
-        function cambiarVista(vista) {
-            seccionActual = vista;
-            viendoDocumento = false; // Ya no estamos viendo un documento individual
-            actualizarMenuActivo(vista);
-
-            const btnVolver = document.getElementById('btn-volver');
-            const contenido = document.getElementById('contenido-seccion');
-            const titulo = document.getElementById('titulo-seccion');
-
-            // El botón 'Volver' se muestra siempre salvo en la pantalla de inicio
-            if (vista === 'inicio') {
-                btnVolver.classList.add('hidden');
-                titulo.textContent = "Inicio";
-                contenido.innerHTML = renderizarInicio();
-            } else {
-                btnVolver.classList.remove('hidden');
-                if (vista === 'dpp') { titulo.textContent = "Directorio de Perfiles"; contenido.innerHTML = renderizarDPP(); }
-                if (vista === 'procedimientos') { titulo.textContent = "Procedimientos Internos"; contenido.innerHTML = renderizarProcedimientos(); }
-                if (vista === 'recibos') { titulo.textContent = "Legajo Digital"; contenido.innerHTML = renderizarRecibos(); }
-                if (vista === 'sugerencias') { titulo.textContent = "Buzón de Sugerencias"; contenido.innerHTML = renderizarSugerencias(); }
-            }
-        }
-
-        // Al abrir un documento o imagen individual, indicamos que 'viendoDocumento = true'
         function abrirDocumento(titulo, url, esImagen = false) {
             viendoDocumento = true;
             const contenedorContenido = document.getElementById('contenido-seccion');
@@ -706,13 +979,13 @@
 
             if (esImagen) {
                 contenedorContenido.innerHTML = `
-                    <div class="w-full h-[calc(100vh-12rem)] bg-white rounded-3xl shadow-sm border border-slate-200 overflow-y-auto p-4 md:p-6 flex flex-col items-center">
+                    <div class="w-full flex-1 bg-white rounded-3xl shadow-sm border border-slate-200 overflow-y-auto p-4 md:p-6 flex flex-col items-center min-h-[400px]">
                         <img src="${url}" alt="${titulo}" class="max-w-full h-auto rounded-2xl shadow-sm object-contain" />
                     </div>
                 `;
             } else {
                 contenedorContenido.innerHTML = `
-                    <div class="w-full h-[calc(100vh-12rem)] bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden relative">
+                    <div class="w-full flex-1 bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden relative min-h-[400px]">
                         <div id="spinner-carga" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-50 z-0">
                             <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-emerald-600 mb-4"></div>
                             <span class="text-xs md:text-sm font-medium text-slate-500">Cargando documento...</span>
@@ -728,7 +1001,6 @@
             }
         }
 
-        // LÓGICA DEL BOTÓN VOLVER: Si estaba en documento vuelve a la sección, si estaba en la sección vuelve a inicio
         function volverAtras() { 
             if (viendoDocumento) {
                 cambiarVista(seccionActual);
@@ -744,7 +1016,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail, onAuthStateChanged, signOut, updatePassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, updateDoc, deleteDoc, deleteField } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, updateDoc, deleteDoc, deleteField, arrayUnion } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBg0u_Se2Od--7wbZFwqWKRdUv_IrYiXw0",
@@ -759,20 +1031,27 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // Escucha en tiempo real de sugerencias
+        // SUGERENCIAS
         const sugerenciasRef = collection(db, "sugerencias");
-        const q = query(sugerenciasRef, orderBy("fechaCreacion", "desc"));
-
-        onSnapshot(q, (snapshot) => {
+        onSnapshot(query(sugerenciasRef, orderBy("fechaCreacion", "desc")), (snapshot) => {
             listaSugerencias = [];
             snapshot.forEach((docSnap) => {
-                listaSugerencias.push({
-                    id: docSnap.id,
-                    ...docSnap.data()
-                });
+                listaSugerencias.push({ id: docSnap.id, ...docSnap.data() });
             });
             if (seccionActual === 'sugerencias' && !viendoDocumento) {
                 cambiarVista('sugerencias');
+            }
+        });
+
+        // SALDOS
+        const saldosRef = collection(db, "saldos");
+        onSnapshot(query(saldosRef), (snapshot) => {
+            listaSaldosFirebase = [];
+            snapshot.forEach((docSnap) => {
+                listaSaldosFirebase.push({ id: docSnap.id, ...docSnap.data() });
+            });
+            if (seccionActual === 'saldos' && !viendoDocumento && datosCSVPrecargados.length === 0) {
+                cambiarVista('saldos');
             }
         });
 
@@ -782,25 +1061,121 @@
 
             if (user) {
                 usuarioActualEmail = user.email;
+                esAdminGlobal = (usuarioActualEmail.toLowerCase() === "damirodriguez81@gmail.com");
+
                 const empleadoEncontrado = baseRecibos.find(emp => emp.email.toLowerCase() === user.email.toLowerCase());
-                
                 if (empleadoEncontrado) {
                     document.getElementById('nombre-usuario-header').textContent = empleadoEncontrado.nombre;
                 } else {
                     document.getElementById('nombre-usuario-header').textContent = user.email;
                 }
                 
+                dibujarMenuLateral();
+
                 pantallaLogin.classList.add('hidden');
                 appPrincipal.classList.remove('hidden');
-                
                 cambiarVista('inicio');
             } else {
                 usuarioActualEmail = "";
+                esAdminGlobal = false;
                 pantallaLogin.classList.remove('hidden');
                 appPrincipal.classList.add('hidden');
             }
         });
 
+        // ==========================================
+        // NUEVAS FUNCIONES DE EDICIÓN Y ELIMINACIÓN
+        // ==========================================
+
+        // Edición directa en tabla (Obra Social / Práctica)
+        window.actualizarCampoFirebase = function(docId, campo, valor) {
+            const cuentaRef = doc(db, "saldos", docId);
+            updateDoc(cuentaRef, {
+                [campo]: valor.trim()
+            }).catch(e => {
+                console.error("Error al actualizar campo: ", e);
+            });
+        };
+
+        // Eliminar masivo seleccionados
+        window.eliminarSaldosSeleccionados = async function() {
+            const checks = document.querySelectorAll('.check-saldo-fbre:checked');
+            if (checks.length === 0) {
+                alert("Por favor, seleccioná al menos un paciente para eliminar.");
+                return;
+            }
+
+            if (confirm(`¿Estás seguro de que querés eliminar ${checks.length} cuentas de la base de datos? Esta acción no se puede deshacer.`)) {
+                for (let check of checks) {
+                    let docId = check.getAttribute('data-id');
+                    await deleteDoc(doc(db, "saldos", docId));
+                }
+                alert("Cuentas eliminadas correctamente.");
+                cambiarVista('saldos');
+            }
+        };
+
+        window.guardarSaldosSeleccionados = async function() {
+            const checks = document.querySelectorAll('.check-saldo:checked');
+            let cuentasAGuardar = [];
+            
+            checks.forEach(check => {
+                let index = check.getAttribute('data-index');
+                cuentasAGuardar.push(datosCSVPrecargados[index]);
+            });
+
+            if(cuentasAGuardar.length === 0) {
+                alert("Debes seleccionar al menos una cuenta para guardar.");
+                return;
+            }
+
+            for (let cuenta of cuentasAGuardar) {
+                await addDoc(saldosRef, {
+                    paciente: cuenta.paciente,
+                    obraSocial: "", // Campo editable inicial
+                    practica: "",   // Campo editable inicial
+                    ultimoPago: cuenta.ultimoPago,
+                    periodo: cuenta.periodo,
+                    fecha: cuenta.fecha,
+                    comprobante: cuenta.comprobante,
+                    importeOrig: cuenta.importeOrig,
+                    saldo: cuenta.saldo,
+                    gestiones: [],
+                    fechaAlta: new Date()
+                });
+            }
+
+            alert(`¡Excelente Damián! ${cuentasAGuardar.length} cuentas se guardaron exitosamente en tu base de datos.`);
+            document.getElementById('input-csv').value = '';
+            datosCSVPrecargados = [];
+            cambiarVista('saldos');
+        };
+
+        window.guardarNuevaGestion = function() {
+            const texto = document.getElementById('texto-nueva-gestion').value.trim();
+            if (!texto) {
+                alert("Por favor, escribí un detalle de la gestión.");
+                return;
+            }
+
+            const cuentaRef = doc(db, "saldos", saldoActualGestionId);
+            const nuevaGestion = {
+                fecha: new Date().toLocaleString('es-AR'),
+                texto: texto,
+                autor: usuarioActualEmail
+            };
+
+            updateDoc(cuentaRef, {
+                gestiones: arrayUnion(nuevaGestion)
+            }).then(() => {
+                document.getElementById('texto-nueva-gestion').value = '';
+                cerrarModalGestion();
+            }).catch(e => {
+                alert("Hubo un error al guardar: " + e.message);
+            });
+        };
+
+        // OTROS EVENTOS
         window.guardarSugerenciaFirebase = function() {
             const texto = document.getElementById('texto-sugerencia').value.trim();
             const esAnonimo = document.getElementById('check-anonimo').checked;
@@ -829,68 +1204,48 @@
 
             addDoc(sugerenciasRef, nuevaIdea).then(() => {
                 cerrarModalSugerencia();
-            }).catch((error) => {
-                alert("Error al guardar la sugerencia: " + error.message);
-            });
+            }).catch((error) => alert("Error al guardar: " + error.message));
         };
 
         window.reaccionarFirebase = function(docId, tipoReaccion) {
             if (!usuarioActualEmail) return;
-
             const sugerenciaDocRef = doc(db, "sugerencias", docId);
             const sug = listaSugerencias.find(s => s.id === docId);
             if (!sug) return;
-
             let userKey = usuarioActualEmail.toLowerCase().replace(/\./g, '_');
             let votosMap = sug.votosMap || {};
             let votoAnterior = votosMap[userKey];
-
             let cambios = {};
-
             if (votoAnterior === tipoReaccion) {
                 cambios[`votosMap.${userKey}`] = deleteField();
             } else {
                 cambios[`votosMap.${userKey}`] = tipoReaccion;
             }
-
-            updateDoc(sugerenciaDocRef, cambios).catch((error) => {
-                console.error("Error al registrar reacción: ", error);
-            });
+            updateDoc(sugerenciaDocRef, cambios).catch((error) => console.error(error));
         };
 
         window.eliminarSugerenciaFirebase = function(docId) {
-            if (confirm("¿Estás seguro de que querés eliminar tu sugerencia? Esta acción no se puede deshacer.")) {
-                const sugerenciaDocRef = doc(db, "sugerencias", docId);
-                deleteDoc(sugerenciaDocRef).catch((error) => {
-                    alert("Error al eliminar la sugerencia: " + error.message);
-                });
+            if (confirm("¿Estás seguro de que querés eliminar tu sugerencia?")) {
+                deleteDoc(doc(db, "sugerencias", docId));
             }
         };
 
         window.archivarSugerenciaFirebase = function(docId, nuevoEstadoArchivado) {
-            if (usuarioActualEmail.toLowerCase() !== "damirodriguez81@gmail.com") return;
-            const sugerenciaDocRef = doc(db, "sugerencias", docId);
-            updateDoc(sugerenciaDocRef, {
-                archivada: nuevoEstadoArchivado
-            }).catch((error) => {
-                alert("Error al archivar la sugerencia: " + error.message);
-            });
+            if (!esAdminGlobal) return;
+            updateDoc(doc(db, "sugerencias", docId), { archivada: nuevoEstadoArchivado });
         };
 
         window.iniciarSesionFirebase = function() {
             const email = document.getElementById('input-email').value;
             const password = document.getElementById('input-password').value;
             if(!email || !password) { alert("Por favor, completá todos los datos."); return; }
-            signInWithEmailAndPassword(auth, email, password)
-                .catch((error) => alert("Error: Verificá tus credenciales."));
+            signInWithEmailAndPassword(auth, email, password).catch(() => alert("Error al iniciar sesión."));
         };
 
         window.recuperarClaveFirebase = function() {
             const email = document.getElementById('input-email').value;
-            if(!email) { alert("Por favor, escribí tu correo electrónico arriba y volvé a presionar este botón."); return; }
-            sendPasswordResetEmail(auth, email)
-                .then(() => alert("¡Correo enviado a " + email + "! Revisá tu bandeja de entrada."))
-                .catch((error) => alert("Error al enviar el correo."));
+            if(!email) { alert("Ingresá tu correo arriba."); return; }
+            sendPasswordResetEmail(auth, email).then(() => alert("Correo enviado.")).catch(() => alert("Error."));
         };
 
         window.cerrarSesion = function() {
@@ -903,23 +1258,12 @@
         window.cambiarClaveFirebase = function() {
             const user = auth.currentUser;
             const nuevaClave = document.getElementById('input-nueva-clave').value;
-
-            if(!nuevaClave || nuevaClave.length < 6) {
-                alert("Por favor, ingresá una contraseña que tenga al menos 6 caracteres.");
-                return;
-            }
-
+            if(!nuevaClave || nuevaClave.length < 6) return alert("Mínimo 6 caracteres.");
             if(user) {
                 updatePassword(user, nuevaClave).then(() => {
-                    alert("¡Excelente! Tecnológicamente tu contraseña se actualizó correctamente.");
+                    alert("Clave actualizada.");
                     cerrarModalClave(); 
-                }).catch((error) => {
-                    if(error.code === 'auth/requires-recent-login') {
-                        alert("Por seguridad, cerrá sesión y volvé a ingresar para cambiar la clave.");
-                    } else {
-                        alert("Error al actualizar: " + error.message);
-                    }
-                });
+                }).catch(() => alert("Por seguridad, cerrá sesión y volvé a ingresar."));
             }
         };
     </script>
