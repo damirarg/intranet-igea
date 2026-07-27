@@ -45,22 +45,35 @@
         }
         .icon-large { font-size: 32px; }
 
-        /* ESTILOS PARA COLUMNAS REDIMENSIONABLES Y TRUNCADO DE TEXTO */
+        table.tabla-flexible {
+            table-layout: fixed !important;
+            width: 100%;
+        }
+
         th.resizable {
             position: relative;
+            user-select: none;
         }
+        
         .resizer {
             position: absolute;
             right: 0;
             top: 0;
-            width: 6px;
+            width: 8px;
             cursor: col-resize;
             user-select: none;
             height: 100%;
-            z-index: 20;
+            z-index: 30;
         }
         .resizer:hover, .resizer.resizing {
             background-color: #f43f5e;
+        }
+
+        .celda-recortable {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            min-width: 0 !important;
         }
 
         @keyframes entradaLogo {
@@ -210,55 +223,78 @@
         </div>
     </div>
 
+    <!-- MODAL DE REGISTRO DE COBRO / CANCELACIÓN -->
+    <div id="modal-cobro" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+        <div class="bg-white p-6 md:p-8 rounded-3xl shadow-xl w-full max-w-md relative border border-slate-100">
+            <div class="flex items-center gap-3 mb-4 border-b border-slate-100 pb-3">
+                <span class="material-symbols-rounded text-emerald-600">payments</span>
+                <div>
+                    <h3 class="text-lg font-bold text-slate-800" id="nombre-paciente-cobro">Cargando...</h3>
+                    <p class="text-xs text-slate-500 font-medium">Deuda Actual: <span id="deuda-actual-cobro" class="font-bold text-rose-600"></span></p>
+                </div>
+            </div>
+
+            <div class="space-y-4 mb-6">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1.5 uppercase">Fecha de Pago</label>
+                    <input type="date" id="input-fecha-cobro" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1.5 uppercase">Monto Abonado ($)</label>
+                    <input type="number" step="0.01" id="input-monto-cobro" placeholder="Ej: 50000" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-bold text-emerald-700 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                </div>
+
+                <div class="bg-emerald-50 p-3 rounded-xl border border-emerald-200 text-[11px] text-emerald-800">
+                    <p class="font-medium">💡 Si el monto abonado iguala o supera la deuda actual, la cuenta pasará automáticamente al **Histórico de Cuentas Saldadas**.</p>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-3">
+                <button onclick="cerrarModalCobro()" class="px-5 py-2.5 text-xs font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition">Cancelar</button>
+                <button onclick="window.procesarCobroFirebase()" class="px-5 py-2.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition shadow-md shadow-emerald-200 flex items-center gap-1.5">
+                    <span class="material-symbols-rounded" style="font-size: 16px;">check_circle</span> Confirmar Cobro
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- APLICACIÓN PRINCIPAL -->
-    <div id="aplicacion-principal" class="hidden flex flex-col md:flex-row h-screen w-full relative z-10">
+    <div id="aplicacion-principal" class="hidden flex flex-col h-screen w-full relative z-10">
         
-        <aside class="w-full md:w-72 bg-white/90 backdrop-blur-xl border-b md:border-r border-slate-200 flex flex-col shadow-sm shrink-0">
-            <div class="p-4 md:p-8 flex items-center justify-between md:justify-start gap-3">
-                <div class="flex items-center gap-3">
-                    <div class="animar-flotar">
-                        <img src="./assets/logo.jpg" alt="Logo Pequeño" class="h-8 md:h-10 object-contain drop-shadow-sm">
-                    </div>
-                    <div>
-                        <h1 class="text-xs md:text-sm font-bold text-slate-500 uppercase tracking-widest">Administración</h1>
-                    </div>
+        <header class="bg-white/80 backdrop-blur-md px-4 md:px-8 py-3 sticky top-0 z-20 flex justify-between items-center border-b border-slate-200 shrink-0">
+            <div class="flex items-center gap-4">
+                <div class="flex items-center gap-3 cursor-pointer" onclick="cambiarVista('inicio')">
+                    <img src="./assets/logo.jpg" alt="Logo IGEA" class="h-8 md:h-10 object-contain drop-shadow-xs">
+                    <span class="text-xs md:text-sm font-bold text-slate-500 uppercase tracking-widest hidden sm:inline-block border-l border-slate-200 pl-3">Administración</span>
                 </div>
-            </div>
-            <nav class="flex md:flex-1 flex-row md:flex-col overflow-x-auto md:overflow-visible px-4 py-2 md:py-0 space-x-2 md:space-x-0 md:space-y-2 no-scrollbar" id="menu-navegacion"></nav>
-            <div class="hidden md:block p-6">
-                <div class="bg-slate-50 rounded-xl p-4 border border-slate-100 text-center">
-                    <p class="text-xs font-medium text-slate-500">Intranet Segura v8.7</p>
-                </div>
-            </div>
-        </aside>
 
-        <main class="flex-1 flex flex-col h-screen overflow-y-auto no-scrollbar">
-            <header class="bg-white/70 backdrop-blur-md px-4 md:px-8 py-3 md:py-4 sticky top-0 z-10 flex justify-between items-center border-b border-slate-200">
-                <div class="flex items-center gap-4">
-                    <button id="btn-volver" onclick="volverAtras()" class="hidden text-slate-600 hover:text-slate-900 font-semibold flex items-center transition bg-slate-100 px-3.5 py-1.5 rounded-xl hover:bg-slate-200 text-xs md:text-sm shadow-2xs">
-                        <span class="material-symbols-rounded mr-1" style="font-size: 18px;">arrow_back</span> Volver
-                    </button>
-                    <h2 id="titulo-seccion" class="text-lg md:text-2xl font-bold text-slate-800 tracking-tight">Inicio</h2>
-                </div>
-                
-                <div class="flex items-center gap-3 md:gap-5">
-                    <div class="flex items-center gap-2">
-                        <div class="w-7 h-7 md:w-8 md:h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
-                            <span class="material-symbols-rounded" style="font-size: 16px;">person</span>
-                        </div>
-                        <span id="nombre-usuario-header" class="text-xs md:text-sm text-slate-700 font-semibold truncate max-w-[120px] md:max-w-none">Cargando...</span>
-                    </div>
-                    <div class="w-px h-5 bg-slate-200"></div>
-                    <button onclick="abrirModalClave()" class="text-slate-500 hover:text-blue-600 transition flex items-center gap-1" title="Cambiar Clave">
-                        <span class="material-symbols-rounded" style="font-size: 18px;">settings</span>
-                    </button>
-                    <button onclick="window.cerrarSesion()" class="text-slate-500 hover:text-red-600 transition flex items-center gap-1" title="Cerrar Sesión">
-                        <span class="material-symbols-rounded" style="font-size: 18px;">logout</span>
-                    </button>
-                </div>
-            </header>
+                <button id="btn-inicio-header" onclick="cambiarVista('inicio')" class="hidden text-slate-700 hover:text-blue-600 font-bold flex items-center transition bg-blue-50 hover:bg-blue-100 text-blue-700 px-3.5 py-1.5 rounded-xl text-xs md:text-sm border border-blue-200/60 shadow-2xs">
+                    <span class="material-symbols-rounded mr-1" style="font-size: 18px;">home</span> Inicio
+                </button>
+            </div>
+            
+            <div class="flex items-center gap-3 md:gap-5">
+                <h2 id="titulo-seccion" class="text-sm md:text-lg font-bold text-slate-800 tracking-tight hidden md:block mr-2">Inicio</h2>
 
-            <div id="contenido-seccion" class="p-4 md:p-8 w-full max-w-6xl mx-auto h-full flex flex-col"></div>
+                <div class="flex items-center gap-2">
+                    <div class="w-7 h-7 md:w-8 md:h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                        <span class="material-symbols-rounded" style="font-size: 16px;">person</span>
+                    </div>
+                    <span id="nombre-usuario-header" class="text-xs md:text-sm text-slate-700 font-semibold truncate max-w-[120px] md:max-w-none">Cargando...</span>
+                </div>
+                <div class="w-px h-5 bg-slate-200"></div>
+                <button onclick="abrirModalClave()" class="text-slate-500 hover:text-blue-600 transition flex items-center gap-1" title="Cambiar Clave">
+                    <span class="material-symbols-rounded" style="font-size: 18px;">settings</span>
+                </button>
+                <button onclick="window.cerrarSesion()" class="text-slate-500 hover:text-red-600 transition flex items-center gap-1" title="Cerrar Sesión">
+                    <span class="material-symbols-rounded" style="font-size: 18px;">logout</span>
+                </button>
+            </div>
+        </header>
+
+        <main class="flex-1 flex flex-col h-full overflow-y-auto no-scrollbar">
+            <div id="contenido-seccion" class="p-4 md:p-8 w-full max-w-7xl mx-auto h-full flex flex-col"></div>
         </main>
     </div>
 
@@ -275,9 +311,11 @@
         let datosCSVPrecargados = []; 
         let listaSaldosFirebase = []; 
         let listaPermisosFirebase = []; 
+        
         let saldoActualGestionId = null; 
+        let saldoActualCobroId = null; // ID del paciente al que le registramos cobro
 
-        // VARIABLES PARA ORDENAMIENTO DE TABLA DE SALDOS
+        let verCuentasSaldadas = false; // Estado del filtro para ver saldadas (Solo Damián)
         let columnaOrdenActual = 'paciente';
         let ordenAscendente = true;
         
@@ -340,58 +378,6 @@
             ]
         };
 
-        function dibujarMenuLateral() {
-            const nav = document.getElementById('menu-navegacion');
-            let menuHTML = `
-                <button id="btn-inicio" onclick="cambiarVista('inicio')" class="flex items-center gap-2 md:gap-3 p-2.5 md:p-3 text-left bg-blue-50 text-blue-700 font-medium rounded-xl transition shrink-0">
-                    <span class="material-symbols-rounded">space_dashboard</span>
-                    <span class="text-xs md:text-sm">Inicio</span>
-                </button>
-                <button id="btn-dpp" onclick="cambiarVista('dpp')" class="flex items-center gap-2 md:gap-3 p-2.5 md:p-3 text-left text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium rounded-xl transition shrink-0">
-                    <span class="material-symbols-rounded">badge</span>
-                    <span class="text-xs md:text-sm">DPP</span>
-                </button>
-                <button id="btn-procedimientos" onclick="cambiarVista('procedimientos')" class="flex items-center gap-2 md:gap-3 p-2.5 md:p-3 text-left text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium rounded-xl transition shrink-0">
-                    <span class="material-symbols-rounded">rule</span>
-                    <span class="text-xs md:text-sm">Normativa</span>
-                </button>
-                <button id="btn-recibos" onclick="cambiarVista('recibos')" class="flex items-center gap-2 md:gap-3 p-2.5 md:p-3 text-left text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium rounded-xl transition shrink-0">
-                    <span class="material-symbols-rounded">receipt_long</span>
-                    <span class="text-xs md:text-sm">Recibos</span>
-                </button>
-                <button id="btn-sugerencias" onclick="cambiarVista('sugerencias')" class="flex items-center gap-2 md:gap-3 p-2.5 md:p-3 text-left text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium rounded-xl transition shrink-0">
-                    <span class="material-symbols-rounded">sticky_note_2</span>
-                    <span class="text-xs md:text-sm">Sugerencias</span>
-                </button>
-                <a href="https://app.absentify.com" target="_blank" class="flex items-center gap-2 md:gap-3 p-2.5 md:p-3 text-left text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium rounded-xl transition shrink-0">
-                    <span class="material-symbols-rounded">beach_access</span>
-                    <span class="text-xs md:text-sm">Absentify</span>
-                </a>
-            `;
-
-            if (tienePermisoSaldos || esAdminMaster) {
-                menuHTML += `
-                    <div class="h-px bg-slate-200 my-2 mx-4 hidden md:block"></div>
-                    <button id="btn-saldos" onclick="cambiarVista('saldos')" class="flex items-center gap-2 md:gap-3 p-2.5 md:p-3 text-left text-rose-600 hover:bg-rose-50 hover:text-rose-800 font-semibold rounded-xl transition shrink-0">
-                        <span class="material-symbols-rounded">request_quote</span>
-                        <span class="text-xs md:text-sm">Gestión Saldos</span>
-                    </button>
-                `;
-            }
-
-            if (esAdminMaster) {
-                menuHTML += `
-                    <button id="btn-permisos" onclick="cambiarVista('permisos')" class="flex items-center gap-2 md:gap-3 p-2.5 md:p-3 text-left text-purple-600 hover:bg-purple-50 hover:text-purple-800 font-semibold rounded-xl transition shrink-0">
-                        <span class="material-symbols-rounded">admin_panel_settings</span>
-                        <span class="text-xs md:text-sm">Panel Permisos</span>
-                    </button>
-                `;
-            }
-
-            nav.innerHTML = menuHTML;
-            actualizarMenuActivo(seccionActual);
-        }
-
         function abrirModalClave() {
             document.getElementById('modal-clave').classList.remove('hidden');
             document.getElementById('input-nueva-clave').value = ''; 
@@ -428,15 +414,27 @@
 
             let historialHTML = '';
             if (cuenta.gestiones && cuenta.gestiones.length > 0) {
-                let gestionesReverse = [...cuenta.gestiones].reverse();
-                historialHTML = gestionesReverse.map(g => `
-                    <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl relative">
-                        <div class="text-[10px] text-slate-500 font-bold mb-1 flex items-center gap-1">
-                            <span class="material-symbols-rounded text-rose-500" style="font-size: 14px;">event</span> ${g.fecha}
+                let gestionesConIndex = cuenta.gestiones.map((g, idx) => ({ ...g, indexOriginal: idx })).reverse();
+                
+                historialHTML = gestionesConIndex.map(g => {
+                    let btnEditarHTML = esAdminMaster ? `
+                        <button onclick="window.editarGestionFirebase('${docId}', ${g.indexOriginal})" class="text-slate-400 hover:text-blue-600 transition p-1" title="Editar este mensaje de gestión">
+                            <span class="material-symbols-rounded" style="font-size: 16px;">edit</span>
+                        </button>
+                    ` : '';
+
+                    return `
+                        <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl relative group">
+                            <div class="text-[10px] text-slate-500 font-bold mb-1 flex items-center justify-between">
+                                <span class="flex items-center gap-1">
+                                    <span class="material-symbols-rounded text-rose-500" style="font-size: 14px;">event</span> ${g.fecha}
+                                </span>
+                                ${btnEditarHTML}
+                            </div>
+                            <div class="text-sm text-slate-700 font-medium">${g.texto}</div>
                         </div>
-                        <div class="text-sm text-slate-700 font-medium">${g.texto}</div>
-                    </div>
-                `).join('');
+                    `;
+                }).join('');
             } else {
                 historialHTML = '<p class="text-xs text-slate-400 italic text-center mt-4">Aún no hay anotaciones para este paciente.</p>';
             }
@@ -450,6 +448,33 @@
             saldoActualGestionId = null;
         }
 
+        // FUNCIONES MODAL COBRO / CANCELACIÓN
+        window.abrirModalCobro = function(docId) {
+            saldoActualCobroId = docId;
+            const cuenta = listaSaldosFirebase.find(c => c.id === docId);
+            if (!cuenta) return;
+
+            document.getElementById('nombre-paciente-cobro').textContent = cuenta.paciente;
+            document.getElementById('deuda-actual-cobro').textContent = cuenta.saldo;
+            
+            // Carga fecha de hoy en formato YYYY-MM-DD
+            const hoy = new Date().toISOString().split('T')[0];
+            document.getElementById('input-fecha-cobro').value = hoy;
+            document.getElementById('input-monto-cobro').value = parsearMontoNumerico(cuenta.saldo);
+
+            document.getElementById('modal-cobro').classList.remove('hidden');
+        }
+
+        window.cerrarModalCobro = function() {
+            document.getElementById('modal-cobro').classList.add('hidden');
+            saldoActualCobroId = null;
+        }
+
+        function alternarFiltroSaldadas(estado) {
+            verCuentasSaldadas = estado;
+            cambiarVista('saldos');
+        }
+
         function renderizarInicio() {
             let nombreSaludo = usuarioActualEmail; 
             const empleado = baseRecibos.find(emp => emp.email.toLowerCase() === usuarioActualEmail.toLowerCase());
@@ -457,6 +482,26 @@
                 let partesDelNombre = empleado.nombre.trim().split(/\s+/);
                 nombreSaludo = partesDelNombre.pop();
             }
+
+            let tarjetaSaldosHTML = (tienePermisoSaldos || esAdminMaster) ? `
+                <div class="bg-white p-5 md:p-6 rounded-3xl border-t-4 border-t-rose-500 border-x border-b border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col justify-center" onclick="cambiarVista('saldos')">
+                    <div class="w-10 h-10 md:w-12 md:h-12 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center mb-3 md:mb-4 group-hover:bg-rose-600 group-hover:text-white transition-colors">
+                        <span class="material-symbols-rounded icon-large">request_quote</span>
+                    </div>
+                    <h4 class="font-bold text-base md:text-lg text-slate-800 mb-1 leading-tight">Gestión Saldos</h4>
+                    <p class="text-slate-500 leading-relaxed text-xs">Control de cuentas particulares.</p>
+                </div>
+            ` : '';
+
+            let tarjetaPermisosHTML = esAdminMaster ? `
+                <div class="bg-white p-5 md:p-6 rounded-3xl border-t-4 border-t-purple-500 border-x border-b border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col justify-center" onclick="cambiarVista('permisos')">
+                    <div class="w-10 h-10 md:w-12 md:h-12 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center mb-3 md:mb-4 group-hover:bg-purple-600 group-hover:text-white transition-colors">
+                        <span class="material-symbols-rounded icon-large">admin_panel_settings</span>
+                    </div>
+                    <h4 class="font-bold text-base md:text-lg text-slate-800 mb-1 leading-tight">Panel Permisos</h4>
+                    <p class="text-slate-500 leading-relaxed text-xs">Administración de accesos.</p>
+                </div>
+            ` : '';
 
             return `
                 <div class="relative w-full h-36 md:h-56 rounded-3xl overflow-hidden mb-6 md:mb-8 shadow-sm flex items-center px-6 md:px-10 border border-slate-200 shrink-0">
@@ -470,7 +515,7 @@
                     </div>
                 </div>
                 
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6 shrink-0">
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6 shrink-0 pb-10">
                     <div class="bg-white p-5 md:p-6 rounded-3xl border-t-4 border-t-blue-500 border-x border-b border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col justify-center" onclick="cambiarVista('dpp')">
                         <div class="w-10 h-10 md:w-12 md:h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-3 md:mb-4 group-hover:bg-blue-600 group-hover:text-white transition-colors">
                             <span class="material-symbols-rounded icon-large">badge</span>
@@ -510,17 +555,20 @@
                         <h4 class="font-bold text-base md:text-lg text-slate-800 mb-1 leading-tight">Absentify ↗</h4>
                         <p class="text-slate-500 leading-relaxed text-xs">Gestión de vacaciones y licencias.</p>
                     </a>
+
+                    ${tarjetaSaldosHTML}
+                    ${tarjetaPermisosHTML}
                 </div>
             `;
         }
 
         // ==========================================
-        // PROCESAMIENTO Y TABLA DE SALDOS CON ORDENAMIENTO
+        // PROCESAMIENTO Y TABLA DE SALDOS CON FILTRO
         // ==========================================
 
         function parsearMontoNumerico(montoTexto) {
             if(!montoTexto) return 0;
-            let limpio = montoTexto.replace('$', '').replace(/\./g, '').replace(',', '.').trim();
+            let limpio = montoTexto.toString().replace('$', '').replace(/\./g, '').replace(',', '.').trim();
             let num = parseFloat(limpio);
             return isNaN(num) ? 0 : num;
         }
@@ -540,23 +588,47 @@
                 skipEmptyLines: true,
                 complete: function(resultados) {
                     let datosBrutos = resultados.data;
+                    let mapaUnificado = {};
+
                     datosBrutos.forEach(fila => {
+                        let nombrePaciente = fila.enfaRazonSocial ? fila.enfaRazonSocial.trim() : 'Sin Nombre';
                         let saldoTexto = fila.ventSaldo || "0";
                         let saldoNumerico = parsearMontoNumerico(saldoTexto);
+                        let impOrigNum = parsearMontoNumerico(fila.ventImporteTotal || "0");
+                        let comprobante = fila.ventFactura ? fila.ventFactura.trim() : '-';
 
                         if (saldoNumerico > 0.01) {
-                            datosCSVPrecargados.push({
-                                paciente: fila.enfaRazonSocial ? fila.enfaRazonSocial.trim() : 'Sin Nombre',
-                                ultimoPago: fila.enfaUltimoPago || '-',
-                                periodo: fila.ventPeriodo || '-',
-                                fecha: fila.ventFecha || '-',
-                                comprobante: fila.ventFactura || '-',
-                                importeOrig: fila.ventImporteTotal || '-',
-                                saldo: fila.ventSaldo || '0',
-                                saldoNum: saldoNumerico
-                            });
+                            if (!mapaUnificado[nombrePaciente]) {
+                                mapaUnificado[nombrePaciente] = {
+                                    paciente: nombrePaciente,
+                                    ultimoPago: fila.enfaUltimoPago || '-',
+                                    periodo: fila.ventPeriodo || '-',
+                                    fecha: fila.ventFecha || '-',
+                                    comprobantes: [comprobante],
+                                    importeOrigNum: impOrigNum,
+                                    saldoNum: saldoNumerico
+                                };
+                            } else {
+                                mapaUnificado[nombrePaciente].saldoNum += saldoNumerico;
+                                mapaUnificado[nombrePaciente].importeOrigNum += impOrigNum;
+                                if (!mapaUnificado[nombrePaciente].comprobantes.includes(comprobante)) {
+                                    mapaUnificado[nombrePaciente].comprobantes.push(comprobante);
+                                }
+                            }
                         }
                     });
+
+                    datosCSVPrecargados = Object.values(mapaUnificado).map(item => ({
+                        paciente: item.paciente,
+                        ultimoPago: item.ultimoPago,
+                        periodo: item.periodo,
+                        fecha: item.fecha,
+                        comprobante: item.comprobantes.join(' / '),
+                        importeOrig: formatearMonedaAR(item.importeOrigNum),
+                        saldo: formatearMonedaAR(item.saldoNum),
+                        saldoNum: item.saldoNum
+                    }));
+
                     cambiarVista('saldos');
                 },
                 error: function() { alert("Error al leer el archivo CSV."); }
@@ -582,6 +654,8 @@
                 let th = resizer.parentElement;
 
                 const mouseDownHandler = function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
                     x = e.clientX;
                     const styles = window.getComputedStyle(th);
                     w = parseInt(styles.width, 10);
@@ -593,8 +667,8 @@
 
                 const mouseMoveHandler = function (e) {
                     const dx = e.clientX - x;
-                    th.style.width = `${w + dx}px`;
-                    th.style.minWidth = `${w + dx}px`;
+                    let nuevoAncho = Math.max(20, w + dx);
+                    th.style.width = `${nuevoAncho}px`;
                 };
 
                 const mouseUpHandler = function () {
@@ -607,22 +681,22 @@
             });
         }
 
-        // LÓGICA DE ORDENAMIENTO AL HACER CLIC EN ENCABEZADOS
-        window.ordenarSaldos = function(columnaKey) {
-            if (columnaOrdenActual === columnaKey) {
-                ordenAscendente = !ordenAscendente;
-            } else {
-                columnaOrdenActual = columnaKey;
-                ordenAscendente = true;
-            }
+        function aplicarOrdenamientoSaldos() {
+            if (!listaSaldosFirebase || listaSaldosFirebase.length === 0) return;
 
             listaSaldosFirebase.sort((a, b) => {
-                let valA = a[columnaKey] || '';
-                let valB = b[columnaKey] || '';
+                let valA = a[columnaOrdenActual] || '';
+                let valB = b[columnaOrdenActual] || '';
 
-                if (columnaKey === 'saldo' || columnaKey === 'importeOrig') {
+                if (columnaOrdenActual === 'saldo' || columnaOrdenActual === 'importeOrig') {
                     valA = parsearMontoNumerico(valA);
                     valB = parsearMontoNumerico(valB);
+                } else if (columnaOrdenActual === 'acuerdoEspecial') {
+                    valA = a.acuerdoEspecial === true ? 1 : 0;
+                    valB = b.acuerdoEspecial === true ? 1 : 0;
+                } else if (columnaOrdenActual === 'tienePagare') {
+                    valA = a.tienePagare === true ? 1 : 0;
+                    valB = b.tienePagare === true ? 1 : 0;
                 } else {
                     valA = valA.toString().toLowerCase();
                     valB = valB.toString().toLowerCase();
@@ -632,7 +706,16 @@
                 if (valA > valB) return ordenAscendente ? 1 : -1;
                 return 0;
             });
+        }
 
+        window.ordenarSaldos = function(columnaKey) {
+            if (columnaOrdenActual === columnaKey) {
+                ordenAscendente = !ordenAscendente;
+            } else {
+                columnaOrdenActual = columnaKey;
+                ordenAscendente = true;
+            }
+            aplicarOrdenamientoSaldos();
             cambiarVista('saldos');
         };
 
@@ -642,12 +725,27 @@
         }
 
         function renderizarSaldos() {
+            // Filtrar cuentas en pantalla según la pestaña seleccionada (Activas vs Saldadas)
+            if (!esAdminMaster) verCuentasSaldadas = false; // Pilar solo ve activas
+
+            let cuentasVisibles = listaSaldosFirebase.filter(c => verCuentasSaldadas ? c.saldada === true : c.saldada !== true);
+
             let totalSaldosAcumulados = 0;
             if (datosCSVPrecargados.length > 0) {
                 totalSaldosAcumulados = datosCSVPrecargados.reduce((acc, curr) => acc + (curr.saldoNum || parsearMontoNumerico(curr.saldo)), 0);
             } else {
-                totalSaldosAcumulados = listaSaldosFirebase.reduce((acc, curr) => acc + parsearMontoNumerico(curr.saldo), 0);
+                // Solo suma deudas de cuentas activas
+                let activas = listaSaldosFirebase.filter(c => c.saldada !== true);
+                totalSaldosAcumulados = activas.reduce((acc, curr) => acc + parsearMontoNumerico(curr.saldo), 0);
             }
+
+            // Pestañas superior de filtro (Exclusivo Damián Master)
+            let selectorPestanasSaldosHTML = esAdminMaster ? `
+                <div class="bg-slate-100 p-1 rounded-xl flex gap-1 shrink-0">
+                    <button onclick="alternarFiltroSaldadas(false)" class="px-3 py-1.5 text-xs font-semibold rounded-lg transition ${!verCuentasSaldadas ? 'bg-white shadow-xs text-slate-800' : 'text-slate-500 hover:text-slate-800'}">Activas</button>
+                    <button onclick="alternarFiltroSaldadas(true)" class="px-3 py-1.5 text-xs font-semibold rounded-lg transition ${verCuentasSaldadas ? 'bg-white shadow-xs text-slate-800' : 'text-slate-500 hover:text-slate-800'}">Cuentas Saldadas</button>
+                </div>
+            ` : '';
 
             let htmlSuperior = `
                 <div class="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4 shrink-0">
@@ -657,7 +755,7 @@
                             <h3 class="font-bold text-rose-900 text-xl">Gestión de Saldos de Cuentas</h3>
                             <p class="text-xs md:text-sm text-rose-700 font-medium mt-1 max-w-xl">Módulo de administración para seguimiento de pagarés, obras sociales y cobranzas.</p>
                         </div>
-                        <div class="relative z-10 mt-4">
+                        <div class="relative z-10 mt-4 flex items-center justify-between gap-3">
                             <label for="input-csv" class="cursor-pointer bg-white border border-rose-200 text-rose-700 hover:bg-rose-100 font-bold px-4 py-2.5 rounded-xl transition shadow-sm inline-flex items-center justify-center gap-2 text-sm w-full md:w-auto">
                                 <span class="material-symbols-rounded" style="font-size: 18px;">upload_file</span> Cargar Nuevo CSV
                             </label>
@@ -668,7 +766,7 @@
                     <div class="bg-white p-6 rounded-3xl border-t-4 border-t-rose-500 border-x border-b border-slate-100 shadow-sm flex flex-col justify-between relative overflow-hidden">
                         <div>
                             <div class="flex items-center justify-between mb-2">
-                                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Saldo Total Acumulado</span>
+                                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Saldo Pendiente Activo</span>
                                 <div class="w-8 h-8 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center">
                                     <span class="material-symbols-rounded" style="font-size: 18px;">payments</span>
                                 </div>
@@ -678,7 +776,7 @@
                             </h4>
                         </div>
                         <p class="text-[11px] text-slate-400 font-medium mt-4">
-                            Monto total adeudado por cuentas registradas.
+                            Monto total de cuentas activas en seguimiento.
                         </p>
                     </div>
                 </div>
@@ -687,15 +785,15 @@
             if (datosCSVPrecargados.length > 0) {
                 let filasHTML = datosCSVPrecargados.map((reg, index) => `
                     <tr class="border-b border-slate-100 hover:bg-slate-50 transition">
-                        <td class="p-3 text-center">
+                        <td class="p-3 text-center celda-recortable sticky left-0 z-10 bg-white">
                             <input type="checkbox" class="check-saldo w-4 h-4 text-rose-600 rounded focus:ring-rose-500" data-index="${index}" checked>
                         </td>
-                        <td class="p-3 font-semibold text-slate-800 text-xs">${reg.paciente}</td>
-                        <td class="p-3 text-slate-500 text-xs">${reg.ultimoPago}</td>
-                        <td class="p-3 text-slate-500 text-xs">${reg.periodo}</td>
-                        <td class="p-3 text-slate-500 text-xs text-center">${reg.comprobante}</td>
-                        <td class="p-3 text-slate-500 text-xs text-right">${reg.importeOrig}</td>
-                        <td class="p-3 text-rose-600 font-bold text-xs text-right">${reg.saldo}</td>
+                        <td class="p-3 font-semibold text-slate-800 text-xs celda-recortable sticky left-10 z-10 bg-white shadow-xs" title="${reg.paciente}">${reg.paciente}</td>
+                        <td class="p-3 text-slate-500 text-xs celda-recortable">${reg.ultimoPago}</td>
+                        <td class="p-3 text-slate-500 text-xs celda-recortable">${reg.periodo}</td>
+                        <td class="p-3 text-slate-500 text-xs text-center celda-recortable" title="${reg.comprobante}">${reg.comprobante}</td>
+                        <td class="p-3 text-slate-500 text-xs text-right celda-recortable">${reg.importeOrig}</td>
+                        <td class="p-3 text-rose-600 font-bold text-xs text-right celda-recortable">${reg.saldo}</td>
                     </tr>
                 `).join('');
 
@@ -704,27 +802,27 @@
                 return htmlSuperior + `
                     <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm shrink-0 mb-8">
                         <div class="p-4 bg-amber-50 border-b border-amber-100 text-amber-800 text-sm font-semibold flex items-center justify-between">
-                            <span>Modo de Precarga: Seleccioná las cuentas a guardar en el módulo.</span>
+                            <span>Modo de Precarga: Cuentas Unificadas por Paciente. Seleccioná cuáles guardar.</span>
                             <button onclick="cancelarCargaCSV()" class="text-xs bg-white border border-amber-200 px-3 py-1.5 rounded-lg hover:bg-amber-100 transition">Cancelar</button>
                         </div>
                         <div class="overflow-x-auto max-h-[50vh]">
-                            <table class="w-full text-left border-collapse whitespace-nowrap">
+                            <table class="tabla-flexible text-left border-collapse">
                                 <thead class="sticky top-0 z-10 bg-slate-50 shadow-sm">
                                     <tr class="border-b border-slate-200 text-slate-500 text-[10px] uppercase tracking-wider">
-                                        <th class="p-3 text-center w-10 resizable">Sel<div class="resizer"></div></th>
-                                        <th class="p-3 resizable">Paciente<div class="resizer"></div></th>
-                                        <th class="p-3 resizable">Último Pago<div class="resizer"></div></th>
-                                        <th class="p-3 resizable">Período<div class="resizer"></div></th>
-                                        <th class="p-3 text-center resizable">Comprobante<div class="resizer"></div></th>
-                                        <th class="p-3 text-right resizable">Imp. Orig.<div class="resizer"></div></th>
-                                        <th class="p-3 text-right resizable">Saldo<div class="resizer"></div></th>
+                                        <th class="p-3 text-center w-10 resizable celda-recortable sticky left-0 z-30 bg-slate-50">Sel<div class="resizer"></div></th>
+                                        <th class="p-3 resizable w-48 celda-recortable sticky left-10 z-30 bg-slate-50 shadow-xs">Paciente<div class="resizer"></div></th>
+                                        <th class="p-3 resizable w-28 celda-recortable">Último Pago<div class="resizer"></div></th>
+                                        <th class="p-3 resizable w-24 celda-recortable">Período<div class="resizer"></div></th>
+                                        <th class="p-3 text-center resizable w-56 celda-recortable">Comprobantes Unificados<div class="resizer"></div></th>
+                                        <th class="p-3 text-right resizable w-32 celda-recortable">Imp. Orig. Total<div class="resizer"></div></th>
+                                        <th class="p-3 text-right resizable w-32 celda-recortable">Saldo Unificado<div class="resizer"></div></th>
                                     </tr>
                                 </thead>
                                 <tbody>${filasHTML}</tbody>
                             </table>
                         </div>
                         <div class="p-4 bg-slate-50 border-t border-slate-200 flex justify-between items-center">
-                            <span class="text-xs text-slate-500 font-medium">${datosCSVPrecargados.length} cuentas pendientes de revisión.</span>
+                            <span class="text-xs text-slate-500 font-medium">${datosCSVPrecargados.length} pacientes unificados listos para revisión.</span>
                             <button id="btn-guardar-saldos" onclick="window.guardarSaldosSeleccionados()" class="bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition shadow-md shadow-rose-200 flex items-center gap-1.5">
                                 <span class="material-symbols-rounded" style="font-size: 18px;">cloud_upload</span> Guardar Selección en Firebase
                             </button>
@@ -734,102 +832,176 @@
             } 
             
             else {
-                if (listaSaldosFirebase.length === 0) {
+                if (cuentasVisibles.length === 0) {
                     return htmlSuperior + `
+                        <div class="mb-4">${selectorPestanasSaldosHTML}</div>
                         <div class="p-8 text-center text-slate-400 border border-dashed border-slate-300 rounded-2xl shrink-0">
                             <span class="material-symbols-rounded text-4xl mb-2 opacity-50">data_table</span>
-                            <p class="text-sm font-medium">No hay cuentas en seguimiento. Cargá un reporte CSV para empezar.</p>
+                            <p class="text-sm font-medium">${verCuentasSaldadas ? 'No hay cuentas saldadas guardadas aún.' : 'No hay cuentas activas en seguimiento. Cargá un reporte CSV para empezar.'}</p>
                         </div>
                     `;
                 }
 
-                let filasFirebaseHTML = listaSaldosFirebase.map(cuenta => `
-                    <tr class="border-b border-slate-100 hover:bg-slate-50 transition">
-                        <td class="p-3 text-center">
-                            <input type="checkbox" class="check-saldo-fbre w-4 h-4 text-rose-600 rounded focus:ring-rose-500 cursor-pointer" data-id="${cuenta.id}">
-                        </td>
-                        
-                        <!-- NOMBRE DEL PACIENTE CON RECORTADO TRUNCATE ADAPTABLE -->
-                        <td class="p-3 font-semibold text-slate-800 text-xs">
-                            <span class="block truncate max-w-[160px]" title="${cuenta.paciente}">${cuenta.paciente}</span>
-                        </td>
-                        
-                        <td class="p-2">
-                            <input type="text" 
-                                value="${cuenta.obraSocial || ''}" 
-                                placeholder="Ej: OSDE"
-                                onchange="window.actualizarCampoFirebase('${cuenta.id}', 'obraSocial', this.value)"
-                                class="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-xs focus:bg-white focus:ring-2 focus:ring-rose-400 focus:outline-none transition">
-                        </td>
+                let filasFirebaseHTML = cuentasVisibles.map(cuenta => {
+                    let esAcuerdoEspecial = cuenta.acuerdoEspecial === true;
+                    let tienePagare = cuenta.tienePagare === true;
+                    let esSaldada = cuenta.saldada === true;
 
-                        <td class="p-2">
-                            <input type="text" 
-                                value="${cuenta.practica || ''}" 
-                                placeholder="Ej: VEDA"
-                                onchange="window.actualizarCampoFirebase('${cuenta.id}', 'practica', this.value)"
-                                class="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-xs focus:bg-white focus:ring-2 focus:ring-rose-400 focus:outline-none transition">
-                        </td>
+                    let bgFila = 'hover:bg-slate-50';
+                    let bgCeldaFija = 'bg-white';
+                    
+                    if (esSaldada) {
+                        bgFila = 'bg-emerald-50/60 hover:bg-emerald-100/60';
+                        bgCeldaFija = 'bg-emerald-50';
+                    } else if (tienePagare) {
+                        bgFila = 'bg-sky-50/70 hover:bg-sky-100/70 border-sky-100';
+                        bgCeldaFija = 'bg-sky-50';
+                    } else if (esAcuerdoEspecial) {
+                        bgFila = 'bg-amber-50/60 hover:bg-amber-100/60';
+                        bgCeldaFija = 'bg-amber-50';
+                    }
 
-                        <td class="p-3 text-slate-500 text-xs text-center">${cuenta.ultimoPago}</td>
-                        <td class="p-3 text-slate-500 text-xs text-center">${cuenta.periodo}</td>
-                        <td class="p-3 text-slate-500 text-xs text-center">${cuenta.comprobante}</td>
-                        <td class="p-3 text-slate-500 text-xs text-right">${cuenta.importeOrig}</td>
-                        <td class="p-3 text-rose-600 font-bold text-xs text-right">${cuenta.saldo}</td>
-                        
-                        <!-- BOTÓN RENOMBRADO A: "Gestión" -->
-                        <td class="p-3 text-right">
-                            <button onclick="abrirModalGestion('${cuenta.id}')" class="bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 border border-slate-200 px-3 py-1.5 rounded-lg transition text-xs font-semibold flex items-center justify-center gap-1 ml-auto">
-                                <span class="material-symbols-rounded" style="font-size: 14px;">edit_document</span> 
-                                Gestión <span class="bg-slate-200 text-slate-500 px-1.5 rounded-full text-[10px] ml-1">${cuenta.gestiones ? cuenta.gestiones.length : 0}</span>
-                            </button>
-                        </td>
-                    </tr>
-                `).join('');
+                    let columnaEstadoHTML = esAcuerdoEspecial ? `
+                        <button onclick="window.toggleAcuerdoEspecialFirebase('${cuenta.id}', false)" 
+                            title="Haz clic para quitar marca de acuerdo especial" 
+                            class="bg-amber-100 text-amber-800 border border-amber-300 px-2 py-0.5 rounded-lg text-[10px] font-bold flex items-center gap-1 shadow-2xs hover:bg-amber-200 transition truncate max-w-full">
+                            🤝 Acuerdo
+                        </button>
+                    ` : `
+                        <button onclick="window.toggleAcuerdoEspecialFirebase('${cuenta.id}', true)" 
+                            title="Marcar como cuenta con acuerdo especial (no reclamar)" 
+                            class="bg-slate-100 text-slate-500 border border-slate-200 px-2 py-0.5 rounded-lg text-[10px] font-semibold hover:bg-amber-50 hover:text-amber-700 hover:border-amber-200 transition flex items-center gap-1 truncate max-w-full">
+                            <span class="material-symbols-rounded shrink-0" style="font-size: 13px;">handshake</span> + Acuerdo
+                        </button>
+                    `;
+
+                    // CASILLA DE SELECCIÓN EXCLUSIVA DE DAMIÁN MASTER
+                    let casillaSeleccionHTML = esAdminMaster ? `
+                        <input type="checkbox" class="check-saldo-fbre w-4 h-4 text-rose-600 rounded focus:ring-rose-500 cursor-pointer" data-id="${cuenta.id}">
+                    ` : '<span class="text-slate-300 text-xs">•</span>';
+
+                    return `
+                        <tr class="border-b border-slate-100 transition ${bgFila}">
+                            <td class="p-3 text-center celda-recortable sticky left-0 z-10 ${bgCeldaFija}">
+                                ${casillaSeleccionHTML}
+                            </td>
+                            
+                            <td class="p-3 font-semibold text-slate-800 text-xs celda-recortable sticky left-10 z-10 ${bgCeldaFija} shadow-xs" title="${cuenta.paciente}">
+                                ${cuenta.paciente}
+                            </td>
+
+                            <td class="p-2 text-center celda-recortable">
+                                <label class="inline-flex items-center gap-1 cursor-pointer select-none">
+                                    <input type="checkbox" ${tienePagare ? 'checked' : ''} 
+                                        onchange="window.togglePagareFirebase('${cuenta.id}', this.checked)"
+                                        class="w-4 h-4 text-sky-600 rounded border-slate-300 focus:ring-sky-500 cursor-pointer">
+                                    <span class="text-[10px] font-bold ${tienePagare ? 'text-sky-800' : 'text-slate-400'}">${tienePagare ? 'SI' : 'NO'}</span>
+                                </label>
+                            </td>
+
+                            <td class="p-2 celda-recortable">
+                                ${columnaEstadoHTML}
+                            </td>
+                            
+                            <td class="p-2 celda-recortable">
+                                <input type="text" 
+                                    value="${cuenta.obraSocial || ''}" 
+                                    placeholder="Ej: OSDE"
+                                    onchange="window.actualizarCampoFirebase('${cuenta.id}', 'obraSocial', this.value)"
+                                    class="w-full min-w-0 bg-slate-50/80 border border-slate-200 rounded-lg px-2 py-1 text-xs focus:bg-white focus:ring-2 focus:ring-rose-400 focus:outline-none transition">
+                            </td>
+
+                            <td class="p-2 celda-recortable">
+                                <input type="text" 
+                                    value="${cuenta.practica || ''}" 
+                                    placeholder="Ej: VEDA"
+                                    onchange="window.actualizarCampoFirebase('${cuenta.id}', 'practica', this.value)"
+                                    class="w-full min-w-0 bg-slate-50/80 border border-slate-200 rounded-lg px-2 py-1 text-xs focus:bg-white focus:ring-2 focus:ring-rose-400 focus:outline-none transition">
+                            </td>
+
+                            <td class="p-3 text-slate-500 text-xs text-center celda-recortable" title="${cuenta.ultimoPago}">${cuenta.ultimoPago}</td>
+                            <td class="p-3 text-slate-500 text-xs text-center celda-recortable" title="${cuenta.periodo}">${cuenta.periodo}</td>
+                            <td class="p-3 text-slate-500 text-xs text-center celda-recortable" title="${cuenta.comprobante}">${cuenta.comprobante}</td>
+                            <td class="p-3 text-slate-500 text-xs text-right celda-recortable" title="${cuenta.importeOrig}">${cuenta.importeOrig}</td>
+                            <td class="p-3 ${esSaldada ? 'text-emerald-600' : 'text-rose-600'} font-bold text-xs text-right celda-recortable" title="${cuenta.saldo}">${cuenta.saldo}</td>
+                            
+                            <td class="p-3 text-right celda-recortable flex items-center justify-end gap-1.5">
+                                ${!esSaldada ? `
+                                    <button onclick="abrirModalCobro('${cuenta.id}')" title="Registrar Cobro / Cancelar Deuda" class="bg-emerald-50 hover:bg-emerald-600 text-emerald-700 hover:text-white border border-emerald-200 px-2 py-1 rounded-lg transition text-[11px] font-bold flex items-center gap-1 shrink-0">
+                                        <span class="material-symbols-rounded" style="font-size: 14px;">payments</span> Cobrar
+                                    </button>
+                                ` : `
+                                    <span class="text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2 py-1 rounded-lg border border-emerald-200">
+                                        Saldada (${cuenta.fechaSaldada || 'OK'})
+                                    </span>
+                                `}
+
+                                <button onclick="abrirModalGestion('${cuenta.id}')" class="bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 border border-slate-200 px-2 py-1 rounded-lg transition text-xs font-semibold flex items-center justify-center gap-1 shrink-0">
+                                    <span class="material-symbols-rounded shrink-0" style="font-size: 14px;">edit_document</span> 
+                                    Gestión <span class="bg-slate-200 text-slate-500 px-1.5 rounded-full text-[10px] ml-0.5">${cuenta.gestiones ? cuenta.gestiones.length : 0}</span>
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
 
                 setTimeout(habilitarColumnasRedimensionables, 100);
+
+                // BOTÓN DE ELIMINAR MASIVO (EXCLUSIVO DAMIÁN MASTER)
+                let btnEliminarMasivoHTML = esAdminMaster ? `
+                    <button onclick="window.eliminarSaldosSeleccionados()" class="bg-slate-100 hover:bg-red-50 text-slate-600 hover:text-red-600 border border-slate-200 text-xs font-semibold px-3 py-2 rounded-xl transition flex items-center gap-1.5 shadow-2xs">
+                        <span class="material-symbols-rounded text-red-500" style="font-size: 16px;">delete</span> Eliminar Seleccionados
+                    </button>
+                ` : '';
 
                 return htmlSuperior + `
                     <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm shrink-0 mb-8">
                         <div class="p-4 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                            <h4 class="font-bold text-slate-700 text-sm">Cuentas Activas en Seguimiento (${listaSaldosFirebase.length})</h4>
-                            
-                            <button onclick="window.eliminarSaldosSeleccionados()" class="bg-slate-100 hover:bg-red-50 text-slate-600 hover:text-red-600 border border-slate-200 text-xs font-semibold px-3 py-2 rounded-xl transition flex items-center gap-1.5 shadow-2xs">
-                                <span class="material-symbols-rounded text-red-500" style="font-size: 16px;">delete</span> Eliminar Seleccionados
-                            </button>
+                            <div class="flex items-center gap-3">
+                                <h4 class="font-bold text-slate-700 text-sm">${verCuentasSaldadas ? 'Histórico de Cuentas Saldadas' : 'Cuentas Activas en Seguimiento'} (${cuentasVisibles.length})</h4>
+                                ${selectorPestanasSaldosHTML}
+                            </div>
+                            ${btnEliminarMasivoHTML}
                         </div>
                         <div class="overflow-x-auto max-h-[60vh]">
-                            <table class="w-full text-left border-collapse whitespace-nowrap">
+                            <table class="tabla-flexible text-left border-collapse">
                                 <thead class="sticky top-0 z-10 bg-slate-50 shadow-sm select-none">
                                     <tr class="border-b border-slate-200 text-slate-500 text-[10px] uppercase tracking-wider">
-                                        <th class="p-3 text-center w-10 resizable">
-                                            <input type="checkbox" onchange="seleccionarTodosSaldos(this)" class="w-4 h-4 text-rose-600 rounded focus:ring-rose-500 cursor-pointer" title="Seleccionar todos">
+                                        <th class="p-3 text-center w-10 resizable celda-recortable sticky left-0 z-30 bg-slate-50">
+                                            ${esAdminMaster ? `<input type="checkbox" onchange="seleccionarTodosSaldos(this)" class="w-4 h-4 text-rose-600 rounded focus:ring-rose-500 cursor-pointer" title="Seleccionar todos">` : ''}
                                             <div class="resizer"></div>
                                         </th>
-                                        <th onclick="ordenarSaldos('paciente')" class="p-3 resizable cursor-pointer hover:bg-slate-100 transition">
+                                        <th onclick="ordenarSaldos('paciente')" class="p-3 resizable w-48 cursor-pointer hover:bg-slate-100 transition celda-recortable sticky left-10 z-30 bg-slate-50 shadow-xs">
                                             Paciente ${iconoOrden('paciente')}<div class="resizer"></div>
                                         </th>
-                                        <th onclick="ordenarSaldos('obraSocial')" class="p-3 resizable w-32 cursor-pointer hover:bg-slate-100 transition">
+                                        <th onclick="ordenarSaldos('tienePagare')" class="p-3 text-center resizable w-20 cursor-pointer hover:bg-slate-100 transition celda-recortable">
+                                            Pagaré ${iconoOrden('tienePagare')}<div class="resizer"></div>
+                                        </th>
+                                        <th onclick="ordenarSaldos('acuerdoEspecial')" class="p-3 resizable w-28 cursor-pointer hover:bg-slate-100 transition celda-recortable">
+                                            Estado ${iconoOrden('acuerdoEspecial')}<div class="resizer"></div>
+                                        </th>
+                                        <th onclick="ordenarSaldos('obraSocial')" class="p-3 resizable w-28 cursor-pointer hover:bg-slate-100 transition celda-recortable">
                                             Obra Social ${iconoOrden('obraSocial')}<div class="resizer"></div>
                                         </th>
-                                        <th onclick="ordenarSaldos('practica')" class="p-3 resizable w-32 cursor-pointer hover:bg-slate-100 transition">
+                                        <th onclick="ordenarSaldos('practica')" class="p-3 resizable w-28 cursor-pointer hover:bg-slate-100 transition celda-recortable">
                                             Práctica ${iconoOrden('practica')}<div class="resizer"></div>
                                         </th>
-                                        <th onclick="ordenarSaldos('ultimoPago')" class="p-3 text-center resizable cursor-pointer hover:bg-slate-100 transition">
+                                        <th onclick="ordenarSaldos('ultimoPago')" class="p-3 text-center resizable w-28 cursor-pointer hover:bg-slate-100 transition celda-recortable">
                                             Últ. Pago ${iconoOrden('ultimoPago')}<div class="resizer"></div>
                                         </th>
-                                        <th onclick="ordenarSaldos('periodo')" class="p-3 text-center resizable cursor-pointer hover:bg-slate-100 transition">
+                                        <th onclick="ordenarSaldos('periodo')" class="p-3 text-center resizable w-24 cursor-pointer hover:bg-slate-100 transition celda-recortable">
                                             Período ${iconoOrden('periodo')}<div class="resizer"></div>
                                         </th>
-                                        <th onclick="ordenarSaldos('comprobante')" class="p-3 text-center resizable cursor-pointer hover:bg-slate-100 transition">
-                                            Comprobante ${iconoOrden('comprobante')}<div class="resizer"></div>
+                                        <th onclick="ordenarSaldos('comprobante')" class="p-3 text-center resizable w-40 cursor-pointer hover:bg-slate-100 transition celda-recortable">
+                                            Comprobantes ${iconoOrden('comprobante')}<div class="resizer"></div>
                                         </th>
-                                        <th onclick="ordenarSaldos('importeOrig')" class="p-3 text-right resizable cursor-pointer hover:bg-slate-100 transition">
+                                        <th onclick="ordenarSaldos('importeOrig')" class="p-3 text-right resizable w-28 cursor-pointer hover:bg-slate-100 transition celda-recortable">
                                             Imp. Orig. ${iconoOrden('importeOrig')}<div class="resizer"></div>
                                         </th>
-                                        <th onclick="ordenarSaldos('saldo')" class="p-3 text-right resizable cursor-pointer hover:bg-slate-100 transition">
+                                        <th onclick="ordenarSaldos('saldo')" class="p-3 text-right resizable w-28 cursor-pointer hover:bg-slate-100 transition celda-recortable">
                                             Saldo Actual ${iconoOrden('saldo')}<div class="resizer"></div>
                                         </th>
-                                        <th class="p-3 text-right resizable">Gestión<div class="resizer"></div></th>
+                                        <th class="p-3 text-right resizable w-44 celda-recortable">Acciones<div class="resizer"></div></th>
                                     </tr>
                                 </thead>
                                 <tbody>${filasFirebaseHTML}</tbody>
@@ -840,39 +1012,20 @@
             }
         }
 
-        // NAVEGACIÓN Y OTRAS SECCIONES
-        function actualizarMenuActivo(vista) {
-            ['inicio', 'dpp', 'procedimientos', 'recibos', 'sugerencias', 'saldos', 'permisos'].forEach(v => {
-                const btn = document.getElementById(`btn-${v}`);
-                if (btn) btn.className = `flex items-center gap-2 md:gap-3 p-2.5 md:p-3 text-left font-medium rounded-xl transition shrink-0 ${v === 'saldos' ? 'text-rose-600 hover:bg-rose-50' : v === 'permisos' ? 'text-purple-600 hover:bg-purple-50' : 'text-slate-600 hover:bg-slate-50'}`;
-            });
-            const btnActivo = document.getElementById(`btn-${vista}`);
-            if (btnActivo) {
-                if (vista === 'saldos') {
-                    btnActivo.className = "flex items-center gap-2 md:gap-3 p-2.5 md:p-3 text-left bg-rose-100 text-rose-800 font-bold rounded-xl transition shadow-sm shrink-0";
-                } else if (vista === 'permisos') {
-                    btnActivo.className = "flex items-center gap-2 md:gap-3 p-2.5 md:p-3 text-left bg-purple-100 text-purple-800 font-bold rounded-xl transition shadow-sm shrink-0";
-                } else {
-                    btnActivo.className = "flex items-center gap-2 md:gap-3 p-2.5 md:p-3 text-left bg-blue-50 text-blue-700 font-medium rounded-xl transition shadow-sm shrink-0";
-                }
-            }
-        }
-
         function cambiarVista(vista) {
             seccionActual = vista;
             viendoDocumento = false; 
-            actualizarMenuActivo(vista);
 
-            const btnVolver = document.getElementById('btn-volver');
+            const btnInicioHeader = document.getElementById('btn-inicio-header');
             const contenido = document.getElementById('contenido-seccion');
             const titulo = document.getElementById('titulo-seccion');
 
             if (vista === 'inicio') {
-                btnVolver.classList.add('hidden');
+                btnInicioHeader.classList.add('hidden');
                 titulo.textContent = "Inicio";
                 contenido.innerHTML = renderizarInicio();
             } else {
-                btnVolver.classList.remove('hidden');
+                btnInicioHeader.classList.remove('hidden');
                 if (vista === 'dpp') { titulo.textContent = "Directorio de Perfiles"; contenido.innerHTML = renderizarDPP(); }
                 if (vista === 'procedimientos') { titulo.textContent = "Procedimientos Internos"; contenido.innerHTML = renderizarProcedimientos(); }
                 if (vista === 'recibos') { titulo.textContent = "Legajo Digital"; contenido.innerHTML = renderizarRecibos(); }
@@ -1218,11 +1371,10 @@
             viendoDocumento = true;
             const contenedorContenido = document.getElementById('contenido-seccion');
             const tituloSeccion = document.getElementById('titulo-seccion');
-            const btnVolver = document.getElementById('btn-volver');
+            const btnInicioHeader = document.getElementById('btn-inicio-header');
 
             tituloSeccion.textContent = titulo;
-            btnVolver.classList.remove('hidden');
-            actualizarMenuActivo('');
+            btnInicioHeader.classList.remove('hidden');
 
             if (esImagen) {
                 contenedorContenido.innerHTML = `
@@ -1249,11 +1401,7 @@
         }
 
         function volverAtras() { 
-            if (viendoDocumento) {
-                cambiarVista(seccionActual);
-            } else {
-                cambiarVista('inicio');
-            }
+            cambiarVista('inicio');
         }
     </script>
     
@@ -1297,6 +1445,9 @@
             snapshot.forEach((docSnap) => {
                 listaSaldosFirebase.push({ id: docSnap.id, ...docSnap.data() });
             });
+
+            aplicarOrdenamientoSaldos();
+
             if (seccionActual === 'saldos' && !viendoDocumento && datosCSVPrecargados.length === 0) {
                 cambiarVista('saldos');
             }
@@ -1312,8 +1463,8 @@
 
             if (usuarioActualEmail) {
                 evaluarPermisosUsuario(usuarioActualEmail);
-                dibujarMenuLateral();
                 if (seccionActual === 'permisos') cambiarVista('permisos');
+                if (seccionActual === 'inicio') cambiarVista('inicio');
             }
         });
 
@@ -1339,8 +1490,6 @@
                 } else {
                     document.getElementById('nombre-usuario-header').textContent = user.email;
                 }
-                
-                dibujarMenuLateral();
 
                 pantallaLogin.classList.add('hidden');
                 appPrincipal.classList.remove('hidden');
@@ -1353,6 +1502,94 @@
                 appPrincipal.classList.add('hidden');
             }
         });
+
+        // LÓGICA DE PROCESAMIENTO DE COBRO Y SALDADO
+        window.procesarCobroFirebase = function() {
+            if (!saldoActualCobroId) return;
+
+            const cuenta = listaSaldosFirebase.find(c => c.id === saldoActualCobroId);
+            if (!cuenta) return;
+
+            const fechaPago = document.getElementById('input-fecha-cobro').value;
+            const montoAbonado = parseFloat(document.getElementById('input-monto-cobro').value);
+
+            if (!fechaPago) return alert("Por favor, ingresá la fecha del cobro.");
+            if (isNaN(montoAbonado) || montoAbonado <= 0) return alert("Por favor, ingresá un monto abonado válido.");
+
+            let saldoActualNum = parsearMontoNumerico(cuenta.saldo);
+            let nuevoSaldoNum = saldoActualNum - montoAbonado;
+
+            const cuentaRef = doc(db, "saldos", saldoActualCobroId);
+
+            let fechaFormateada = new Date(fechaPago + 'T00:00:00').toLocaleDateString('es-AR');
+
+            if (nuevoSaldoNum <= 0.01) {
+                // CANCELACIÓN TOTAL: Se marca como saldada
+                let notaCobro = {
+                    fecha: new Date().toLocaleString('es-AR'),
+                    texto: `💰 PAGO TOTAL CANCELADO ($${formatearMonedaAR(montoAbonado)}) el día ${fechaFormateada}. Cuenta saldada.`,
+                    autor: usuarioActualEmail
+                };
+
+                updateDoc(cuentaRef, {
+                    saldada: true,
+                    fechaSaldada: fechaFormateada,
+                    montoFinalCobrado: montoAbonado,
+                    saldo: "$ 0,00",
+                    gestiones: arrayUnion(notaCobro)
+                }).then(() => {
+                    cerrarModalCobro();
+                    alert("¡Excelente! La cuenta se registró como TOTALMENTE SALDADA y fue movida al Histórico de Cuentas Saldadas.");
+                }).catch(e => alert("Error al registrar cobro: " + e.message));
+
+            } else {
+                // PAGO PARCIAL: Descuenta monto y actualiza saldo
+                let nuevoSaldoTexto = formatearMonedaAR(nuevoSaldoNum);
+                let notaCobro = {
+                    fecha: new Date().toLocaleString('es-AR'),
+                    texto: `💵 PAGO PARCIAL RECOBRADO: Se abonó $${formatearMonedaAR(montoAbonado)} el día ${fechaFormateada}. Saldo restante: ${nuevoSaldoTexto}.`,
+                    autor: usuarioActualEmail
+                };
+
+                updateDoc(cuentaRef, {
+                    saldo: nuevoSaldoTexto,
+                    gestiones: arrayUnion(notaCobro)
+                }).then(() => {
+                    cerrarModalCobro();
+                    alert(`¡Pago parcial registrado! Se descontó $${formatearMonedaAR(montoAbonado)}. Saldo restante del paciente: ${nuevoSaldoTexto}.`);
+                }).catch(e => alert("Error al registrar cobro parcial: " + e.message));
+            }
+        };
+
+        window.togglePagareFirebase = function(docId, nuevoEstado) {
+            const cuentaRef = doc(db, "saldos", docId);
+            updateDoc(cuentaRef, { tienePagare: nuevoEstado }).catch(e => console.error(e));
+        };
+
+        window.toggleAcuerdoEspecialFirebase = function(docId, nuevoEstado) {
+            const cuentaRef = doc(db, "saldos", docId);
+            updateDoc(cuentaRef, { acuerdoEspecial: nuevoEstado }).catch(e => console.error(e));
+        };
+
+        window.editarGestionFirebase = function(docId, indexGestion) {
+            if (!esAdminMaster) return alert("Solo el Administrador Principal puede editar notas de gestión.");
+
+            const cuenta = listaSaldosFirebase.find(c => c.id === docId);
+            if (!cuenta || !cuenta.gestiones || !cuenta.gestiones[indexGestion]) return;
+
+            let textoActual = cuenta.gestiones[indexGestion].texto;
+            let nuevoTexto = prompt("Modificar mensaje de gestión:", textoActual);
+
+            if (nuevoTexto !== null && nuevoTexto.trim() !== "") {
+                let gestionesCopia = [...cuenta.gestiones];
+                gestionesCopia[indexGestion].texto = nuevoTexto.trim();
+
+                const cuentaRef = doc(db, "saldos", docId);
+                updateDoc(cuentaRef, { gestiones: gestionesCopia }).then(() => {
+                    abrirModalGestion(docId);
+                }).catch(e => alert("Error al editar gestión: " + e.message));
+            }
+        };
 
         window.otorgarPermisoFirebase = function() {
             const emailInput = document.getElementById('input-email-permiso').value.trim().toLowerCase();
@@ -1397,6 +1634,7 @@
         };
 
         window.eliminarSaldosSeleccionados = async function() {
+            if (!esAdminMaster) return alert("No tenés permisos para eliminar registros.");
             const checks = document.querySelectorAll('.check-saldo-fbre:checked');
             if (checks.length === 0) return alert("Por favor, seleccioná al menos un paciente para eliminar.");
 
@@ -1410,7 +1648,6 @@
             }
         };
 
-        // GUARDADO EN FIREBASE + LIMPIEZA AUTOMÁTICA DE PRECARGA
         window.guardarSaldosSeleccionados = async function() {
             const checks = document.querySelectorAll('.check-saldo:checked');
             let cuentasAGuardar = [];
@@ -1433,6 +1670,9 @@
                     paciente: cuenta.paciente,
                     obraSocial: "",
                     practica: "",
+                    acuerdoEspecial: false,
+                    tienePagare: false,
+                    saldada: false, // Por defecto entra como cuenta activa
                     ultimoPago: cuenta.ultimoPago,
                     periodo: cuenta.periodo,
                     fecha: cuenta.fecha,
@@ -1444,15 +1684,12 @@
                 });
             }
 
-            // Vaciar arreglo temporal de precarga
             datosCSVPrecargados = [];
             
             const inputCsv = document.getElementById('input-csv');
             if (inputCsv) inputCsv.value = '';
 
-            alert(`¡Excelente Damián! ${cuentasAGuardar.length} cuentas se guardaron exitosamente en Firebase.`);
-            
-            // Renderizar inmediatamente la tabla definitiva
+            alert(`¡Excelente Damián! ${cuentasAGuardar.length} cuentas unificadas se guardaron exitosamente en Firebase.`);
             cambiarVista('saldos');
         };
 
