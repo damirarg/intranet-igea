@@ -40,7 +40,7 @@
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         
         .material-symbols-rounded {
-            font-size: 20px;
+            font-size: 18px;
             vertical-align: middle;
         }
         .icon-large { font-size: 32px; }
@@ -59,7 +59,7 @@
             position: absolute;
             right: 0;
             top: 0;
-            width: 8px;
+            width: 6px;
             cursor: col-resize;
             user-select: none;
             height: 100%;
@@ -193,7 +193,7 @@
         </div>
     </div>
 
-    <!-- MODAL DE GESTIÓN DE SALDOS (BITÁCORA) -->
+    <!-- MODAL DE GESTIÓN DE SALDOS -->
     <div id="modal-gestion" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
         <div class="bg-white p-6 md:p-8 rounded-3xl shadow-xl w-full max-w-lg relative border border-slate-100 flex flex-col max-h-[90vh]">
             <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
@@ -293,8 +293,9 @@
             </div>
         </header>
 
+        <!-- MAIN EXPANDIDO A PANTALLA COMPLETA (MAX-W-FULL) -->
         <main class="flex-1 flex flex-col h-full overflow-y-auto no-scrollbar">
-            <div id="contenido-seccion" class="p-4 md:p-8 w-full max-w-7xl mx-auto h-full flex flex-col"></div>
+            <div id="contenido-seccion" class="p-2 md:p-5 w-full max-w-full mx-auto h-full flex flex-col"></div>
         </main>
     </div>
 
@@ -313,9 +314,9 @@
         let listaPermisosFirebase = []; 
         
         let saldoActualGestionId = null; 
-        let saldoActualCobroId = null; // ID del paciente al que le registramos cobro
+        let saldoActualCobroId = null; 
 
-        let verCuentasSaldadas = false; // Estado del filtro para ver saldadas (Solo Damián)
+        let verCuentasSaldadas = false; 
         let columnaOrdenActual = 'paciente';
         let ordenAscendente = true;
         
@@ -448,7 +449,6 @@
             saldoActualGestionId = null;
         }
 
-        // FUNCIONES MODAL COBRO / CANCELACIÓN
         window.abrirModalCobro = function(docId) {
             saldoActualCobroId = docId;
             const cuenta = listaSaldosFirebase.find(c => c.id === docId);
@@ -457,7 +457,6 @@
             document.getElementById('nombre-paciente-cobro').textContent = cuenta.paciente;
             document.getElementById('deuda-actual-cobro').textContent = cuenta.saldo;
             
-            // Carga fecha de hoy en formato YYYY-MM-DD
             const hoy = new Date().toISOString().split('T')[0];
             document.getElementById('input-fecha-cobro').value = hoy;
             document.getElementById('input-monto-cobro').value = parsearMontoNumerico(cuenta.saldo);
@@ -563,7 +562,7 @@
         }
 
         // ==========================================
-        // PROCESAMIENTO Y TABLA DE SALDOS CON FILTRO
+        // PROCESAMIENTO Y TABLA DE SALDOS
         // ==========================================
 
         function parsearMontoNumerico(montoTexto) {
@@ -667,7 +666,7 @@
 
                 const mouseMoveHandler = function (e) {
                     const dx = e.clientX - x;
-                    let nuevoAncho = Math.max(20, w + dx);
+                    let nuevoAncho = Math.max(15, w + dx);
                     th.style.width = `${nuevoAncho}px`;
                 };
 
@@ -720,13 +719,12 @@
         };
 
         function iconoOrden(columnaKey) {
-            if (columnaOrdenActual !== columnaKey) return '<span class="text-slate-300 text-[10px] ml-1">⇅</span>';
-            return ordenAscendente ? '<span class="text-rose-600 text-[10px] ml-1">▲</span>' : '<span class="text-rose-600 text-[10px] ml-1">▼</span>';
+            if (columnaOrdenActual !== columnaKey) return '<span class="text-slate-300 text-[9px] ml-0.5">⇅</span>';
+            return ordenAscendente ? '<span class="text-rose-600 text-[9px] ml-0.5">▲</span>' : '<span class="text-rose-600 text-[9px] ml-0.5">▼</span>';
         }
 
         function renderizarSaldos() {
-            // Filtrar cuentas en pantalla según la pestaña seleccionada (Activas vs Saldadas)
-            if (!esAdminMaster) verCuentasSaldadas = false; // Pilar solo ve activas
+            if (!esAdminMaster) verCuentasSaldadas = false;
 
             let cuentasVisibles = listaSaldosFirebase.filter(c => verCuentasSaldadas ? c.saldada === true : c.saldada !== true);
 
@@ -734,49 +732,47 @@
             if (datosCSVPrecargados.length > 0) {
                 totalSaldosAcumulados = datosCSVPrecargados.reduce((acc, curr) => acc + (curr.saldoNum || parsearMontoNumerico(curr.saldo)), 0);
             } else {
-                // Solo suma deudas de cuentas activas
                 let activas = listaSaldosFirebase.filter(c => c.saldada !== true);
                 totalSaldosAcumulados = activas.reduce((acc, curr) => acc + parsearMontoNumerico(curr.saldo), 0);
             }
 
-            // Pestañas superior de filtro (Exclusivo Damián Master)
             let selectorPestanasSaldosHTML = esAdminMaster ? `
                 <div class="bg-slate-100 p-1 rounded-xl flex gap-1 shrink-0">
-                    <button onclick="alternarFiltroSaldadas(false)" class="px-3 py-1.5 text-xs font-semibold rounded-lg transition ${!verCuentasSaldadas ? 'bg-white shadow-xs text-slate-800' : 'text-slate-500 hover:text-slate-800'}">Activas</button>
-                    <button onclick="alternarFiltroSaldadas(true)" class="px-3 py-1.5 text-xs font-semibold rounded-lg transition ${verCuentasSaldadas ? 'bg-white shadow-xs text-slate-800' : 'text-slate-500 hover:text-slate-800'}">Cuentas Saldadas</button>
+                    <button onclick="alternarFiltroSaldadas(false)" class="px-2.5 py-1 text-xs font-semibold rounded-lg transition ${!verCuentasSaldadas ? 'bg-white shadow-xs text-slate-800' : 'text-slate-500 hover:text-slate-800'}">Activas</button>
+                    <button onclick="alternarFiltroSaldadas(true)" class="px-2.5 py-1 text-xs font-semibold rounded-lg transition ${verCuentasSaldadas ? 'bg-white shadow-xs text-slate-800' : 'text-slate-500 hover:text-slate-800'}">Saldadas</button>
                 </div>
             ` : '';
 
             let htmlSuperior = `
-                <div class="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4 shrink-0">
-                    <div class="md:col-span-2 bg-rose-50 p-6 rounded-3xl border border-rose-100 shadow-sm relative overflow-hidden flex flex-col justify-between">
-                        <span class="material-symbols-rounded absolute -right-4 -bottom-4 text-9xl text-rose-100/50 pointer-events-none">request_quote</span>
+                <div class="mb-4 grid grid-cols-1 md:grid-cols-3 gap-3 shrink-0">
+                    <div class="md:col-span-2 bg-rose-50 p-4 md:p-5 rounded-3xl border border-rose-100 shadow-sm relative overflow-hidden flex flex-col justify-between">
+                        <span class="material-symbols-rounded absolute -right-4 -bottom-4 text-8xl text-rose-100/50 pointer-events-none">request_quote</span>
                         <div class="relative z-10">
-                            <h3 class="font-bold text-rose-900 text-xl">Gestión de Saldos de Cuentas</h3>
-                            <p class="text-xs md:text-sm text-rose-700 font-medium mt-1 max-w-xl">Módulo de administración para seguimiento de pagarés, obras sociales y cobranzas.</p>
+                            <h3 class="font-bold text-rose-900 text-lg md:text-xl">Gestión de Saldos de Cuentas</h3>
+                            <p class="text-xs text-rose-700 font-medium mt-0.5">Módulo para seguimiento de pagarés, obras sociales y cobranzas.</p>
                         </div>
-                        <div class="relative z-10 mt-4 flex items-center justify-between gap-3">
-                            <label for="input-csv" class="cursor-pointer bg-white border border-rose-200 text-rose-700 hover:bg-rose-100 font-bold px-4 py-2.5 rounded-xl transition shadow-sm inline-flex items-center justify-center gap-2 text-sm w-full md:w-auto">
-                                <span class="material-symbols-rounded" style="font-size: 18px;">upload_file</span> Cargar Nuevo CSV
+                        <div class="relative z-10 mt-3 flex items-center justify-between gap-3">
+                            <label for="input-csv" class="cursor-pointer bg-white border border-rose-200 text-rose-700 hover:bg-rose-100 font-bold px-3.5 py-2 rounded-xl transition shadow-sm inline-flex items-center justify-center gap-1.5 text-xs w-full md:w-auto">
+                                <span class="material-symbols-rounded" style="font-size: 16px;">upload_file</span> Cargar CSV
                             </label>
                             <input type="file" id="input-csv" accept=".csv" class="hidden" onchange="procesarArchivoCSV(event)">
                         </div>
                     </div>
 
-                    <div class="bg-white p-6 rounded-3xl border-t-4 border-t-rose-500 border-x border-b border-slate-100 shadow-sm flex flex-col justify-between relative overflow-hidden">
+                    <div class="bg-white p-4 md:p-5 rounded-3xl border-t-4 border-t-rose-500 border-x border-b border-slate-100 shadow-sm flex flex-col justify-between relative overflow-hidden">
                         <div>
-                            <div class="flex items-center justify-between mb-2">
-                                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Saldo Pendiente Activo</span>
-                                <div class="w-8 h-8 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center">
-                                    <span class="material-symbols-rounded" style="font-size: 18px;">payments</span>
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Saldo Pendiente Activo</span>
+                                <div class="w-7 h-7 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center">
+                                    <span class="material-symbols-rounded" style="font-size: 16px;">payments</span>
                                 </div>
                             </div>
-                            <h4 class="text-2xl lg:text-3xl font-black text-rose-600 tracking-tight mt-1">
+                            <h4 class="text-xl lg:text-2xl font-black text-rose-600 tracking-tight mt-0.5">
                                 ${formatearMonedaAR(totalSaldosAcumulados)}
                             </h4>
                         </div>
-                        <p class="text-[11px] text-slate-400 font-medium mt-4">
-                            Monto total de cuentas activas en seguimiento.
+                        <p class="text-[10px] text-slate-400 font-medium mt-2">
+                            Total adeudado en cuentas activas.
                         </p>
                     </div>
                 </div>
@@ -785,46 +781,46 @@
             if (datosCSVPrecargados.length > 0) {
                 let filasHTML = datosCSVPrecargados.map((reg, index) => `
                     <tr class="border-b border-slate-100 hover:bg-slate-50 transition">
-                        <td class="p-3 text-center celda-recortable sticky left-0 z-10 bg-white">
-                            <input type="checkbox" class="check-saldo w-4 h-4 text-rose-600 rounded focus:ring-rose-500" data-index="${index}" checked>
+                        <td class="p-2 text-center celda-recortable sticky left-0 z-10 bg-white">
+                            <input type="checkbox" class="check-saldo w-3.5 h-3.5 text-rose-600 rounded focus:ring-rose-500" data-index="${index}" checked>
                         </td>
-                        <td class="p-3 font-semibold text-slate-800 text-xs celda-recortable sticky left-10 z-10 bg-white shadow-xs" title="${reg.paciente}">${reg.paciente}</td>
-                        <td class="p-3 text-slate-500 text-xs celda-recortable">${reg.ultimoPago}</td>
-                        <td class="p-3 text-slate-500 text-xs celda-recortable">${reg.periodo}</td>
-                        <td class="p-3 text-slate-500 text-xs text-center celda-recortable" title="${reg.comprobante}">${reg.comprobante}</td>
-                        <td class="p-3 text-slate-500 text-xs text-right celda-recortable">${reg.importeOrig}</td>
-                        <td class="p-3 text-rose-600 font-bold text-xs text-right celda-recortable">${reg.saldo}</td>
+                        <td class="p-2 font-semibold text-slate-800 text-xs celda-recortable sticky left-8 z-10 bg-white shadow-xs" title="${reg.paciente}">${reg.paciente}</td>
+                        <td class="p-2 text-slate-500 text-[11px] celda-recortable">${reg.ultimoPago}</td>
+                        <td class="p-2 text-slate-500 text-[11px] celda-recortable">${reg.periodo}</td>
+                        <td class="p-2 text-slate-500 text-[11px] text-center celda-recortable" title="${reg.comprobante}">${reg.comprobante}</td>
+                        <td class="p-2 text-slate-500 text-[11px] text-right celda-recortable">${reg.importeOrig}</td>
+                        <td class="p-2 text-rose-600 font-bold text-xs text-right celda-recortable">${reg.saldo}</td>
                     </tr>
                 `).join('');
 
                 setTimeout(habilitarColumnasRedimensionables, 100);
 
                 return htmlSuperior + `
-                    <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm shrink-0 mb-8">
-                        <div class="p-4 bg-amber-50 border-b border-amber-100 text-amber-800 text-sm font-semibold flex items-center justify-between">
-                            <span>Modo de Precarga: Cuentas Unificadas por Paciente. Seleccioná cuáles guardar.</span>
-                            <button onclick="cancelarCargaCSV()" class="text-xs bg-white border border-amber-200 px-3 py-1.5 rounded-lg hover:bg-amber-100 transition">Cancelar</button>
+                    <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm shrink-0 mb-6">
+                        <div class="p-3 bg-amber-50 border-b border-amber-100 text-amber-800 text-xs font-semibold flex items-center justify-between">
+                            <span>Modo Precarga: Cuentas Unificadas por Paciente.</span>
+                            <button onclick="cancelarCargaCSV()" class="text-[11px] bg-white border border-amber-200 px-2.5 py-1 rounded-lg hover:bg-amber-100 transition">Cancelar</button>
                         </div>
-                        <div class="overflow-x-auto max-h-[50vh]">
+                        <div class="overflow-x-auto max-h-[55vh]">
                             <table class="tabla-flexible text-left border-collapse">
                                 <thead class="sticky top-0 z-10 bg-slate-50 shadow-sm">
-                                    <tr class="border-b border-slate-200 text-slate-500 text-[10px] uppercase tracking-wider">
-                                        <th class="p-3 text-center w-10 resizable celda-recortable sticky left-0 z-30 bg-slate-50">Sel<div class="resizer"></div></th>
-                                        <th class="p-3 resizable w-48 celda-recortable sticky left-10 z-30 bg-slate-50 shadow-xs">Paciente<div class="resizer"></div></th>
-                                        <th class="p-3 resizable w-28 celda-recortable">Último Pago<div class="resizer"></div></th>
-                                        <th class="p-3 resizable w-24 celda-recortable">Período<div class="resizer"></div></th>
-                                        <th class="p-3 text-center resizable w-56 celda-recortable">Comprobantes Unificados<div class="resizer"></div></th>
-                                        <th class="p-3 text-right resizable w-32 celda-recortable">Imp. Orig. Total<div class="resizer"></div></th>
-                                        <th class="p-3 text-right resizable w-32 celda-recortable">Saldo Unificado<div class="resizer"></div></th>
+                                    <tr class="border-b border-slate-200 text-slate-500 text-[9px] uppercase tracking-wider">
+                                        <th class="p-2 text-center w-8 resizable celda-recortable sticky left-0 z-30 bg-slate-50">Sel<div class="resizer"></div></th>
+                                        <th class="p-2 resizable w-36 celda-recortable sticky left-8 z-30 bg-slate-50 shadow-xs">Paciente<div class="resizer"></div></th>
+                                        <th class="p-2 resizable w-24 celda-recortable">Últ. Pago<div class="resizer"></div></th>
+                                        <th class="p-2 resizable w-20 celda-recortable">Período<div class="resizer"></div></th>
+                                        <th class="p-2 text-center resizable w-44 celda-recortable">Comprobantes<div class="resizer"></div></th>
+                                        <th class="p-2 text-right resizable w-28 celda-recortable">Imp. Orig.<div class="resizer"></div></th>
+                                        <th class="p-2 text-right resizable w-28 celda-recortable">Saldo Unificado<div class="resizer"></div></th>
                                     </tr>
                                 </thead>
                                 <tbody>${filasHTML}</tbody>
                             </table>
                         </div>
-                        <div class="p-4 bg-slate-50 border-t border-slate-200 flex justify-between items-center">
-                            <span class="text-xs text-slate-500 font-medium">${datosCSVPrecargados.length} pacientes unificados listos para revisión.</span>
-                            <button id="btn-guardar-saldos" onclick="window.guardarSaldosSeleccionados()" class="bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition shadow-md shadow-rose-200 flex items-center gap-1.5">
-                                <span class="material-symbols-rounded" style="font-size: 18px;">cloud_upload</span> Guardar Selección en Firebase
+                        <div class="p-3 bg-slate-50 border-t border-slate-200 flex justify-between items-center">
+                            <span class="text-xs text-slate-500 font-medium">${datosCSVPrecargados.length} cuentas listas para revisión.</span>
+                            <button id="btn-guardar-saldos" onclick="window.guardarSaldosSeleccionados()" class="bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition shadow-md shadow-rose-200 flex items-center gap-1">
+                                <span class="material-symbols-rounded" style="font-size: 16px;">cloud_upload</span> Guardar Selección
                             </button>
                         </div>
                     </div>
@@ -834,10 +830,10 @@
             else {
                 if (cuentasVisibles.length === 0) {
                     return htmlSuperior + `
-                        <div class="mb-4">${selectorPestanasSaldosHTML}</div>
+                        <div class="mb-3">${selectorPestanasSaldosHTML}</div>
                         <div class="p-8 text-center text-slate-400 border border-dashed border-slate-300 rounded-2xl shrink-0">
                             <span class="material-symbols-rounded text-4xl mb-2 opacity-50">data_table</span>
-                            <p class="text-sm font-medium">${verCuentasSaldadas ? 'No hay cuentas saldadas guardadas aún.' : 'No hay cuentas activas en seguimiento. Cargá un reporte CSV para empezar.'}</p>
+                            <p class="text-sm font-medium">${verCuentasSaldadas ? 'No hay cuentas saldadas guardadas.' : 'No hay cuentas activas en seguimiento.'}</p>
                         </div>
                     `;
                 }
@@ -863,82 +859,81 @@
 
                     let columnaEstadoHTML = esAcuerdoEspecial ? `
                         <button onclick="window.toggleAcuerdoEspecialFirebase('${cuenta.id}', false)" 
-                            title="Haz clic para quitar marca de acuerdo especial" 
-                            class="bg-amber-100 text-amber-800 border border-amber-300 px-2 py-0.5 rounded-lg text-[10px] font-bold flex items-center gap-1 shadow-2xs hover:bg-amber-200 transition truncate max-w-full">
+                            title="Quitar marca de acuerdo especial" 
+                            class="bg-amber-100 text-amber-800 border border-amber-300 px-1.5 py-0.5 rounded text-[10px] font-bold flex items-center gap-0.5 shadow-2xs hover:bg-amber-200 transition truncate max-w-full">
                             🤝 Acuerdo
                         </button>
                     ` : `
                         <button onclick="window.toggleAcuerdoEspecialFirebase('${cuenta.id}', true)" 
-                            title="Marcar como cuenta con acuerdo especial (no reclamar)" 
-                            class="bg-slate-100 text-slate-500 border border-slate-200 px-2 py-0.5 rounded-lg text-[10px] font-semibold hover:bg-amber-50 hover:text-amber-700 hover:border-amber-200 transition flex items-center gap-1 truncate max-w-full">
-                            <span class="material-symbols-rounded shrink-0" style="font-size: 13px;">handshake</span> + Acuerdo
+                            title="Marcar como cuenta con acuerdo especial" 
+                            class="bg-slate-100 text-slate-500 border border-slate-200 px-1.5 py-0.5 rounded text-[10px] font-semibold hover:bg-amber-50 hover:text-amber-700 hover:border-amber-200 transition flex items-center gap-0.5 truncate max-w-full">
+                            <span class="material-symbols-rounded shrink-0" style="font-size: 12px;">handshake</span> + Acu
                         </button>
                     `;
 
-                    // CASILLA DE SELECCIÓN EXCLUSIVA DE DAMIÁN MASTER
                     let casillaSeleccionHTML = esAdminMaster ? `
-                        <input type="checkbox" class="check-saldo-fbre w-4 h-4 text-rose-600 rounded focus:ring-rose-500 cursor-pointer" data-id="${cuenta.id}">
-                    ` : '<span class="text-slate-300 text-xs">•</span>';
+                        <input type="checkbox" class="check-saldo-fbre w-3.5 h-3.5 text-rose-600 rounded focus:ring-rose-500 cursor-pointer" data-id="${cuenta.id}">
+                    ` : '<span class="text-slate-300 text-[10px]">•</span>';
 
                     return `
                         <tr class="border-b border-slate-100 transition ${bgFila}">
-                            <td class="p-3 text-center celda-recortable sticky left-0 z-10 ${bgCeldaFija}">
+                            <td class="p-2 text-center celda-recortable sticky left-0 z-10 ${bgCeldaFija}">
                                 ${casillaSeleccionHTML}
                             </td>
                             
-                            <td class="p-3 font-semibold text-slate-800 text-xs celda-recortable sticky left-10 z-10 ${bgCeldaFija} shadow-xs" title="${cuenta.paciente}">
+                            <td class="p-2 font-semibold text-slate-800 text-[11px] celda-recortable sticky left-8 z-10 ${bgCeldaFija} shadow-xs" title="${cuenta.paciente}">
                                 ${cuenta.paciente}
                             </td>
 
-                            <td class="p-2 text-center celda-recortable">
+                            <td class="p-1.5 text-center celda-recortable">
                                 <label class="inline-flex items-center gap-1 cursor-pointer select-none">
                                     <input type="checkbox" ${tienePagare ? 'checked' : ''} 
                                         onchange="window.togglePagareFirebase('${cuenta.id}', this.checked)"
-                                        class="w-4 h-4 text-sky-600 rounded border-slate-300 focus:ring-sky-500 cursor-pointer">
-                                    <span class="text-[10px] font-bold ${tienePagare ? 'text-sky-800' : 'text-slate-400'}">${tienePagare ? 'SI' : 'NO'}</span>
+                                        class="w-3.5 h-3.5 text-sky-600 rounded border-slate-300 focus:ring-sky-500 cursor-pointer">
+                                    <span class="text-[9px] font-bold ${tienePagare ? 'text-sky-800' : 'text-slate-400'}">${tienePagare ? 'SI' : 'NO'}</span>
                                 </label>
                             </td>
 
-                            <td class="p-2 celda-recortable">
+                            <td class="p-1.5 celda-recortable">
                                 ${columnaEstadoHTML}
                             </td>
                             
-                            <td class="p-2 celda-recortable">
+                            <td class="p-1.5 celda-recortable">
                                 <input type="text" 
                                     value="${cuenta.obraSocial || ''}" 
-                                    placeholder="Ej: OSDE"
+                                    placeholder="OSDE"
                                     onchange="window.actualizarCampoFirebase('${cuenta.id}', 'obraSocial', this.value)"
-                                    class="w-full min-w-0 bg-slate-50/80 border border-slate-200 rounded-lg px-2 py-1 text-xs focus:bg-white focus:ring-2 focus:ring-rose-400 focus:outline-none transition">
+                                    class="w-full min-w-0 bg-slate-50/80 border border-slate-200 rounded px-1.5 py-0.5 text-[11px] focus:bg-white focus:ring-1 focus:ring-rose-400 focus:outline-none transition">
                             </td>
 
-                            <td class="p-2 celda-recortable">
+                            <td class="p-1.5 celda-recortable">
                                 <input type="text" 
                                     value="${cuenta.practica || ''}" 
-                                    placeholder="Ej: VEDA"
+                                    placeholder="VEDA"
                                     onchange="window.actualizarCampoFirebase('${cuenta.id}', 'practica', this.value)"
-                                    class="w-full min-w-0 bg-slate-50/80 border border-slate-200 rounded-lg px-2 py-1 text-xs focus:bg-white focus:ring-2 focus:ring-rose-400 focus:outline-none transition">
+                                    class="w-full min-w-0 bg-slate-50/80 border border-slate-200 rounded px-1.5 py-0.5 text-[11px] focus:bg-white focus:ring-1 focus:ring-rose-400 focus:outline-none transition">
                             </td>
 
-                            <td class="p-3 text-slate-500 text-xs text-center celda-recortable" title="${cuenta.ultimoPago}">${cuenta.ultimoPago}</td>
-                            <td class="p-3 text-slate-500 text-xs text-center celda-recortable" title="${cuenta.periodo}">${cuenta.periodo}</td>
-                            <td class="p-3 text-slate-500 text-xs text-center celda-recortable" title="${cuenta.comprobante}">${cuenta.comprobante}</td>
-                            <td class="p-3 text-slate-500 text-xs text-right celda-recortable" title="${cuenta.importeOrig}">${cuenta.importeOrig}</td>
-                            <td class="p-3 ${esSaldada ? 'text-emerald-600' : 'text-rose-600'} font-bold text-xs text-right celda-recortable" title="${cuenta.saldo}">${cuenta.saldo}</td>
+                            <td class="p-2 text-slate-500 text-[11px] text-center celda-recortable" title="${cuenta.ultimoPago}">${cuenta.ultimoPago}</td>
+                            <td class="p-2 text-slate-500 text-[11px] text-center celda-recortable" title="${cuenta.periodo}">${cuenta.periodo}</td>
+                            <td class="p-2 text-slate-500 text-[11px] text-center celda-recortable" title="${cuenta.comprobante}">${cuenta.comprobante}</td>
+                            <td class="p-2 text-slate-500 text-[11px] text-right celda-recortable" title="${cuenta.importeOrig}">${cuenta.importeOrig}</td>
+                            <td class="p-2 ${esSaldada ? 'text-emerald-600' : 'text-rose-600'} font-bold text-xs text-right celda-recortable" title="${cuenta.saldo}">${cuenta.saldo}</td>
                             
-                            <td class="p-3 text-right celda-recortable flex items-center justify-end gap-1.5">
+                            <td class="p-2 text-right celda-recortable flex items-center justify-end gap-1">
                                 ${!esSaldada ? `
-                                    <button onclick="abrirModalCobro('${cuenta.id}')" title="Registrar Cobro / Cancelar Deuda" class="bg-emerald-50 hover:bg-emerald-600 text-emerald-700 hover:text-white border border-emerald-200 px-2 py-1 rounded-lg transition text-[11px] font-bold flex items-center gap-1 shrink-0">
-                                        <span class="material-symbols-rounded" style="font-size: 14px;">payments</span> Cobrar
+                                    <button onclick="abrirModalCobro('${cuenta.id}')" title="Registrar Cobro" class="bg-emerald-50 hover:bg-emerald-600 text-emerald-700 hover:text-white border border-emerald-200 px-1.5 py-1 rounded transition text-[10px] font-bold flex items-center gap-0.5 shrink-0">
+                                        <span class="material-symbols-rounded" style="font-size: 13px;">payments</span> Cobrar
                                     </button>
                                 ` : `
-                                    <span class="text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2 py-1 rounded-lg border border-emerald-200">
-                                        Saldada (${cuenta.fechaSaldada || 'OK'})
+                                    <span class="text-[9px] font-bold bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded border border-emerald-200">
+                                        Saldada
                                     </span>
                                 `}
 
-                                <button onclick="abrirModalGestion('${cuenta.id}')" class="bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 border border-slate-200 px-2 py-1 rounded-lg transition text-xs font-semibold flex items-center justify-center gap-1 shrink-0">
-                                    <span class="material-symbols-rounded shrink-0" style="font-size: 14px;">edit_document</span> 
-                                    Gestión <span class="bg-slate-200 text-slate-500 px-1.5 rounded-full text-[10px] ml-0.5">${cuenta.gestiones ? cuenta.gestiones.length : 0}</span>
+                                <button onclick="abrirModalGestion('${cuenta.id}')" class="bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 border border-slate-200 px-1.5 py-1 rounded transition text-[10px] font-semibold flex items-center justify-center gap-0.5 shrink-0">
+                                    <span class="material-symbols-rounded shrink-0" style="font-size: 13px;">edit_document</span> 
+                                    Gestión <span class="bg-slate-200 text-slate-500 px-1 rounded-full text-[9px] ml-0.5">${cuenta.gestiones ? cuenta.gestiones.length : 0}</span>
                                 </button>
                             </td>
                         </tr>
@@ -947,18 +942,17 @@
 
                 setTimeout(habilitarColumnasRedimensionables, 100);
 
-                // BOTÓN DE ELIMINAR MASIVO (EXCLUSIVO DAMIÁN MASTER)
                 let btnEliminarMasivoHTML = esAdminMaster ? `
-                    <button onclick="window.eliminarSaldosSeleccionados()" class="bg-slate-100 hover:bg-red-50 text-slate-600 hover:text-red-600 border border-slate-200 text-xs font-semibold px-3 py-2 rounded-xl transition flex items-center gap-1.5 shadow-2xs">
-                        <span class="material-symbols-rounded text-red-500" style="font-size: 16px;">delete</span> Eliminar Seleccionados
+                    <button onclick="window.eliminarSaldosSeleccionados()" class="bg-slate-100 hover:bg-red-50 text-slate-600 hover:text-red-600 border border-slate-200 text-xs font-semibold px-2.5 py-1.5 rounded-xl transition flex items-center gap-1 shadow-2xs">
+                        <span class="material-symbols-rounded text-red-500" style="font-size: 15px;">delete</span> Eliminar
                     </button>
                 ` : '';
 
                 return htmlSuperior + `
-                    <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm shrink-0 mb-8">
-                        <div class="p-4 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                            <div class="flex items-center gap-3">
-                                <h4 class="font-bold text-slate-700 text-sm">${verCuentasSaldadas ? 'Histórico de Cuentas Saldadas' : 'Cuentas Activas en Seguimiento'} (${cuentasVisibles.length})</h4>
+                    <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm shrink-0 mb-6">
+                        <div class="p-3 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                            <div class="flex items-center gap-2">
+                                <h4 class="font-bold text-slate-700 text-xs md:text-sm">${verCuentasSaldadas ? 'Histórico Saldadas' : 'Cuentas Activas'} (${cuentasVisibles.length})</h4>
                                 ${selectorPestanasSaldosHTML}
                             </div>
                             ${btnEliminarMasivoHTML}
@@ -966,42 +960,42 @@
                         <div class="overflow-x-auto max-h-[60vh]">
                             <table class="tabla-flexible text-left border-collapse">
                                 <thead class="sticky top-0 z-10 bg-slate-50 shadow-sm select-none">
-                                    <tr class="border-b border-slate-200 text-slate-500 text-[10px] uppercase tracking-wider">
-                                        <th class="p-3 text-center w-10 resizable celda-recortable sticky left-0 z-30 bg-slate-50">
-                                            ${esAdminMaster ? `<input type="checkbox" onchange="seleccionarTodosSaldos(this)" class="w-4 h-4 text-rose-600 rounded focus:ring-rose-500 cursor-pointer" title="Seleccionar todos">` : ''}
+                                    <tr class="border-b border-slate-200 text-slate-500 text-[9px] uppercase tracking-wider">
+                                        <th class="p-2 text-center w-8 resizable celda-recortable sticky left-0 z-30 bg-slate-50">
+                                            ${esAdminMaster ? `<input type="checkbox" onchange="seleccionarTodosSaldos(this)" class="w-3.5 h-3.5 text-rose-600 rounded focus:ring-rose-500 cursor-pointer" title="Seleccionar todos">` : ''}
                                             <div class="resizer"></div>
                                         </th>
-                                        <th onclick="ordenarSaldos('paciente')" class="p-3 resizable w-48 cursor-pointer hover:bg-slate-100 transition celda-recortable sticky left-10 z-30 bg-slate-50 shadow-xs">
+                                        <th onclick="ordenarSaldos('paciente')" class="p-2 resizable w-36 cursor-pointer hover:bg-slate-100 transition celda-recortable sticky left-8 z-30 bg-slate-50 shadow-xs">
                                             Paciente ${iconoOrden('paciente')}<div class="resizer"></div>
                                         </th>
-                                        <th onclick="ordenarSaldos('tienePagare')" class="p-3 text-center resizable w-20 cursor-pointer hover:bg-slate-100 transition celda-recortable">
+                                        <th onclick="ordenarSaldos('tienePagare')" class="p-2 text-center resizable w-16 cursor-pointer hover:bg-slate-100 transition celda-recortable">
                                             Pagaré ${iconoOrden('tienePagare')}<div class="resizer"></div>
                                         </th>
-                                        <th onclick="ordenarSaldos('acuerdoEspecial')" class="p-3 resizable w-28 cursor-pointer hover:bg-slate-100 transition celda-recortable">
+                                        <th onclick="ordenarSaldos('acuerdoEspecial')" class="p-2 resizable w-20 cursor-pointer hover:bg-slate-100 transition celda-recortable">
                                             Estado ${iconoOrden('acuerdoEspecial')}<div class="resizer"></div>
                                         </th>
-                                        <th onclick="ordenarSaldos('obraSocial')" class="p-3 resizable w-28 cursor-pointer hover:bg-slate-100 transition celda-recortable">
+                                        <th onclick="ordenarSaldos('obraSocial')" class="p-2 resizable w-24 cursor-pointer hover:bg-slate-100 transition celda-recortable">
                                             Obra Social ${iconoOrden('obraSocial')}<div class="resizer"></div>
                                         </th>
-                                        <th onclick="ordenarSaldos('practica')" class="p-3 resizable w-28 cursor-pointer hover:bg-slate-100 transition celda-recortable">
+                                        <th onclick="ordenarSaldos('practica')" class="p-2 resizable w-20 cursor-pointer hover:bg-slate-100 transition celda-recortable">
                                             Práctica ${iconoOrden('practica')}<div class="resizer"></div>
                                         </th>
-                                        <th onclick="ordenarSaldos('ultimoPago')" class="p-3 text-center resizable w-28 cursor-pointer hover:bg-slate-100 transition celda-recortable">
+                                        <th onclick="ordenarSaldos('ultimoPago')" class="p-2 text-center resizable w-22 cursor-pointer hover:bg-slate-100 transition celda-recortable">
                                             Últ. Pago ${iconoOrden('ultimoPago')}<div class="resizer"></div>
                                         </th>
-                                        <th onclick="ordenarSaldos('periodo')" class="p-3 text-center resizable w-24 cursor-pointer hover:bg-slate-100 transition celda-recortable">
+                                        <th onclick="ordenarSaldos('periodo')" class="p-2 text-center resizable w-18 cursor-pointer hover:bg-slate-100 transition celda-recortable">
                                             Período ${iconoOrden('periodo')}<div class="resizer"></div>
                                         </th>
-                                        <th onclick="ordenarSaldos('comprobante')" class="p-3 text-center resizable w-40 cursor-pointer hover:bg-slate-100 transition celda-recortable">
+                                        <th onclick="ordenarSaldos('comprobante')" class="p-2 text-center resizable w-32 cursor-pointer hover:bg-slate-100 transition celda-recortable">
                                             Comprobantes ${iconoOrden('comprobante')}<div class="resizer"></div>
                                         </th>
-                                        <th onclick="ordenarSaldos('importeOrig')" class="p-3 text-right resizable w-28 cursor-pointer hover:bg-slate-100 transition celda-recortable">
+                                        <th onclick="ordenarSaldos('importeOrig')" class="p-2 text-right resizable w-24 cursor-pointer hover:bg-slate-100 transition celda-recortable">
                                             Imp. Orig. ${iconoOrden('importeOrig')}<div class="resizer"></div>
                                         </th>
-                                        <th onclick="ordenarSaldos('saldo')" class="p-3 text-right resizable w-28 cursor-pointer hover:bg-slate-100 transition celda-recortable">
+                                        <th onclick="ordenarSaldos('saldo')" class="p-2 text-right resizable w-24 cursor-pointer hover:bg-slate-100 transition celda-recortable">
                                             Saldo Actual ${iconoOrden('saldo')}<div class="resizer"></div>
                                         </th>
-                                        <th class="p-3 text-right resizable w-44 celda-recortable">Acciones<div class="resizer"></div></th>
+                                        <th class="p-2 text-right resizable w-36 celda-recortable">Acciones<div class="resizer"></div></th>
                                     </tr>
                                 </thead>
                                 <tbody>${filasFirebaseHTML}</tbody>
@@ -1503,7 +1497,6 @@
             }
         });
 
-        // LÓGICA DE PROCESAMIENTO DE COBRO Y SALDADO
         window.procesarCobroFirebase = function() {
             if (!saldoActualCobroId) return;
 
@@ -1524,7 +1517,6 @@
             let fechaFormateada = new Date(fechaPago + 'T00:00:00').toLocaleDateString('es-AR');
 
             if (nuevoSaldoNum <= 0.01) {
-                // CANCELACIÓN TOTAL: Se marca como saldada
                 let notaCobro = {
                     fecha: new Date().toLocaleString('es-AR'),
                     texto: `💰 PAGO TOTAL CANCELADO ($${formatearMonedaAR(montoAbonado)}) el día ${fechaFormateada}. Cuenta saldada.`,
@@ -1539,11 +1531,10 @@
                     gestiones: arrayUnion(notaCobro)
                 }).then(() => {
                     cerrarModalCobro();
-                    alert("¡Excelente! La cuenta se registró como TOTALMENTE SALDADA y fue movida al Histórico de Cuentas Saldadas.");
+                    alert("¡Excelente! La cuenta se registró como TOTALMENTE SALDADA.");
                 }).catch(e => alert("Error al registrar cobro: " + e.message));
 
             } else {
-                // PAGO PARCIAL: Descuenta monto y actualiza saldo
                 let nuevoSaldoTexto = formatearMonedaAR(nuevoSaldoNum);
                 let notaCobro = {
                     fecha: new Date().toLocaleString('es-AR'),
@@ -1556,7 +1547,7 @@
                     gestiones: arrayUnion(notaCobro)
                 }).then(() => {
                     cerrarModalCobro();
-                    alert(`¡Pago parcial registrado! Se descontó $${formatearMonedaAR(montoAbonado)}. Saldo restante del paciente: ${nuevoSaldoTexto}.`);
+                    alert(`¡Pago parcial registrado! Se descontó $${formatearMonedaAR(montoAbonado)}.`);
                 }).catch(e => alert("Error al registrar cobro parcial: " + e.message));
             }
         };
@@ -1672,7 +1663,7 @@
                     practica: "",
                     acuerdoEspecial: false,
                     tienePagare: false,
-                    saldada: false, // Por defecto entra como cuenta activa
+                    saldada: false,
                     ultimoPago: cuenta.ultimoPago,
                     periodo: cuenta.periodo,
                     fecha: cuenta.fecha,
