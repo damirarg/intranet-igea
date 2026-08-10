@@ -282,7 +282,7 @@
                     <div class="w-7 h-7 md:w-8 md:h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
                         <span class="material-symbols-rounded" style="font-size: 16px;">person</span>
                     </div>
-                    <span id="nombre-usuario-header" class="text-xs md:text-sm text-slate-700 font-semibold truncate max-w-[120px] md:max-w-none">Cargando...</span>
+                    <span id="nombre-usuario-header" class="text-xs md:text-sm text-slate-700 font-semibold truncate max-w-[150px] md:max-w-none">Cargando...</span>
                 </div>
                 <div class="w-px h-5 bg-slate-200"></div>
                 <button onclick="abrirModalClave()" class="text-slate-500 hover:text-blue-600 transition flex items-center gap-1" title="Cambiar Clave">
@@ -323,9 +323,26 @@
         let seccionActual = 'inicio';
         let viendoDocumento = false; 
 
+        // LISTA DE LEGAJOS Y CARPETAS DE GOOGLE DRIVE VINCULADAS
         const baseRecibos = [
             { email: "damirodriguez81@gmail.com", nombre: "RODRIGUEZ Damián", urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1rm4KzCg1kzz2331RipWsxF_VHW22RUxc#list" },
-            { email: "rmariapilar@hotmail.com", nombre: "RODRIGUEZ DE HOZ Pilar", urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1AOhpojCPqqjqtl9FhRHivCu7I17VHf80#list" }
+            { email: "rmariapilar@hotmail.com", nombre: "RODRIGUEZ DE HOZ Pilar", urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1AOhpojCPqqjqtl9FhRHivCu7I17VHf80#list" },
+            { email: "genvisual@gmail.com", nombre: "GARCIA Nicolás", urlCarpeta: "https://drive.google.com/embeddedfolderview?id=14gQgK-5yforXLuO9tPwB5ZCOPRskwOFx#list" },
+            { email: "silviapaez@hotmail.com", nombre: "PAEZ Silvia", urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1jswBKEfen8deRq8ZNZx0wrn1V9Mp2CSa#list" },
+            { email: "antonela.db08@gmail.com", nombre: "BARCA Antonela", urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1d_XCX3rW4K-TrOuFl6RphGW59GGS75rp#list" },
+            { email: "ycavero@igea.com.ar", nombre: "CAVERO Yesica", urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1QLA7FF4m321WpWAg5n2NGGrb4bnAOePr#list" },
+            { email: "agustina.canclini.c@gmail.com", nombre: "CEPEDA CANCLINI Agustina", urlCarpeta: "https://drive.google.com/embeddedfolderview?id=129eIyYKSF-oYcNHJGmMy5yBJkV5cHAjN#list" },
+            { email: "cristiangabrielcavalli@gmail.com", nombre: "CAVALLI Cristian", urlCarpeta: "" },
+            { email: "violeclair@hotmail.com", nombre: "CLAIR Violeta", urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1QYUmbR6ogwIVtBjpNvnogvIeI1i5STH_#list" },
+            { email: "anahicontento@hotmail.com", nombre: "CONTENTO Anahí", urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1LQtmaNxkYK8DEabnrSYYTZ1g5SQfCcnV#list" },
+            { email: "coradeghini.sofia@gmail.com", nombre: "CORADEGHINI Sofía", urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1JVg0maB0r6n71qoDEYa0BkC11EOtNkvZ#list" },
+            { email: "lolimic@hotmail.com", nombre: "MICCIULLO Dolores", urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1JlMuDCQ8INZRwwBlKDQEruAjqogQKlMg#list" },
+            { email: "florenciaolavarriabelen@gmail.com", nombre: "OLAVARRIA Florencia", urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1VkoQqntqztQQzCGt75bOYV0TNdvI5di6#list" },
+            { email: "orirocio@gmail.com", nombre: "PEIÑEPIL Oriana", urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1IiyO99e_8glZyzM8i5TSp2OFgxMDNpjS#list" },
+            { email: "pezzellagiuliana@gmail.com", nombre: "PEZZELLA Giuliana", urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1xOk46je2inGy2wMxlGBAZjFhti-UjdLz#list" },
+            { email: "brendaruiz026@gmail.com", nombre: "RUIZ Brenda", urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1DF19U3pmCs9VLqd46iMeIq6502mNyzvY#list" },
+            { email: "myriansantecchia@hotmail.com", nombre: "SANTECCHIA Myrian", urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1BWyl3hQOXS4fJLEoLwV9m8nYiUgnfb6Z#list" },
+            { email: "mvalero@igea.com.ar", nombre: "VALERO Manuel", urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1DTnWeQVkxQ_mQ7EJEU0w4ygFnFlxjnO6#list" }
         ];
 
         const archivosDrive = {
@@ -439,7 +456,7 @@
 
         function renderizarInicio() {
             let nombreSaludo = usuarioActualEmail; 
-            const empleado = baseRecibos.find(emp => emp.email.toLowerCase() === usuarioActualEmail.toLowerCase());
+            const empleado = baseRecibos.find(emp => emp.email.toLowerCase().trim() === usuarioActualEmail.toLowerCase().trim());
             if(empleado && empleado.nombre) {
                 let partesDelNombre = empleado.nombre.trim().split(/\s+/);
                 nombreSaludo = partesDelNombre.pop();
@@ -523,10 +540,6 @@
                 </div>
             `;
         }
-
-        // ==========================================
-        // PROCESAMIENTO Y TABLA DE SALDOS
-        // ==========================================
 
         function parsearMontoNumerico(montoTexto) {
             if(!montoTexto) return 0;
@@ -1130,17 +1143,35 @@
         }
 
         function renderizarRecibos() {
-            const empleado = baseRecibos.find(emp => emp.email.toLowerCase() === usuarioActualEmail.toLowerCase());
+            // Normalización a minúsculas y sin espacios
+            const mailLogueado = usuarioActualEmail.toLowerCase().trim();
+            const empleado = baseRecibos.find(emp => emp.email.toLowerCase().trim() === mailLogueado);
 
             if (empleado) {
-                let idCarpeta = empleado.urlCarpeta.split('id=')[1].split('#')[0];
+                if (!empleado.urlCarpeta || empleado.urlCarpeta === "") {
+                    return `
+                        <div class="bg-amber-50 p-6 md:p-8 rounded-3xl border border-amber-200 text-center flex flex-col items-center shrink-0">
+                            <span class="material-symbols-rounded text-amber-500 text-5xl mb-3">info</span>
+                            <h3 class="text-lg md:text-xl font-bold text-amber-800 mb-2">Sección no disponible</h3>
+                            <p class="text-xs md:text-sm text-amber-700 font-medium max-w-md">Tu usuario cuenta con acceso operativo al portal, pero esta sección de legajo digital de sueldos está destinada al personal interno.</p>
+                        </div>
+                    `;
+                }
+
                 return `
                     <div class="w-full flex-1 bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden relative min-h-[400px]">
                         <iframe src="${empleado.urlCarpeta}" class="w-full h-full relative z-10 border-0 bg-white" allow="autoplay"></iframe>
                     </div>
                 `;
+            } else {
+                return `
+                    <div class="bg-red-50 p-6 md:p-8 rounded-3xl border border-red-100 text-center flex flex-col items-center shrink-0">
+                        <span class="material-symbols-rounded text-red-400 text-5xl mb-3">error</span>
+                        <h3 class="text-lg md:text-xl font-bold text-red-800 mb-2">Legajo no vinculado</h3>
+                        <p class="text-xs md:text-sm text-red-600 font-medium">El correo <strong>${usuarioActualEmail}</strong> no tiene una carpeta de recibos asociada en el sistema.</p>
+                    </div>
+                `;
             }
-            return `<p class="p-4 text-xs text-red-500">Legajo no encontrado.</p>`;
         }
 
         function abrirDocumento(titulo, url, esImagen = false) {
@@ -1222,7 +1253,7 @@
             let mailClean = email.toLowerCase().trim();
             esAdminMaster = (mailClean === "damirodriguez81@gmail.com");
 
-            const permisoEncontrado = listaPermisosFirebase.find(p => p.email && p.email.toLowerCase() === mailClean);
+            const permisoEncontrado = listaPermisosFirebase.find(p => p.email && p.email.toLowerCase().trim() === mailClean);
             tienePermisoSaldos = esAdminMaster || (permisoEncontrado && permisoEncontrado.modulos && permisoEncontrado.modulos.includes('saldos'));
         }
 
@@ -1234,8 +1265,11 @@
                 usuarioActualEmail = user.email;
                 evaluarPermisosUsuario(usuarioActualEmail);
 
-                const empleadoEncontrado = baseRecibos.find(emp => emp.email.toLowerCase() === user.email.toLowerCase());
-                if (empleadoEncontrado) {
+                // Normalización de búsqueda por email
+                const mailLogueado = user.email.toLowerCase().trim();
+                const empleadoEncontrado = baseRecibos.find(emp => emp.email.toLowerCase().trim() === mailLogueado);
+                
+                if (empleadoEncontrado && empleadoEncontrado.nombre) {
                     document.getElementById('nombre-usuario-header').textContent = empleadoEncontrado.nombre;
                 } else {
                     document.getElementById('nombre-usuario-header').textContent = user.email;
@@ -1464,7 +1498,7 @@
 
             let nombreAutor = "Anónimo";
             if (!esAnonimo) {
-                const empleadoEncontrado = baseRecibos.find(emp => emp.email.toLowerCase() === usuarioActualEmail.toLowerCase());
+                const empleadoEncontrado = baseRecibos.find(emp => emp.email.toLowerCase().trim() === usuarioActualEmail.toLowerCase().trim());
                 if (empleadoEncontrado) {
                     let partesDelNombre = empleadoEncontrado.nombre.trim().split(/\s+/);
                     nombreAutor = partesDelNombre.pop();
