@@ -1,0 +1,81 @@
+body { 
+    position: relative; 
+    background-color: #f8fafc; 
+    font-family: 'Inter', sans-serif; 
+}
+
+.app-background {
+    position: fixed; 
+    inset: 0; 
+    z-index: 0; 
+    pointer-events: none; 
+    overflow: hidden;
+    background:
+        radial-gradient(circle at 20% 20%, rgba(56, 189, 248, 0.08), transparent 40%),
+        radial-gradient(circle at 80% 16%, rgba(16, 185, 129, 0.05), transparent 35%),
+        linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+}
+
+.no-scrollbar::-webkit-scrollbar { 
+    display: none; 
+}
+.no-scrollbar { 
+    -ms-overflow-style: none; 
+    scrollbar-width: none; 
+}
+
+.material-symbols-rounded {
+    font-size: 18px;
+    vertical-align: middle;
+}
+.icon-large { 
+    font-size: 32px; 
+}
+
+table.tabla-flexible {
+    table-layout: fixed !important;
+    width: 100%;
+}
+
+th.resizable {
+    position: relative;
+    user-select: none;
+}
+
+.resizer {
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 10px;
+    cursor: col-resize;
+    user-select: none;
+    height: 100%;
+    z-index: 40;
+}
+.resizer:hover, .resizer.resizing {
+    background-color: #f43f5e;
+}
+
+.celda-recortable {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0 !important;
+}
+
+@keyframes entradaLogo {
+    0% { opacity: 0; transform: scale(0.8) translateY(20px); }
+    100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+.animar-entrada {
+    animation: entradaLogo 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes flotarLogo {
+    0% { transform: translateY(0px); }
+    50% { transform: translateY(-6px); }
+    100% { transform: translateY(0px); }
+}
+.animar-flotar {
+    animation: flotarLogo 4s ease-in-out infinite;
+}
