@@ -8,7 +8,8 @@ import {
     deleteDoc, 
     deleteField, 
     arrayUnion, 
-    getDocs 
+    getDocs,
+    setDoc
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { 
     signInWithEmailAndPassword, 
@@ -24,13 +25,15 @@ import {
     cerrarModalSugerencia, 
     cerrarModalClave, 
     cambiarVista, 
-    abrirModalGestion 
+    abrirModalGestion,
+    cerrarModalGuardia
 } from './ui.js';
 
 const documentosRef = collection(db, "documentos_dpp_proc");
 const sugerenciasRef = collection(db, "sugerencias");
 const saldosRef = collection(db, "saldos");
 const permisosRef = collection(db, "permisos");
+const guardiasRef = collection(db, "guardias");
 
 // CARGA SEMILLA AUTOMÁTICA
 export async function inicializarDocumentosBase() {
@@ -65,6 +68,24 @@ export async function inicializarDocumentosBase() {
     }
 }
 
+function normalizarUrlGoogleDrive(url) {
+    if (!url) return '';
+    let limpia = url.trim();
+    if (limpia.includes('drive.google.com') || limpia.includes('docs.google.com')) {
+        if (limpia.endsWith('/preview')) return limpia;
+        let base = limpia.split('?')[0];
+        if (base.endsWith('/view')) base = base.slice(0, -5);
+        if (base.endsWith('/edit')) base = base.slice(0, -5);
+        if (base.endsWith('/sharing')) base = base.slice(0, -8);
+        if (!base.endsWith('/preview')) {
+            if (base.endsWith('/')) base = base.slice(0, -1);
+            base = base + '/preview';
+        }
+        return base;
+    }
+    return limpia;
+}
+
 // PUBLICAR NUEVO DOCUMENTO
 export async function guardarNuevoDocumentoFirebase() {
     if (!state.esAdminMaster) return alert("Solo el Administrador Principal puede agregar documentos.");
@@ -83,9 +104,7 @@ export async function guardarNuevoDocumentoFirebase() {
         btnPublicar.innerHTML = `<span class="animate-spin rounded-full h-4 w-4 border-b-2 border-white inline-block mr-1.5"></span> Publicando...`;
     }
 
-    let urlPreview = urlRaw;
-    if (urlRaw.includes('/edit')) urlPreview = urlRaw.split('/edit')[0] + '/preview';
-    if (urlRaw.includes('/sharing')) urlPreview = urlRaw.split('/sharing')[0] + '/preview';
+    let urlPreview = normalizarUrlGoogleDrive(urlRaw);
 
     let numOrden = parseInt(ordenInput);
     if (isNaN(numOrden) || numOrden < 1) numOrden = 99;
@@ -137,9 +156,7 @@ export async function procesarEdicionDocFirebase() {
 
     if (!nuevoNombre || !nuevaUrlRaw) return alert("Por favor, completá los campos.");
 
-    let nuevaUrlPreview = nuevaUrlRaw;
-    if (nuevaUrlRaw.includes('/edit')) nuevaUrlPreview = nuevaUrlRaw.split('/edit')[0] + '/preview';
-    if (nuevaUrlRaw.includes('/sharing')) nuevaUrlPreview = nuevaUrlRaw.split('/sharing')[0] + '/preview';
+    let nuevaUrlPreview = normalizarUrlGoogleDrive(nuevaUrlRaw);
 
     const btnGuardar = document.getElementById('btn-guardar-edit-doc');
     if (btnGuardar) {
@@ -592,6 +609,57 @@ export async function cambiarClaveFirebase() {
             cerrarModalClave(); 
         } catch (e) {
             alert("Por seguridad, cerrá sesión y volvé a ingresar.");
+        }
+    }
+}
+
+// GUARDAR GUARDIA PASIVA
+export async function guardarGuardiaFirebase() {
+    if (!state.esAdminMaster) return alert("Solo el Administrador Principal puede gestionar guardias.");
+    if (!state.guardiaDiaSeleccionado) return;
+
+    const emailColab = document.getElementById('select-colaborador-guardia').value;
+    const esFeriado = document.getElementById('check-feriado-guardia').checked;
+    const notas = document.getElementById('texto-notes-guardia').value.trim();
+
+    if (!emailColab && !esFeriado && !notes) {
+        return eliminarGuardiaFirebase();
+    }
+
+    let nombreColab = "";
+    if (emailColab) {
+        const emp = baseRecibos.find(e => e.email.toLowerCase().trim() === emailColab.toLowerCase().trim());
+        if (emp) nombreColab = emp.nombre;
+    }
+
+    try {
+        const docRef = doc(db, "guardias", state.guardiaDiaSeleccionado);
+        await setDoc(docRef, {
+            fecha: state.guardiaDiaSeleccionado,
+            colaboradorEmail: emailColab,
+            colaboradorNombre: nombreColab,
+            feriado: esFeriado,
+            notas: notas,
+            fechaAlta: new Date()
+        });
+        cerrarModalGuardia();
+    } catch (e) {
+        alert("Error al guardar guardia: " + e.message);
+    }
+}
+
+// ELIMINAR GUARDIA PASIVA
+export async function eliminarGuardiaFirebase() {
+    if (!state.esAdminMaster) return alert("Solo el Administrador Principal puede gestionar guardias.");
+    if (!state.guardiaDiaSeleccionado) return;
+
+    if (confirm("¿Estás seguro de que querés eliminar la asignación de este día?")) {
+        try {
+            const docRef = doc(db, "guardias", state.guardiaDiaSeleccionado);
+            await deleteDoc(docRef);
+            cerrarModalGuardia();
+        } catch (e) {
+            alert("Error al eliminar la guardia: " + e.message);
         }
     }
 }

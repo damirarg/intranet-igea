@@ -13,7 +13,7 @@ export const baseRecibos = [
     { email: "coradeghini.sofia@gmail.com", nombre: "CORADEGHINI Sofía", urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1JVg0maB0r6n71qoDEYa0BkC11EOtNkvZ#list" },
     { email: "lolimic@hotmail.com", nombre: "MICCIULLO Dolores", urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1JlMuDCQ8INZRwwBlKDQEruAjqogQKlMg#list" },
     { email: "florenciaolavarriabelen@gmail.com", nombre: "OLAVARRIA Florencia", urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1VkoQqntqztQQzCGt75bOYV0TNdvI5di6#list" },
-    { email: "orirocio@gmail.com", nombre: "PEIÑEPIL Oriana", urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1IiyO99e_8glZyzM8i5TSp2OFgxMDNpjS#list" },
+    { email: "orirocio@gmail.com", fontName: "orirocio", nombre: "PEIÑEPIL Oriana", urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1IiyO99e_8glZyzM8i5TSp2OFgxMDNpjS#list" },
     { email: "pezzellagiuliana@gmail.com", nombre: "PEZZELLA Giuliana", urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1xOk46je2inGy2wMxlGBAZjFhti-UjdLz#list" },
     { email: "brendaruiz026@gmail.com", nombre: "RUIZ Brenda", urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1DF19U3pmCs9VLqd46iMeIq6502mNyzvY#list" },
     { email: "myriansantecchia@hotmail.com", nombre: "SANTECCHIA Myrian", urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1BWyl3hQOXS4fJLEoLwV9m8nYiUgnfb6Z#list" },
@@ -76,5 +76,11 @@ export const state = {
     ordenAscendente: true,
     
     seccionActual: 'inicio',
-    viendoDocumento: false
+    viendoDocumento: false,
+
+    // Estado del módulo de Guardias Pasivas
+    listaGuardiasFirebase: [],
+    guardiaMesActual: new Date().getMonth(),
+    guardiaAnioActual: new Date().getFullYear(),
+    guardiaDiaSeleccionado: null
 };

@@ -254,6 +254,50 @@
         </div>
     </div>
 
+    <!-- MODAL DE ASIGNACIÓN DE GUARDIA PASIVA -->
+    <div id="modal-guardia" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+        <div class="bg-white p-6 md:p-8 rounded-3xl shadow-xl w-full max-w-md relative border border-slate-100">
+            <div class="flex items-center gap-3 mb-4 border-b border-slate-100 pb-3">
+                <span class="material-symbols-rounded text-blue-600">calendar_month</span>
+                <div>
+                    <h3 class="text-lg font-bold text-slate-800">Gestionar Guardia Pasiva</h3>
+                    <p class="text-xs text-slate-500 font-medium" id="fecha-seleccionada-guardia">Cargando fecha...</p>
+                </div>
+            </div>
+
+            <div class="space-y-4 mb-6">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1.5 uppercase">Colaborador Asignado</label>
+                    <select id="select-colaborador-guardia" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        <!-- Cargados dinámicamente -->
+                    </select>
+                </div>
+
+                <div class="flex items-center gap-2 bg-slate-50 p-3 rounded-xl border border-slate-200">
+                    <input type="checkbox" id="check-feriado-guardia" class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 cursor-pointer">
+                    <label for="check-feriado-guardia" class="text-xs font-semibold text-slate-700 cursor-pointer select-none">Es Feriado / Guardia Especial</label>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1.5 uppercase">Observaciones / Notas</label>
+                    <textarea id="texto-notes-guardia" rows="2" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="Notas sobre el turno..."></textarea>
+                </div>
+            </div>
+
+            <div class="flex justify-between gap-3">
+                <button id="btn-eliminar-guardia" onclick="window.eliminarGuardiaFirebase()" class="bg-red-50 hover:bg-red-600 text-red-600 hover:text-white border border-red-200 px-4 py-2 rounded-xl transition text-xs font-bold flex items-center gap-1">
+                    <span class="material-symbols-rounded" style="font-size: 16px;">delete</span> Eliminar
+                </button>
+                <div class="flex gap-2">
+                    <button onclick="cerrarModalGuardia()" class="px-4 py-2 text-xs font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition">Cancelar</button>
+                    <button onclick="window.guardarGuardiaFirebase()" class="px-4 py-2 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition shadow-md shadow-blue-200 flex items-center gap-1.5">
+                        <span class="material-symbols-rounded" style="font-size: 16px;">save</span> Guardar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- APLICACIÓN PRINCIPAL -->
     <div id="aplicacion-principal" class="hidden flex flex-col h-screen w-full relative z-10">
         

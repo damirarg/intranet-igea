@@ -1,4 +1,4 @@
-import { state } from './app-state.js';
+import { state, baseRecibos } from './app-state.js';
 import { renderizarInicio } from './components/inicio.js';
 import { renderizarDPP } from './components/dpp.js';
 import { renderizarProcedimientos } from './components/procedimientos.js';
@@ -6,6 +6,7 @@ import { renderizarRecibos } from './components/recibos.js';
 import { renderizarSugerencias } from './components/sugerencias.js';
 import { renderizarSaldos, parsearMontoNumerico } from './components/saldos.js';
 import { renderizarPermisos } from './components/permisos.js';
+import { renderizarGuardias } from './components/guardias.js';
 
 export function abrirModalClave() {
     document.getElementById('modal-clave').classList.remove('hidden');
@@ -59,6 +60,24 @@ export function renderizarListaAnexosEdit() {
     `).join('');
 }
 
+function normalizarUrlGoogleDrive(url) {
+    if (!url) return '';
+    let limpia = url.trim();
+    if (limpia.includes('drive.google.com') || limpia.includes('docs.google.com')) {
+        if (limpia.endsWith('/preview')) return limpia;
+        let base = limpia.split('?')[0];
+        if (base.endsWith('/view')) base = base.slice(0, -5);
+        if (base.endsWith('/edit')) base = base.slice(0, -5);
+        if (base.endsWith('/sharing')) base = base.slice(0, -8);
+        if (!base.endsWith('/preview')) {
+            if (base.endsWith('/')) base = base.slice(0, -1);
+            base = base + '/preview';
+        }
+        return base;
+    }
+    return limpia;
+}
+
 export function agregarAnexoALista() {
     const nom = document.getElementById('input-nuevo-anexo-nombre').value.trim();
     const tipo = document.getElementById('select-nuevo-anexo-tipo').value;
@@ -66,9 +85,7 @@ export function agregarAnexoALista() {
 
     if (!nom || !urlRaw) return alert("Ingresá nombre y URL del anexo.");
 
-    let urlPreview = urlRaw;
-    if (urlRaw.includes('/edit')) urlPreview = urlRaw.split('/edit')[0] + '/preview';
-    if (urlRaw.includes('/sharing')) urlPreview = urlRaw.split('/sharing')[0] + '/preview';
+    let urlPreview = normalizarUrlGoogleDrive(urlRaw);
 
     state.anexosEditMemoria.push({
         nombre: nom,
@@ -168,6 +185,45 @@ export function cerrarModalCobro() {
     state.saldoActualCobroId = null;
 }
 
+export function abrirModalGuardia(fechaString) {
+    state.guardiaDiaSeleccionado = fechaString;
+    
+    // Formatear la fecha para mostrarla amigablemente
+    const partes = fechaString.split('-');
+    const fechaObj = new Date(partes[0], partes[1] - 1, partes[2]);
+    const opciones = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+    const fechaFormateada = fechaObj.toLocaleDateString('es-AR', opciones);
+    document.getElementById('fecha-seleccionada-guardia').textContent = fechaFormateada.charAt(0).toUpperCase() + fechaFormateada.slice(1);
+    
+    // Rellenar select de colaboradores
+    const selectColab = document.getElementById('select-colaborador-guardia');
+    selectColab.innerHTML = '<option value="" selected disabled>Seleccionar Colaborador...</option>' + 
+        baseRecibos.map(emp => `<option value="${emp.email}">${emp.nombre}</option>`).join('');
+        
+    // Buscar si ya existe guardia cargada
+    const guardiaExistente = state.listaGuardiasFirebase.find(g => g.fecha === fechaString);
+    const btnEliminar = document.getElementById('btn-eliminar-guardia');
+    
+    if (guardiaExistente) {
+        selectColab.value = guardiaExistente.colaboradorEmail || '';
+        document.getElementById('check-feriado-guardia').checked = guardiaExistente.feriado === true;
+        document.getElementById('texto-notes-guardia').value = guardiaExistente.notas || guardiaExistente.notes || '';
+        if (btnEliminar) btnEliminar.classList.remove('hidden');
+    } else {
+        selectColab.selectedIndex = 0;
+        document.getElementById('check-feriado-guardia').checked = false;
+        document.getElementById('texto-notes-guardia').value = '';
+        if (btnEliminar) btnEliminar.classList.add('hidden');
+    }
+    
+    document.getElementById('modal-guardia').classList.remove('hidden');
+}
+
+export function cerrarModalGuardia() {
+    document.getElementById('modal-guardia').classList.add('hidden');
+    state.guardiaDiaSeleccionado = null;
+}
+
 export function cambiarVista(vista) {
     state.seccionActual = vista;
     state.viendoDocumento = false; 
@@ -188,6 +244,7 @@ export function cambiarVista(vista) {
         if (vista === 'sugerencias') { titulo.textContent = "Buzón de Sugerencias"; contenido.innerHTML = renderizarSugerencias(); }
         if (vista === 'saldos') { titulo.textContent = "Control Operativo"; contenido.innerHTML = renderizarSaldos(); }
         if (vista === 'permisos') { titulo.textContent = "Administración de Permisos"; contenido.innerHTML = renderizarPermisos(); }
+        if (vista === 'guardias') { titulo.textContent = "Cronograma de Guardias"; contenido.innerHTML = renderizarGuardias(); }
     }
 }
 
@@ -195,9 +252,12 @@ export function abrirDocumento(titulo, url, esImagen = false) {
     state.viendoDocumento = true;
     document.getElementById('titulo-seccion').textContent = titulo;
     document.getElementById('btn-inicio-header').classList.remove('hidden');
+    
+    let urlPreview = normalizarUrlGoogleDrive(url);
+    
     document.getElementById('contenido-seccion').innerHTML = `
         <div class="w-full flex-1 bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden relative min-h-[400px]">
-            <iframe src="${url}" class="w-full h-full relative z-10 border-0 bg-white" allow="autoplay"></iframe>
+            <iframe src="${urlPreview}" class="w-full h-full relative z-10 border-0 bg-white" allow="autoplay"></iframe>
         </div>
     `;
 }

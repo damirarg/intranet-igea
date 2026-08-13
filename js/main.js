@@ -24,13 +24,16 @@ import {
     cerrarModalCobro,
     cambiarVista,
     abrirDocumento,
-    volverAtras
+    volverAtras,
+    abrirModalGuardia,
+    cerrarModalGuardia
 } from './ui.js';
 
 // Importamos controles específicos de componentes
 import { alternarVistaArchivadas, seleccionarColorPostit } from './components/sugerencias.js';
 import { alternarFiltroSaldadas, procesarArchivoCSV, cancelarCargaCSV, seleccionarTodosSaldos, ordenarSaldos, aplicarOrdenamientoSaldos } from './components/saldos.js';
 import { seleccionarMaterialDidactico } from './components/procedimientos.js';
+import { guardiasMesSiguiente, guardiasMesAnterior } from './components/guardias.js';
 
 // Importamos manejadores asincrónicos de base de datos
 import {
@@ -56,7 +59,9 @@ import {
     iniciarSesionFirebase,
     recuperarClaveFirebase,
     cerrarSesion,
-    cambiarClaveFirebase
+    cambiarClaveFirebase,
+    guardarGuardiaFirebase,
+    eliminarGuardiaFirebase
 } from './firebase-handlers.js';
 
 // Exponemos las funciones a 'window' para que el HTML pueda llamarlas directamente
@@ -75,6 +80,8 @@ window.cerrarModalCobro = cerrarModalCobro;
 window.cambiarVista = cambiarVista;
 window.abrirDocumento = abrirDocumento;
 window.volverAtras = volverAtras;
+window.abrirModalGuardia = abrirModalGuardia;
+window.cerrarModalGuardia = cerrarModalGuardia;
 
 window.alternarVistaArchivadas = alternarVistaArchivadas;
 window.seleccionarColorPostit = seleccionarColorPostit;
@@ -86,6 +93,8 @@ window.seleccionarTodosSaldos = seleccionarTodosSaldos;
 window.ordenarSaldos = ordenarSaldos;
 
 window.seleccionarMaterialDidactico = seleccionarMaterialDidactico;
+window.guardiasMesSiguiente = guardiasMesSiguiente;
+window.guardiasMesAnterior = guardiasMesAnterior;
 
 window.guardarNuevoDocumentoFirebase = guardarNuevoDocumentoFirebase;
 window.procesarEdicionDocFirebase = procesarEdicionDocFirebase;
@@ -108,6 +117,8 @@ window.iniciarSesionFirebase = iniciarSesionFirebase;
 window.recuperarClaveFirebase = recuperarClaveFirebase;
 window.cerrarSesion = cerrarSesion;
 window.cambiarClaveFirebase = cambiarClaveFirebase;
+window.guardarGuardiaFirebase = guardarGuardiaFirebase;
+window.eliminarGuardiaFirebase = eliminarGuardiaFirebase;
 
 
 // ESCUCHADORES EN TIEMPO REAL A FIRESTORE Y AUTH STATE CHANGED
@@ -115,6 +126,7 @@ const documentosRef = collection(db, "documentos_dpp_proc");
 const sugerenciasRef = collection(db, "sugerencias");
 const saldosRef = collection(db, "saldos");
 const permisosRef = collection(db, "permisos");
+const guardiasRef = collection(db, "guardias");
 
 // Escuchar documentos
 onSnapshot(query(documentosRef, orderBy("fechaAlta", "desc")), (snapshot) => {
@@ -168,6 +180,17 @@ onSnapshot(permisosRef, (snapshot) => {
         evaluarPermisosUsuario(state.usuarioActualEmail);
         if (state.seccionActual === 'permisos') cambiarVista('permisos');
         if (state.seccionActual === 'inicio') cambiarVista('inicio');
+    }
+});
+
+// Escuchar guardias
+onSnapshot(guardiasRef, (snapshot) => {
+    state.listaGuardiasFirebase = [];
+    snapshot.forEach((docSnap) => {
+        state.listaGuardiasFirebase.push({ id: docSnap.id, ...docSnap.data() });
+    });
+    if (state.seccionActual === 'guardias' && !state.viendoDocumento) {
+        cambiarVista('guardias');
     }
 });
 
