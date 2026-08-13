@@ -45,6 +45,7 @@
         }
         .icon-large { font-size: 32px; }
 
+        /* ESTILOS DE COLUMNAS REDIMENSIONABLES TIPO EXCEL */
         table.tabla-flexible {
             table-layout: fixed !important;
             width: 100%;
@@ -311,7 +312,7 @@
         let datosCSVPrecargados = []; 
         let listaSaldosFirebase = []; 
         let listaPermisosFirebase = []; 
-        let listaDocumentosFirebase = []; // LISTA DINÁMICA DE DPPs Y PROCEDIMIENTOS DESDE FIREBASE
+        let listaDocumentosFirebase = []; 
         
         let saldoActualGestionId = null; 
         let saldoActualCobroId = null; 
@@ -344,7 +345,6 @@
             { email: "mvalero@igea.com.ar", nombre: "VALERO Manuel", urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1DTnWeQVkxQ_mQ7EJEU0w4ygFnFlxjnO6#list" }
         ];
 
-        // DOCUMENTOS BASE POR DEFECTO
         const archivosDriveBase = {
             dpp: [
                 { id: "base_1", nombre: "Coordinador Operativo, Administrativo y de Finanzas", area: "Administración y Finanzas", url: "https://docs.google.com/document/d/1IaOfr1qIjGI6kKGbioG84X5zZU9oOaoF/preview" },
@@ -669,11 +669,9 @@
             `;
         }
 
-        // UNIFICACIÓN Y RENDERIZADO DE DPPs (COMBINA BASE CON BASE EN FIREBASE)
         function renderizarDPP() {
             let listaCompletaDPP = [...archivosDriveBase.dpp];
             
-            // Sumar documentos traídos dinámicamente de Firebase
             let dppFirebase = listaDocumentosFirebase.filter(d => d.tipo === 'dpp');
             dppFirebase.forEach(docFB => {
                 listaCompletaDPP.push({ id: docFB.id, nombre: docFB.nombre, area: docFB.area, url: docFB.url, esDinamico: true });
@@ -727,7 +725,6 @@
             }
         }
 
-        // UNIFICACIÓN Y RENDERIZADO DE PROCEDIMIENTOS
         function renderizarProcedimientos() {
             let listaCompletaProc = [...archivosDriveBase.procedimientos];
 
@@ -1238,9 +1235,7 @@
             }
         }
 
-        // ==========================================
-        // NUEVA FUNCIÓN: CARGAR DOCUMENTOS DINÁMICOS
-        // ==========================================
+        // FUNCIÓN NUEVA: CARGAR DOCUMENTOS DINÁMICAMENTE A FIREBASE (CON RE LOJITO EN EL BOTÓN)
         window.guardarNuevoDocumentoFirebase = function() {
             if (!esAdminMaster) return alert("Solo el Administrador Principal puede agregar documentos.");
 
@@ -1251,7 +1246,13 @@
 
             if (!nombre || !urlRaw) return alert("Por favor, completá el nombre y el enlace de Google Drive.");
 
-            // Convierte enlace dinámicamente a vista previa
+            // ACTIVACIÓN DE INDICADOR / SPINNER DE CARGA EN EL BOTÓN
+            const btnPublicar = document.getElementById('btn-publicar-doc');
+            if (btnPublicar) {
+                btnPublicar.disabled = true;
+                btnPublicar.innerHTML = `<span class="animate-spin rounded-full h-4 w-4 border-b-2 border-white inline-block mr-1.5"></span> Publicando...`;
+            }
+
             let urlPreview = urlRaw;
             if (urlRaw.includes('/edit')) urlPreview = urlRaw.split('/edit')[0] + '/preview';
             if (urlRaw.includes('/sharing')) urlPreview = urlRaw.split('/sharing')[0] + '/preview';
@@ -1264,11 +1265,23 @@
                 url: urlPreview,
                 fechaAlta: new Date()
             }).then(() => {
-                alert(`¡Excelente! El nuevo documento '${nombre}' se agregó al ${tipo.toUpperCase()} correctamente.`);
+                alert(`¡Excelente! El nuevo documento '${nombre}' se agregó correctamente.`);
                 document.getElementById('input-nombre-doc').value = '';
                 document.getElementById('input-area-doc').value = '';
                 document.getElementById('input-url-doc').value = '';
-            }).catch(e => alert("Error al guardar documento: " + e.message));
+                
+                // RESTABLECER BOTÓN TRAS PUBLICAR
+                if (btnPublicar) {
+                    btnPublicar.disabled = false;
+                    btnPublicar.innerHTML = `<span class="material-symbols-rounded" style="font-size: 16px;">add_circle</span> Publicar Documento`;
+                }
+            }).catch(e => {
+                alert("Error al guardar documento: " + e.message);
+                if (btnPublicar) {
+                    btnPublicar.disabled = false;
+                    btnPublicar.innerHTML = `<span class="material-symbols-rounded" style="font-size: 16px;">add_circle</span> Publicar Documento`;
+                }
+            });
         };
 
         window.eliminarDocumentoFirebase = function(event, docId) {
@@ -1301,7 +1314,6 @@
             }
         }
 
-        // RENDERIZADO DE PANEL DE PERMISOS Y CARGA DE DOCUMENTOS
         function renderizarPermisos() {
             let filasPermisos = listaPermisosFirebase.map(p => `
                 <tr class="border-b border-slate-100 hover:bg-slate-50 transition">
@@ -1341,7 +1353,6 @@
                     </div>
                 </div>
 
-                <!-- FORMULARIO DE CARGA DINÁMICA DE DOCUMENTOS (NUEVO) -->
                 <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm mb-6 shrink-0">
                     <h4 class="font-bold text-slate-800 text-sm mb-4 flex items-center gap-2">
                         <span class="material-symbols-rounded text-blue-600">note_add</span> Agregar Nuevo DPP o Procedimiento al Portal
@@ -1356,11 +1367,11 @@
                         </div>
                         <div>
                             <label class="block text-xs font-semibold text-slate-600 mb-1 uppercase">Nombre del Puesto / Norma</label>
-                            <input type="text" id="input-nombre-doc" placeholder="Ej: Adm. de Facturación" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                            <input type="text" id="input-nombre-doc" placeholder="Ej: Coordinadora de Asistentes" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none">
                         </div>
                         <div>
                             <label class="block text-xs font-semibold text-slate-600 mb-1 uppercase">Área / Fecha de Versión</label>
-                            <input type="text" id="input-area-doc" placeholder="Ej: Facturación / 12-08-2026" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                            <input type="text" id="input-area-doc" placeholder="Ej: Asistencial / 12-08-2026" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none">
                         </div>
                         <div>
                             <label class="block text-xs font-semibold text-slate-600 mb-1 uppercase">Enlace Google Drive</label>
@@ -1368,7 +1379,7 @@
                         </div>
                     </div>
                     <div class="mt-4 flex justify-end">
-                        <button onclick="window.guardarNuevoDocumentoFirebase()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-5 py-2.5 rounded-xl transition shadow-md shadow-blue-200 flex items-center gap-1.5">
+                        <button id="btn-publicar-doc" onclick="window.guardarNuevoDocumentoFirebase()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-5 py-2.5 rounded-xl transition shadow-md shadow-blue-200 flex items-center gap-1.5">
                             <span class="material-symbols-rounded" style="font-size: 16px;">add_circle</span> Publicar Documento
                         </button>
                     </div>
@@ -1394,7 +1405,7 @@
                             </div>
                         </div>
 
-                        <button onclick="window.otorgarPermisoFirebase()" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2.5 rounded-xl transition shadow-md shadow-purple-200 text-xs mt-6 flex items-center justify-center gap-2">
+                        <button id="btn-otorgar-permiso" onclick="window.otorgarPermisoFirebase()" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2.5 rounded-xl transition shadow-md shadow-purple-200 text-xs mt-6 flex items-center justify-center gap-2">
                             <span class="material-symbols-rounded" style="font-size: 16px;">key</span> Guardar Permiso
                         </button>
                     </div>
@@ -1665,6 +1676,12 @@
 
             if(!emailInput) return alert("Por favor, ingresá el correo del colaborador.");
 
+            const btnOtorgar = document.getElementById('btn-otorgar-permiso');
+            if (btnOtorgar) {
+                btnOtorgar.disabled = true;
+                btnOtorgar.innerHTML = `<span class="animate-spin rounded-full h-4 w-4 border-b-2 border-white inline-block mr-1.5"></span> Guardando...`;
+            }
+
             const existe = listaPermisosFirebase.find(p => p.email.toLowerCase() === emailInput);
 
             if (existe) {
@@ -1674,9 +1691,11 @@
                     updateDoc(doc(db, "permisos", existe.id), { modulos: modulosActuales }).then(() => {
                         alert(`Acceso al módulo '${moduloSelected}' agregado a ${emailInput}.`);
                         document.getElementById('input-email-permiso').value = '';
+                        if (btnOtorgar) { btnOtorgar.disabled = false; btnOtorgar.innerHTML = `<span class="material-symbols-rounded" style="font-size: 16px;">key</span> Guardar Permiso`; }
                     });
                 } else {
                     alert(`El usuario ${emailInput} ya cuenta con acceso a este módulo.`);
+                    if (btnOtorgar) { btnOtorgar.disabled = false; btnOtorgar.innerHTML = `<span class="material-symbols-rounded" style="font-size: 16px;">key</span> Guardar Permiso`; }
                 }
             } else {
                 addDoc(permisosRef, {
@@ -1686,7 +1705,11 @@
                 }).then(() => {
                     alert(`Acceso otorgado correctamente a ${emailInput}.`);
                     document.getElementById('input-email-permiso').value = '';
-                }).catch(e => alert("Error: " + e.message));
+                    if (btnOtorgar) { btnOtorgar.disabled = false; btnOtorgar.innerHTML = `<span class="material-symbols-rounded" style="font-size: 16px;">key</span> Guardar Permiso`; }
+                }).catch(e => {
+                    alert("Error: " + e.message);
+                    if (btnOtorgar) { btnOtorgar.disabled = false; btnOtorgar.innerHTML = `<span class="material-symbols-rounded" style="font-size: 16px;">key</span> Guardar Permiso`; }
+                });
             }
         };
 
