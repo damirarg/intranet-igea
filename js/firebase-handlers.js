@@ -86,6 +86,10 @@ function normalizarUrlGoogleDrive(url) {
     return limpia;
 }
 
+function normalizarEmailPermiso(email) {
+    return email.trim().toLowerCase();
+}
+
 // PUBLICAR NUEVO DOCUMENTO
 export async function guardarNuevoDocumentoFirebase() {
     if (!state.esAdminMaster) return alert("Solo el Administrador Principal puede agregar documentos.");
@@ -209,10 +213,10 @@ export async function eliminarDocumentoFirebase(event, docId) {
 
 // EVALUAR PERMISOS
 export function evaluarPermisosUsuario(email) {
-    let mailClean = email.toLowerCase().trim();
+    let mailClean = normalizarEmailPermiso(email);
     state.esAdminMaster = (mailClean === "damirodriguez81@gmail.com");
 
-    const permisoEncontrado = state.listaPermisosFirebase.find(p => p.email && p.email.toLowerCase().trim() === mailClean);
+    const permisoEncontrado = state.listaPermisosFirebase.find(p => p.email && normalizarEmailPermiso(p.email) === mailClean);
     state.tienePermisoSaldos = state.esAdminMaster || (permisoEncontrado && permisoEncontrado.modulos && permisoEncontrado.modulos.includes('saldos'));
 }
 
@@ -323,10 +327,11 @@ export async function editarGestionFirebase(docId, indexGestion) {
 
 // OTORGAR PERMISO
 export async function otorgarPermisoFirebase() {
-    const emailInput = document.getElementById('input-email-permiso').value.trim().toLowerCase();
+    const emailInput = normalizarEmailPermiso(document.getElementById('input-email-permiso').value);
     const moduloSelected = document.getElementById('select-modulo-permiso').value;
 
     if (!emailInput) return alert("Por favor, ingresá el correo del colaborador.");
+    if (emailInput.includes('/')) return alert("El correo ingresado no puede contener barras (/).");
 
     const btnOtorgar = document.getElementById('btn-otorgar-permiso');
     if (btnOtorgar) {
@@ -334,28 +339,35 @@ export async function otorgarPermisoFirebase() {
         btnOtorgar.innerHTML = `<span class="animate-spin rounded-full h-4 w-4 border-b-2 border-white inline-block mr-1.5"></span> Guardando...`;
     }
 
-    const existe = state.listaPermisosFirebase.find(p => p.email.toLowerCase() === emailInput);
+    const permisoExistente = state.listaPermisosFirebase.find(p => p.email && normalizarEmailPermiso(p.email) === emailInput);
+    const modulosActuales = permisoExistente && Array.isArray(permisoExistente.modulos) ? [...permisoExistente.modulos] : [];
+    const yaTeniaModulo = modulosActuales.includes(moduloSelected);
+
+    if (!yaTeniaModulo) {
+        modulosActuales.push(moduloSelected);
+    }
 
     try {
-        if (existe) {
-            let modulosActuales = existe.modulos || [];
-            if (!modulosActuales.includes(moduloSelected)) {
-                modulosActuales.push(moduloSelected);
-                await updateDoc(doc(db, "permisos", existe.id), { modulos: modulosActuales });
-                alert(`Acceso al módulo '${moduloSelected}' agregado a ${emailInput}.`);
-                document.getElementById('input-email-permiso').value = '';
-            } else {
-                alert(`El usuario ${emailInput} ya cuenta con acceso a este módulo.`);
-            }
-        } else {
-            await addDoc(permisosRef, {
-                email: emailInput,
-                modulos: [moduloSelected],
-                fechaAlta: new Date()
-            });
-            alert(`Acceso otorgado correctamente a ${emailInput}.`);
-            document.getElementById('input-email-permiso').value = '';
+        const permisoCanonicoRef = doc(db, "permisos", emailInput);
+
+        await setDoc(permisoCanonicoRef, {
+            email: emailInput,
+            modulos: modulosActuales,
+            fechaAlta: permisoExistente && permisoExistente.fechaAlta ? permisoExistente.fechaAlta : new Date(),
+            fechaActualizacion: new Date()
+        }, { merge: true });
+
+        if (permisoExistente && permisoExistente.id !== emailInput) {
+            await deleteDoc(doc(db, "permisos", permisoExistente.id));
         }
+
+        if (yaTeniaModulo) {
+            alert(`El usuario ${emailInput} ya cuenta con acceso a este módulo. Se verificó el formato del permiso.`);
+        } else {
+            alert(`Acceso al módulo '${moduloSelected}' agregado a ${emailInput}.`);
+        }
+
+        document.getElementById('input-email-permiso').value = '';
     } catch (e) {
         alert("Error: " + e.message);
     } finally {
@@ -500,166 +512,4 @@ export async function guardarSugerenciaFirebase() {
         }
     }
 
-    const nuevaIdea = {
-        texto: texto,
-        color: state.colorPostitSeleccionado,
-        autor: nombreAutor,
-        emailAutor: state.usuarioActualEmail.toLowerCase(),
-        archivada: false,
-        fecha: new Date().toLocaleDateString('es-AR'),
-        fechaCreacion: new Date(),
-        votosMap: {}
-    };
-
-    try {
-        await addDoc(sugerenciasRef, nuevaIdea);
-        cerrarModalSugerencia();
-    } catch (error) {
-        alert("Error al guardar: " + error.message);
-    }
-}
-
-// REACCIONAR A SUGERENCIA
-export async function reaccionarFirebase(docId, tipoReaccion) {
-    if (!state.usuarioActualEmail) return;
-    const sugerenciaDocRef = doc(db, "sugerencias", docId);
-    const sug = state.listaSugerencias.find(s => s.id === docId);
-    if (!sug) return;
-    let userKey = state.usuarioActualEmail.toLowerCase().replace(/\./g, '_');
-    let votosMap = sug.votosMap || {};
-    let votoAnterior = votosMap[userKey];
-    let cambios = {};
-    if (votoAnterior === tipoReaccion) {
-        cambios[`votosMap.${userKey}`] = deleteField();
-    } else {
-        cambios[`votosMap.${userKey}`] = tipoReaccion;
-    }
-    try {
-        await updateDoc(sugerenciaDocRef, cambios);
-    } catch (error) {
-        console.error(error);
-    }
-}
-
-// ELIMINAR SUGERENCIA
-export async function eliminarSugerenciaFirebase(docId) {
-    if (confirm("¿Estás seguro de que querés eliminar tu sugerencia?")) {
-        try {
-            await deleteDoc(doc(db, "sugerencias", docId));
-        } catch (e) {
-            alert("Error al eliminar sugerencia: " + e.message);
-        }
-    }
-}
-
-// ARCHIVAR SUGERENCIA
-export async function archivarSugerenciaFirebase(docId, nuevoEstadoArchivado) {
-    if (!state.esAdminMaster) return;
-    try {
-        await updateDoc(doc(db, "sugerencias", docId), { archivada: nuevoEstadoArchivado });
-    } catch (e) {
-        console.error(e);
-    }
-}
-
-// INICIAR SESIÓN
-export async function iniciarSesionFirebase() {
-    const email = document.getElementById('input-email').value;
-    const password = document.getElementById('input-password').value;
-    if (!email || !password) return alert("Por favor, completá todos los datos.");
-    try {
-        await signInWithEmailAndPassword(auth, email, password);
-    } catch (e) {
-        alert("Error al iniciar sesión. Verificá tus credenciales.");
-    }
-}
-
-// RECUPERAR CLAVE
-export async function recuperarClaveFirebase() {
-    const email = document.getElementById('input-email').value;
-    if (!email) return alert("Ingresá tu correo arriba.");
-    try {
-        await sendPasswordResetEmail(auth, email);
-        alert("Correo de recuperación enviado.");
-    } catch (e) {
-        alert("Error al procesar recuperación.");
-    }
-}
-
-// CERRAR SESIÓN
-export async function cerrarSesion() {
-    try {
-        await signOut(auth);
-        document.getElementById('input-password').value = ''; 
-        document.getElementById('input-email').value = ''; 
-    } catch (e) {
-        console.error(e);
-    }
-}
-
-// CAMBIAR CLAVE
-export async function cambiarClaveFirebase() {
-    const user = auth.currentUser;
-    const nuevaClave = document.getElementById('input-nueva-clave').value;
-    if (!nuevaClave || nuevaClave.length < 6) return alert("Mínimo 6 caracteres.");
-    if (user) {
-        try {
-            await updatePassword(user, nuevaClave);
-            alert("Clave actualizada.");
-            cerrarModalClave(); 
-        } catch (e) {
-            alert("Por seguridad, cerrá sesión y volvé a ingresar.");
-        }
-    }
-}
-
-// GUARDAR GUARDIA PASIVA
-export async function guardarGuardiaFirebase() {
-    if (!state.esAdminMaster) return alert("Solo el Administrador Principal puede gestionar guardias.");
-    if (!state.guardiaDiaSeleccionado) return;
-
-    const emailColab = document.getElementById('select-colaborador-guardia').value;
-    const esFeriado = document.getElementById('check-feriado-guardia').checked;
-    const notas = document.getElementById('texto-notes-guardia').value.trim();
-
-    if (!emailColab && !esFeriado && !notes) {
-        return eliminarGuardiaFirebase();
-    }
-
-    let nombreColab = "";
-    if (emailColab) {
-        const emp = baseRecibos.find(e => e.email.toLowerCase().trim() === emailColab.toLowerCase().trim());
-        if (emp) nombreColab = emp.nombre;
-    }
-
-    try {
-        const docRef = doc(db, "guardias", state.guardiaDiaSeleccionado);
-        await setDoc(docRef, {
-            fecha: state.guardiaDiaSeleccionado,
-            colaboradorEmail: emailColab,
-            colaboradorNombre: nombreColab,
-            feriado: esFeriado,
-            notas: notas,
-            fechaAlta: new Date()
-        });
-        cerrarModalGuardia();
-    } catch (e) {
-        alert("Error al guardar guardia: " + e.message);
-    }
-}
-
-// ELIMINAR GUARDIA PASIVA
-export async function eliminarGuardiaFirebase() {
-    if (!state.esAdminMaster) return alert("Solo el Administrador Principal puede gestionar guardias.");
-    if (!state.guardiaDiaSeleccionado) return;
-
-    if (confirm("¿Estás seguro de que querés eliminar la asignación de este día?")) {
-        try {
-            const docRef = doc(db, "guardias", state.guardiaDiaSeleccionado);
-            await deleteDoc(docRef);
-            cerrarModalGuardia();
-        } catch (e) {
-            alert("Error al eliminar la guardia: " + e.message);
-        }
-    }
-}
+    const nuevaIdea =
