@@ -45,7 +45,6 @@
         }
         .icon-large { font-size: 32px; }
 
-        /* ESTILOS DE COLUMNAS REDIMENSIONABLES TIPO EXCEL */
         table.tabla-flexible {
             table-layout: fixed !important;
             width: 100%;
@@ -161,7 +160,7 @@
         </div>
     </div>
 
-    <!-- MODAL DE NUEVA SUGERENCIA (RESTAURADO) -->
+    <!-- MODAL DE NUEVA SUGERENCIA -->
     <div id="modal-sugerencia" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
         <div class="bg-white p-6 md:p-8 rounded-3xl shadow-xl w-full max-w-md relative border border-slate-100">
             <div class="flex items-center gap-3 mb-4">
@@ -312,6 +311,7 @@
         let datosCSVPrecargados = []; 
         let listaSaldosFirebase = []; 
         let listaPermisosFirebase = []; 
+        let listaDocumentosFirebase = []; // LISTA DINÁMICA DE DPPs Y PROCEDIMIENTOS DESDE FIREBASE
         
         let saldoActualGestionId = null; 
         let saldoActualCobroId = null; 
@@ -323,7 +323,6 @@
         let seccionActual = 'inicio';
         let viendoDocumento = false; 
 
-        // LISTA DE LEGAJOS Y CARPETAS DE DRIVE
         const baseRecibos = [
             { email: "damirodriguez81@gmail.com", nombre: "RODRIGUEZ Damián", urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1rm4KzCg1kzz2331RipWsxF_VHW22RUxc#list" },
             { email: "rmariapilar@hotmail.com", nombre: "RODRIGUEZ DE HOZ Pilar", urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1AOhpojCPqqjqtl9FhRHivCu7I17VHf80#list" },
@@ -345,38 +344,31 @@
             { email: "mvalero@igea.com.ar", nombre: "VALERO Manuel", urlCarpeta: "https://drive.google.com/embeddedfolderview?id=1DTnWeQVkxQ_mQ7EJEU0w4ygFnFlxjnO6#list" }
         ];
 
-        // RESTAURADO: LISTADO COMPLETO DE ARCHIVOS DE DRIVE PARA DPP Y PROCEDIMIENTOS
-        const archivosDrive = {
+        // DOCUMENTOS BASE POR DEFECTO
+        const archivosDriveBase = {
             dpp: [
-                { nombre: "Coordinador Operativo, Administrativo y de Finanzas", area: "Administración", url: "https://docs.google.com/document/d/1IaOfr1qIjGI6kKGbioG84X5zZU9oOaoF/preview" },
-                { nombre: "Administrativa de Admisión y Atención al Público", area: "Administración", url: "https://docs.google.com/document/d/1RiU2YNFAs7DHN_Ee9oO-YDo1ppAAXEqQ/preview" },
-                { nombre: "Operadora de Atención Digital", area: "Administración", url: "https://docs.google.com/document/d/1GWxd8yy_GNYTy2f_nVKRkeO1ZUTQV3yw/preview" },
-                { nombre: "Administrativa de Enlace Institucional", area: "Administración", url: "https://docs.google.com/document/d/1kFfqGuGzD6b7bhr6UnMMTIZjJQ0Y-J_i/preview" },
-                { nombre: "Responsable de Tesorería y Pagos", area: "Administración", url: "https://docs.google.com/document/d/1JVqhA8iW0_aypK80JmGiVjbJBuSAOvQe/preview" },
-                { nombre: "Coordinadora de Asistentes de Endoscopía", area: "Enfermería", url: "https://docs.google.com/document/d/1a_VO_ofk6aHRb5k6m6pnMdwSRSagpqyl/preview" }
+                { id: "base_1", nombre: "Coordinador Operativo, Administrativo y de Finanzas", area: "Administración y Finanzas", url: "https://docs.google.com/document/d/1IaOfr1qIjGI6kKGbioG84X5zZU9oOaoF/preview" },
+                { id: "base_2", nombre: "Administrativa de Admisión y Atención al Público", area: "Admisión y Atención al Público", url: "https://docs.google.com/document/d/1RiU2YNFAs7DHN_Ee9oO-YDo1ppAAXEqQ/preview" },
+                { id: "base_3", nombre: "Operadora de Atención Digital", area: "Atención Digital", url: "https://docs.google.com/document/d/1GWxd8yy_GNYTy2f_nVKRkeO1ZUTQV3yw/preview" },
+                { id: "base_4", nombre: "Administrativa de Enlace Institucional", area: "Enlace Institucional", url: "https://docs.google.com/document/d/1kFfqGuGzD6b7bhr6UnMMTIZjJQ0Y-J_i/preview" },
+                { id: "base_5", nombre: "Responsable de Tesorería y Pagos", area: "Tesorería y Pagos", url: "https://docs.google.com/document/d/1JVqhA8iW0_aypK80JmGiVjbJBuSAOvQe/preview" }
             ],
             procedimientos: [
                 { 
+                    id: "base_p1",
                     nombre: "Gestión de Vacaciones y Licencias Especiales", 
                     fecha: "07/07/2026", 
                     url: "https://docs.google.com/document/d/1wYzmFrBZG0qQ3C9_HbHoHcUJDIwE-VcP/preview",
                     materialesDidacticos: []
                 },
                 { 
+                    id: "base_p2",
                     nombre: "Guardia Administrativa y Gestión Remota", 
                     fecha: "20/07/2026", 
                     url: "https://docs.google.com/document/d/17_p1VdCKTV-EvsT4paMaSZw_jteOEJZ4/preview",
                     materialesDidacticos: [
-                        { 
-                            nombre: "Guía Operativa Guardias", 
-                            url: "./assets/guia-guardias.jpg",
-                            esImagen: true
-                        },
-                        { 
-                            nombre: "Protocolo Guardias", 
-                            url: "https://docs.google.com/document/d/1mj1OiZXwkSljWkmSyHufEJanZ6wLG395/preview",
-                            esImagen: false
-                        }
+                        { nombre: "Guía Operativa Guardias", url: "./assets/guia-guardias.jpg", esImagen: true },
+                        { nombre: "Protocolo Guardias", url: "https://docs.google.com/document/d/1mj1OiZXwkSljWkmSyHufEJanZ6wLG395/preview", esImagen: false }
                     ]
                 }
             ]
@@ -501,7 +493,7 @@
                         <span class="material-symbols-rounded icon-large">admin_panel_settings</span>
                     </div>
                     <h4 class="font-bold text-base md:text-lg text-slate-800 mb-1 leading-tight">Panel Permisos</h4>
-                    <p class="text-slate-500 leading-relaxed text-xs">Administración de accesos.</p>
+                    <p class="text-slate-500 leading-relaxed text-xs">Administración de accesos y documentos.</p>
                 </div>
             ` : '';
 
@@ -564,9 +556,6 @@
             `;
         }
 
-        // ==========================================
-        // RESTAURADO: MÓDULO DE SUGERENCIAS
-        // ==========================================
         function alternarVistaArchivadas(estado) {
             verArchivadas = estado;
             cambiarVista('sugerencias');
@@ -680,28 +669,45 @@
             `;
         }
 
-        // RESTAURADO: RENDERIZADO DE DPP COMPLETO
+        // UNIFICACIÓN Y RENDERIZADO DE DPPs (COMBINA BASE CON BASE EN FIREBASE)
         function renderizarDPP() {
-            let filasHTML = archivosDrive.dpp.map(doc => `
-                <div class="p-4 md:p-5 border-b border-slate-100 flex justify-between items-center hover:bg-slate-50 transition cursor-pointer group" onclick="abrirDocumento('${doc.nombre}', '${doc.url}')">
-                    <div class="flex items-center gap-3 md:gap-4">
-                        <div class="bg-blue-50 text-blue-600 p-2.5 md:p-3 rounded-xl group-hover:bg-blue-100 transition">
-                            <span class="material-symbols-rounded">person_pin</span>
+            let listaCompletaDPP = [...archivosDriveBase.dpp];
+            
+            // Sumar documentos traídos dinámicamente de Firebase
+            let dppFirebase = listaDocumentosFirebase.filter(d => d.tipo === 'dpp');
+            dppFirebase.forEach(docFB => {
+                listaCompletaDPP.push({ id: docFB.id, nombre: docFB.nombre, area: docFB.area, url: docFB.url, esDinamico: true });
+            });
+
+            let filasHTML = listaCompletaDPP.map(doc => {
+                let btnBorrarHTML = (esAdminMaster && doc.esDinamico) ? `
+                    <button onclick="window.eliminarDocumentoFirebase(event, '${doc.id}')" class="text-slate-400 hover:text-red-600 p-1 transition" title="Eliminar documento">
+                        <span class="material-symbols-rounded" style="font-size: 18px;">delete</span>
+                    </button>
+                ` : '';
+
+                return `
+                    <div class="p-4 md:p-5 border-b border-slate-100 flex justify-between items-center hover:bg-slate-50 transition cursor-pointer group" onclick="abrirDocumento('${doc.nombre}', '${doc.url}')">
+                        <div class="flex items-center gap-3 md:gap-4">
+                            <div class="bg-blue-50 text-blue-600 p-2.5 md:p-3 rounded-xl group-hover:bg-blue-100 transition">
+                                <span class="material-symbols-rounded">person_pin</span>
+                            </div>
+                            <div>
+                                <span class="font-bold text-slate-800 block text-sm md:text-lg">${doc.nombre}</span>
+                                <span class="text-xs md:text-sm font-medium text-slate-500">${doc.area}</span>
+                            </div>
                         </div>
-                        <div>
-                            <span class="font-bold text-slate-800 block text-sm md:text-lg">${doc.nombre}</span>
-                            <span class="text-xs md:text-sm font-medium text-slate-500">${doc.area}</span>
+                        <div class="flex items-center gap-2">
+                            ${btnBorrarHTML}
+                            <span class="material-symbols-rounded text-slate-400 group-hover:text-blue-600 transition">open_in_new</span>
                         </div>
                     </div>
-                    <button class="text-slate-400 group-hover:text-blue-600 transition flex items-center">
-                        <span class="material-symbols-rounded">open_in_new</span>
-                    </button>
-                </div>
-            `).join('');
+                `;
+            }).join('');
 
             return `
                 <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden shrink-0">
-                    <div class="p-4 md:p-6 border-b border-slate-100 bg-slate-50/50">
+                    <div class="p-4 md:p-6 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
                         <p class="text-xs md:text-sm text-slate-600 font-medium">Seleccioná un perfil de la lista para visualizar el documento oficial.</p>
                     </div>
                     <div>${filasHTML}</div>
@@ -721,9 +727,16 @@
             }
         }
 
-        // RESTAURADO: RENDERIZADO DE PROCEDIMIENTOS COMPLETO (CON MATERIALES DIDÁCTICOS)
+        // UNIFICACIÓN Y RENDERIZADO DE PROCEDIMIENTOS
         function renderizarProcedimientos() {
-            let itemsHTML = archivosDrive.procedimientos.map((doc) => {
+            let listaCompletaProc = [...archivosDriveBase.procedimientos];
+
+            let procFirebase = listaDocumentosFirebase.filter(d => d.tipo === 'procedimiento');
+            procFirebase.forEach(docFB => {
+                listaCompletaProc.push({ id: docFB.id, nombre: docFB.nombre, fecha: docFB.fecha, url: docFB.url, esDinamico: true, materialesDidacticos: [] });
+            });
+
+            let itemsHTML = listaCompletaProc.map((doc) => {
                 let desplegableHTML = "";
                 if (doc.materialesDidacticos && doc.materialesDidacticos.length > 0) {
                     let opcionesHTML = doc.materialesDidacticos.map(mat => `
@@ -742,6 +755,12 @@
                     `;
                 }
 
+                let btnBorrarHTML = (esAdminMaster && doc.esDinamico) ? `
+                    <button onclick="window.eliminarDocumentoFirebase(event, '${doc.id}')" class="text-slate-400 hover:text-red-600 p-2 transition" title="Eliminar procedimiento">
+                        <span class="material-symbols-rounded" style="font-size: 18px;">delete</span>
+                    </button>
+                ` : '';
+
                 return `
                     <div class="bg-white p-5 md:p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 group">
                         <div class="flex items-center gap-4 cursor-pointer flex-1" onclick="abrirDocumento('${doc.nombre}', '${doc.url}')">
@@ -751,7 +770,7 @@
                             <div>
                                 <h4 class="font-bold text-slate-800 text-base md:text-lg">${doc.nombre}</h4>
                                 <p class="text-xs md:text-sm text-slate-500 font-medium mt-1 flex items-center gap-1">
-                                    <span class="material-symbols-rounded" style="font-size: 14px;">update</span> Actualizado: ${doc.fecha}
+                                    <span class="material-symbols-rounded" style="font-size: 14px;">update</span> Actualizado: ${doc.fecha || 'Reciente'}
                                 </p>
                             </div>
                         </div>
@@ -761,6 +780,7 @@
                                 <span class="material-symbols-rounded" style="font-size: 16px;">visibility</span> Ver Procedimiento
                             </button>
                             ${desplegableHTML}
+                            ${btnBorrarHTML}
                         </div>
                     </div>
                 `;
@@ -1218,6 +1238,46 @@
             }
         }
 
+        // ==========================================
+        // NUEVA FUNCIÓN: CARGAR DOCUMENTOS DINÁMICOS
+        // ==========================================
+        window.guardarNuevoDocumentoFirebase = function() {
+            if (!esAdminMaster) return alert("Solo el Administrador Principal puede agregar documentos.");
+
+            const tipo = document.getElementById('select-tipo-doc').value;
+            const nombre = document.getElementById('input-nombre-doc').value.trim();
+            const areaOFecha = document.getElementById('input-area-doc').value.trim();
+            let urlRaw = document.getElementById('input-url-doc').value.trim();
+
+            if (!nombre || !urlRaw) return alert("Por favor, completá el nombre y el enlace de Google Drive.");
+
+            // Convierte enlace dinámicamente a vista previa
+            let urlPreview = urlRaw;
+            if (urlRaw.includes('/edit')) urlPreview = urlRaw.split('/edit')[0] + '/preview';
+            if (urlRaw.includes('/sharing')) urlPreview = urlRaw.split('/sharing')[0] + '/preview';
+
+            addDoc(documentosRef, {
+                tipo: tipo,
+                nombre: nombre,
+                area: tipo === 'dpp' ? areaOFecha : '',
+                fecha: tipo === 'procedimiento' ? areaOFecha : '',
+                url: urlPreview,
+                fechaAlta: new Date()
+            }).then(() => {
+                alert(`¡Excelente! El nuevo documento '${nombre}' se agregó al ${tipo.toUpperCase()} correctamente.`);
+                document.getElementById('input-nombre-doc').value = '';
+                document.getElementById('input-area-doc').value = '';
+                document.getElementById('input-url-doc').value = '';
+            }).catch(e => alert("Error al guardar documento: " + e.message));
+        };
+
+        window.eliminarDocumentoFirebase = function(event, docId) {
+            event.stopPropagation();
+            if (confirm("¿Estás seguro de que querés eliminar este documento del portal?")) {
+                deleteDoc(doc(db, "documentos_dpp_proc", docId)).then(() => alert("Documento eliminado."));
+            }
+        };
+
         function cambiarVista(vista) {
             seccionActual = vista;
             viendoDocumento = false; 
@@ -1241,6 +1301,7 @@
             }
         }
 
+        // RENDERIZADO DE PANEL DE PERMISOS Y CARGA DE DOCUMENTOS
         function renderizarPermisos() {
             let filasPermisos = listaPermisosFirebase.map(p => `
                 <tr class="border-b border-slate-100 hover:bg-slate-50 transition">
@@ -1275,8 +1336,41 @@
                 <div class="mb-6 bg-purple-50 p-6 rounded-3xl border border-purple-100 shadow-sm shrink-0 relative overflow-hidden">
                     <span class="material-symbols-rounded absolute -right-4 -bottom-4 text-9xl text-purple-100/50 pointer-events-none">admin_panel_settings</span>
                     <div class="relative z-10">
-                        <h3 class="font-bold text-purple-900 text-xl">Administración de Permisos y Accesos</h3>
-                        <p class="text-xs md:text-sm text-purple-700 font-medium mt-1 max-w-xl">Desde este panel podés otorgar o revocar accesos a los distintos módulos de la intranet para el equipo de IGEA.</p>
+                        <h3 class="font-bold text-purple-900 text-xl">Administración de Permisos y Documentos</h3>
+                        <p class="text-xs md:text-sm text-purple-700 font-medium mt-1 max-w-xl">Otorgá accesos especiales a colaboradores o agregá nuevos DPPs y Procedimientos de forma dinámica.</p>
+                    </div>
+                </div>
+
+                <!-- FORMULARIO DE CARGA DINÁMICA DE DOCUMENTOS (NUEVO) -->
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm mb-6 shrink-0">
+                    <h4 class="font-bold text-slate-800 text-sm mb-4 flex items-center gap-2">
+                        <span class="material-symbols-rounded text-blue-600">note_add</span> Agregar Nuevo DPP o Procedimiento al Portal
+                    </h4>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1 uppercase">Sección Destino</label>
+                            <select id="select-tipo-doc" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                                <option value="dpp">Directorio DPP</option>
+                                <option value="procedimiento">Procedimiento Interno</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1 uppercase">Nombre del Puesto / Norma</label>
+                            <input type="text" id="input-nombre-doc" placeholder="Ej: Adm. de Facturación" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1 uppercase">Área / Fecha de Versión</label>
+                            <input type="text" id="input-area-doc" placeholder="Ej: Facturación / 12-08-2026" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1 uppercase">Enlace Google Drive</label>
+                            <input type="url" id="input-url-doc" placeholder="https://docs.google.com/..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        </div>
+                    </div>
+                    <div class="mt-4 flex justify-end">
+                        <button onclick="window.guardarNuevoDocumentoFirebase()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-5 py-2.5 rounded-xl transition shadow-md shadow-blue-200 flex items-center gap-1.5">
+                            <span class="material-symbols-rounded" style="font-size: 16px;">add_circle</span> Publicar Documento
+                        </button>
                     </div>
                 </div>
 
@@ -1390,7 +1484,19 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // SUGERENCIAS CONECTADAS EN TIEMPO REAL CON FIRESTORE
+        // DOCUMENTOS DINÁMICOS DE FIRESTORE (DPPs Y PROCEDIMIENTOS)
+        const documentosRef = collection(db, "documentos_dpp_proc");
+        onSnapshot(query(documentosRef, orderBy("fechaAlta", "desc")), (snapshot) => {
+            listaDocumentosFirebase = [];
+            snapshot.forEach((docSnap) => {
+                listaDocumentosFirebase.push({ id: docSnap.id, ...docSnap.data() });
+            });
+            if ((seccionActual === 'dpp' || seccionActual === 'procedimientos') && !viendoDocumento) {
+                cambiarVista(seccionActual);
+            }
+        });
+
+        // SUGERENCIAS
         const sugerenciasRef = collection(db, "sugerencias");
         onSnapshot(query(sugerenciasRef, orderBy("fechaCreacion", "desc")), (snapshot) => {
             listaSugerencias = [];
@@ -1402,7 +1508,7 @@
             }
         });
 
-        // SALDOS CONECTADOS EN TIEMPO REAL CON FIRESTORE
+        // SALDOS
         const saldosRef = collection(db, "saldos");
         onSnapshot(query(saldosRef), (snapshot) => {
             listaSaldosFirebase = [];
@@ -1672,7 +1778,6 @@
             }).catch(e => alert("Hubo un error al guardar: " + e.message));
         };
 
-        // FUNCIONES FIREBASE DE SUGERENCIAS RESTAURADAS
         window.guardarSugerenciaFirebase = function() {
             const texto = document.getElementById('texto-sugerencia').value.trim();
             const esAnonimo = document.getElementById('check-anonimo').checked;
