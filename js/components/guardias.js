@@ -70,18 +70,18 @@ function renderizarBloqueActual() {
     const proximas = state.listaGuardiasFirebase
         .filter(g => g.fecha && g.fecha >= hoyKey)
         .sort((a, b) => a.fecha.localeCompare(b.fecha))
-        .slice(0, 5);
+        .slice(0, 4);
 
     const proximasHTML = proximas.length > 0 ? proximas.map(g => {
         const admin = nombreAdministrativo(g, true);
         const medicos = normalizarMedicos(g);
         return `
-            <div class="flex items-center justify-between gap-3 py-2 border-b border-slate-100 last:border-0">
-                <div>
+            <div class="flex items-center justify-between gap-3 py-1.5 border-b border-slate-100 last:border-0">
+                <div class="min-w-0">
                     <p class="text-xs font-black text-slate-700 capitalize">${escaparHTML(formatearFecha(g.fecha))}</p>
-                    <p class="text-[11px] text-slate-500">${admin ? escaparHTML(admin) : 'Sin administración'} · ${medicos.length} médico${medicos.length === 1 ? '' : 's'}</p>
+                    <p class="text-[11px] text-slate-500 truncate">${admin ? escaparHTML(admin) : 'Sin administración'} · ${medicos.length} médico${medicos.length === 1 ? '' : 's'}</p>
                 </div>
-                ${g.feriado ? '<span class="text-[10px] font-bold text-red-600 bg-red-50 border border-red-100 px-2 py-1 rounded-lg">Feriado</span>' : ''}
+                ${g.feriado ? '<span class="text-[10px] font-bold text-red-600 bg-red-50 border border-red-100 px-2 py-1 rounded-lg shrink-0">Feriado</span>' : ''}
             </div>
         `;
     }).join('') : `
@@ -101,29 +101,29 @@ function renderizarBloqueActual() {
     `;
 
     return `
-        <div class="grid grid-cols-1 xl:grid-cols-3 gap-4 mb-4 shrink-0">
-            <div class="xl:col-span-2 bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
-                <div class="flex items-start justify-between gap-3 mb-3">
+        <div class="grid grid-cols-1 xl:grid-cols-4 gap-3 mb-3 shrink-0">
+            <div class="xl:col-span-3 bg-white border border-slate-200 rounded-2xl p-3 shadow-sm">
+                <div class="flex items-start justify-between gap-3 mb-2">
                     <div>
                         <p class="text-[10px] font-black text-sky-600 uppercase tracking-wider">Guardia de hoy</p>
-                        <h3 class="text-lg font-black text-slate-800 capitalize">${escaparHTML(formatearFecha(hoyKey, { weekday: 'long', day: 'numeric', month: 'long' }))}</h3>
+                        <h3 class="text-base md:text-lg font-black text-slate-800 capitalize">${escaparHTML(formatearFecha(hoyKey, { weekday: 'long', day: 'numeric', month: 'long' }))}</h3>
                     </div>
                     ${guardiaHoy && guardiaHoy.feriado ? '<span class="text-[10px] font-bold text-red-600 bg-red-50 border border-red-100 px-2 py-1 rounded-lg">Feriado</span>' : ''}
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div class="rounded-xl bg-sky-50 border border-sky-100 p-3">
+                <div class="grid grid-cols-1 md:grid-cols-[0.7fr_1.3fr] gap-2">
+                    <div class="rounded-xl bg-sky-50 border border-sky-100 p-2.5">
                         <p class="text-[10px] font-black text-sky-700 uppercase tracking-wider mb-1">Administración</p>
                         <p class="text-sm font-black text-slate-800">${adminHoy ? escaparHTML(adminHoy) : 'Sin asignar'}</p>
                     </div>
-                    <div class="rounded-xl bg-emerald-50 border border-emerald-100 p-3">
-                        <p class="text-[10px] font-black text-emerald-700 uppercase tracking-wider mb-2">Médicos</p>
+                    <div class="rounded-xl bg-emerald-50 border border-emerald-100 p-2.5">
+                        <p class="text-[10px] font-black text-emerald-700 uppercase tracking-wider mb-1.5">Médicos</p>
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">${medicosHoyHTML}</div>
                     </div>
                 </div>
             </div>
 
-            <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+            <div class="bg-white border border-slate-200 rounded-2xl p-3 shadow-sm">
                 <p class="text-[10px] font-black text-slate-500 uppercase tracking-wider mb-2">Próximas guardias</p>
                 ${proximasHTML}
             </div>
@@ -142,21 +142,21 @@ function renderizarContenidoGuardia(guardia) {
 
     if (admin) {
         html += `
-            <div class="mt-2 bg-sky-100 border border-sky-300 text-sky-800 p-1.5 rounded-xl text-[10px] md:text-[11px] font-black tracking-tight text-center truncate" title="${escaparHTML(nombreAdministrativo(guardia))}">
-                <span class="material-symbols-rounded" style="font-size: 13px;">support_agent</span> ${escaparHTML(admin)}
+            <div class="mt-1.5 bg-sky-100 border border-sky-300 text-sky-800 px-1.5 py-1 rounded-lg text-[9px] md:text-[10px] font-black tracking-tight text-center truncate" title="${escaparHTML(nombreAdministrativo(guardia))}">
+                <span class="material-symbols-rounded" style="font-size: 12px;">support_agent</span> ${escaparHTML(admin)}
             </div>
         `;
     }
 
     if (medicos.length > 0) {
         html += `
-            <div class="mt-1.5 space-y-1">
+            <div class="mt-1 space-y-0.5">
                 ${medicos.slice(0, 2).map(m => `
-                    <div class="bg-emerald-50 border border-emerald-200 text-emerald-800 px-1.5 py-1 rounded-lg text-[9px] md:text-[10px] font-bold truncate" title="${escaparHTML([m.nombre, m.especialidad, m.contacto].filter(Boolean).join(' · '))}">
-                        <span class="material-symbols-rounded" style="font-size: 12px;">stethoscope</span> ${escaparHTML(m.nombre)}
+                    <div class="bg-emerald-50 border border-emerald-200 text-emerald-800 px-1.5 py-0.5 rounded-md text-[8px] md:text-[9px] font-bold truncate" title="${escaparHTML([m.nombre, m.especialidad, m.contacto].filter(Boolean).join(' · '))}">
+                        <span class="material-symbols-rounded" style="font-size: 11px;">stethoscope</span> ${escaparHTML(m.nombre)}
                     </div>
                 `).join('')}
-                ${medicos.length > 2 ? `<p class="text-[9px] text-emerald-700 font-bold text-center">+${medicos.length - 2} más</p>` : ''}
+                ${medicos.length > 2 ? `<p class="text-[8px] text-emerald-700 font-bold text-center">+${medicos.length - 2} más</p>` : ''}
             </div>
         `;
     }
@@ -204,7 +204,7 @@ export function renderizarGuardias() {
     for (let i = primerDiaIndex - 1; i >= 0; i--) {
         const diaAnterior = totalDiasMesAnterior - i;
         celdasHTML.push(`
-            <div class="min-h-[96px] md:min-h-[126px] p-2 bg-slate-50/50 border border-slate-100 rounded-2xl opacity-30 select-none">
+            <div class="min-h-[72px] md:min-h-[86px] 2xl:min-h-[96px] p-1.5 bg-slate-50/50 border border-slate-100 rounded-xl opacity-30 select-none">
                 <span class="text-[10px] md:text-xs font-semibold text-slate-400">${diaAnterior}</span>
             </div>
         `);
@@ -248,15 +248,15 @@ export function renderizarGuardias() {
         }
 
         const estadoDiaHTML = `
-            <div class="flex gap-1 mt-2">
+            <div class="flex gap-1 mt-1.5">
                 ${tieneAdmin ? '<span class="h-1.5 flex-1 rounded-full bg-sky-400" title="Administración asignada"></span>' : '<span class="h-1.5 flex-1 rounded-full bg-slate-200" title="Sin administración"></span>'}
                 ${tieneMedicos ? '<span class="h-1.5 flex-1 rounded-full bg-emerald-400" title="Médicos cargados"></span>' : '<span class="h-1.5 flex-1 rounded-full bg-slate-200" title="Sin médicos"></span>'}
             </div>
         `;
 
         const clickAttr = puedeEditar
-            ? `onclick="window.abrirModalGuardia('${fechaKey}')" class="min-h-[96px] md:min-h-[126px] p-2 border rounded-2xl cursor-pointer transition ${bgCelda}"`
-            : `class="min-h-[96px] md:min-h-[126px] p-2 border rounded-2xl transition ${bgCelda}"`;
+            ? `onclick="window.abrirModalGuardia('${fechaKey}')" class="min-h-[72px] md:min-h-[86px] 2xl:min-h-[96px] p-1.5 border rounded-xl cursor-pointer transition ${bgCelda}"`
+            : `class="min-h-[72px] md:min-h-[86px] 2xl:min-h-[96px] p-1.5 border rounded-xl transition ${bgCelda}"`;
 
         celdasHTML.push(`
             <div ${clickAttr}>
@@ -277,7 +277,7 @@ export function renderizarGuardias() {
     const celdasRestantes = celdasTotales <= 35 ? 35 - celdasTotales : 42 - celdasTotales;
     for (let i = 1; i <= celdasRestantes; i++) {
         celdasHTML.push(`
-            <div class="min-h-[96px] md:min-h-[126px] p-2 bg-slate-50/50 border border-slate-100 rounded-2xl opacity-30 select-none">
+            <div class="min-h-[72px] md:min-h-[86px] 2xl:min-h-[96px] p-1.5 bg-slate-50/50 border border-slate-100 rounded-xl opacity-30 select-none">
                 <span class="text-[10px] md:text-xs font-semibold text-slate-400">${i}</span>
             </div>
         `);
@@ -290,9 +290,9 @@ export function renderizarGuardias() {
     return `
         ${renderizarBloqueActual()}
 
-        <div class="mb-4 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm shrink-0">
+        <div class="mb-3 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 bg-white p-3 rounded-2xl border border-slate-200 shadow-sm shrink-0">
             <div>
-                <h3 class="font-black text-slate-800 text-lg">Cronograma de Guardias Pasivas</h3>
+                <h3 class="font-black text-slate-800 text-base md:text-lg">Cronograma de Guardias Pasivas</h3>
                 <p class="text-xs text-slate-500">Guardias administrativas y médicas en un solo calendario operativo.</p>
             </div>
 
@@ -315,12 +315,12 @@ export function renderizarGuardias() {
             </div>
         </div>
 
-        <div class="bg-white border border-slate-200 rounded-2xl p-3 md:p-5 shadow-sm flex-1 flex flex-col overflow-hidden">
-            <div class="grid grid-cols-7 gap-2 border-b border-slate-100 pb-2 mb-2">
+        <div class="bg-white border border-slate-200 rounded-2xl p-2.5 md:p-3 shadow-sm shrink-0">
+            <div class="grid grid-cols-7 gap-1.5 border-b border-slate-100 pb-1.5 mb-1.5">
                 ${encabezadoDiasHTML}
             </div>
 
-            <div class="grid grid-cols-7 gap-2 flex-1 overflow-y-auto pr-1 no-scrollbar select-none">
+            <div class="grid grid-cols-7 gap-1.5 select-none">
                 ${celdasHTML.join('')}
             </div>
         </div>
