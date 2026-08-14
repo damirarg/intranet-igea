@@ -249,36 +249,80 @@ exports.sincronizarUsuariosDesdePermisos = onCall({ region: "us-central1", maxIn
 
   const db = admin.firestore();
   const permisosSnap = await db.collection("permisos").get();
-  const batch = db.batch();
+  const permisosPorEmail = new Map();
+  const usuariosSincronizados = new Set();
+  let batch = db.batch();
+  let operacionesBatch = 0;
   let cantidad = 0;
+
+  async function guardarEnBatch(ref, data) {
+    batch.set(ref, data, { merge: true });
+    operacionesBatch++;
+
+    if (operacionesBatch >= 450) {
+      await batch.commit();
+      batch = db.batch();
+      operacionesBatch = 0;
+    }
+  }
 
   for (const permisoDoc of permisosSnap.docs) {
     const data = permisoDoc.data();
     const email = normalizarEmail(data.email || permisoDoc.id);
     if (!email || !email.includes("@")) continue;
+    permisosPorEmail.set(email, data);
+  }
 
-    let usuarioAuth = null;
-    try {
-      usuarioAuth = await admin.auth().getUserByEmail(email);
-    } catch (error) {
-      logger.warn("Usuario en permisos sin cuenta Auth", { email, error: error.message });
+  let nextPageToken;
+
+  do {
+    const listado = await admin.auth().listUsers(1000, nextPageToken);
+
+    for (const usuarioAuth of listado.users) {
+      const email = normalizarEmail(usuarioAuth.email);
+      if (!email || !email.includes("@")) continue;
+
+      const dataPermiso = permisosPorEmail.get(email) || {};
+      const usuarioRef = db.collection("usuarios").doc(email);
+
+      await guardarEnBatch(usuarioRef, {
+        email,
+        nombre: dataPermiso.nombre || usuarioAuth.displayName || "",
+        uid: usuarioAuth.uid,
+        modulos: Array.isArray(dataPermiso.modulos) ? dataPermiso.modulos : [],
+        activo: dataPermiso.activo !== false && !usuarioAuth.disabled,
+        fechaAlta: dataPermiso.fechaAlta || admin.firestore.FieldValue.serverTimestamp(),
+        fechaActualizacion: admin.firestore.FieldValue.serverTimestamp()
+      });
+
+      usuariosSincronizados.add(email);
+      cantidad++;
     }
 
+    nextPageToken = listado.pageToken;
+  } while (nextPageToken);
+
+  for (const [email, data] of permisosPorEmail) {
+    if (usuariosSincronizados.has(email)) continue;
+
     const usuarioRef = db.collection("usuarios").doc(email);
-    batch.set(usuarioRef, {
+    await guardarEnBatch(usuarioRef, {
       email,
-      nombre: data.nombre || (usuarioAuth && usuarioAuth.displayName) || "",
-      uid: data.uid || (usuarioAuth && usuarioAuth.uid) || "",
+      nombre: data.nombre || "",
+      uid: data.uid || "",
       modulos: Array.isArray(data.modulos) ? data.modulos : [],
-      activo: data.activo !== false && !(usuarioAuth && usuarioAuth.disabled),
+      activo: data.activo !== false,
       fechaAlta: data.fechaAlta || admin.firestore.FieldValue.serverTimestamp(),
       fechaActualizacion: admin.firestore.FieldValue.serverTimestamp()
-    }, { merge: true });
+    });
 
     cantidad++;
   }
 
-  await batch.commit();
-  logger.info("Usuarios sincronizados desde permisos", { cantidad });
+  if (operacionesBatch > 0) {
+    await batch.commit();
+  }
+
+  logger.info("Usuarios sincronizados desde Auth", { cantidad });
   return { cantidad };
 });

@@ -31,6 +31,15 @@ function renderizarBadgesModulos(modulos = []) {
     }).join('');
 }
 
+function escaparHTML(valor = '') {
+    return String(valor)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
 export function renderizarPermisos() {
     const usuariosMap = new Map();
 
@@ -59,12 +68,17 @@ export function renderizarPermisos() {
     let filasPermisos = usuariosOrdenados.map(u => {
         const estaActivo = u.activo !== false;
         const modulos = Array.isArray(u.modulos) ? u.modulos : [];
+        const email = (u.email || '').toLowerCase().trim();
+        const nombre = (u.nombre || u.displayName || '').trim();
+        const tieneNombreVisible = nombre && nombre.toLowerCase() !== email;
+        const tituloUsuario = escaparHTML(tieneNombreVisible ? nombre : email);
+        const emailUsuario = escaparHTML(email);
         const botonEstadoHTML = estaActivo ? `
-            <button onclick="window.cambiarEstadoUsuarioFirebase('${u.email}', false)" class="text-slate-400 hover:text-red-600 transition p-1" title="Desactivar usuario">
+            <button onclick="window.cambiarEstadoUsuarioFirebase('${emailUsuario}', false)" class="text-slate-400 hover:text-red-600 transition p-1" title="Desactivar usuario">
                 <span class="material-symbols-rounded" style="font-size: 18px;">person_off</span>
             </button>
         ` : `
-            <button onclick="window.cambiarEstadoUsuarioFirebase('${u.email}', true)" class="text-slate-400 hover:text-emerald-600 transition p-1" title="Reactivar usuario">
+            <button onclick="window.cambiarEstadoUsuarioFirebase('${emailUsuario}', true)" class="text-slate-400 hover:text-emerald-600 transition p-1" title="Reactivar usuario">
                 <span class="material-symbols-rounded" style="font-size: 18px;">person_check</span>
             </button>
         `;
@@ -74,8 +88,8 @@ export function renderizarPermisos() {
             <td class="p-3.5 font-semibold text-slate-800 text-xs flex items-center gap-2">
                 <span class="material-symbols-rounded ${estaActivo ? 'text-purple-600' : 'text-slate-400'}" style="font-size:18px;">account_circle</span>
                 <span>
-                    <span class="block font-black">${u.nombre || u.displayName || u.email}</span>
-                    <span class="block text-[11px] text-slate-500 font-semibold">${u.email}</span>
+                    <span class="block font-black">${tituloUsuario}</span>
+                    ${tieneNombreVisible ? `<span class="block text-[11px] text-slate-500 font-semibold">${emailUsuario}</span>` : ''}
                     <span class="${estaActivo ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-slate-100 text-slate-500 border-slate-200'} ml-2 px-2 py-0.5 rounded-lg border text-[10px] font-black uppercase">${estaActivo ? 'Activo' : 'Desactivado'}</span>
                 </span>
             </td>
@@ -83,14 +97,14 @@ export function renderizarPermisos() {
                 ${renderizarBadgesModulos(modulos)}
             </td>
             <td class="p-3.5 text-right">
-                <button onclick="window.generarResetClaveUsuarioFirebase('${u.email}')" class="text-slate-400 hover:text-blue-600 transition p-1" title="Generar link de recuperación">
+                <button onclick="window.generarResetClaveUsuarioFirebase('${emailUsuario}')" class="text-slate-400 hover:text-blue-600 transition p-1" title="Generar link de recuperación">
                     <span class="material-symbols-rounded" style="font-size: 18px;">lock_reset</span>
                 </button>
-                <button onclick="document.getElementById('input-email-actual-admin').value='${u.email}'; document.getElementById('input-email-nuevo-admin').focus();" class="text-slate-400 hover:text-amber-600 transition p-1" title="Preparar cambio de correo">
+                <button onclick="document.getElementById('input-email-actual-admin').value='${emailUsuario}'; document.getElementById('input-email-nuevo-admin').focus();" class="text-slate-400 hover:text-amber-600 transition p-1" title="Preparar cambio de correo">
                     <span class="material-symbols-rounded" style="font-size: 18px;">alternate_email</span>
                 </button>
                 ${botonEstadoHTML}
-                <button onclick="window.revocarPermisoFirebase('${u.id || u.email}')" class="text-slate-400 hover:text-red-600 transition p-1" title="Revocar Permiso">
+                <button onclick="window.revocarPermisoFirebase('${escaparHTML(u.id || email)}')" class="text-slate-400 hover:text-red-600 transition p-1" title="Revocar Permiso">
                     <span class="material-symbols-rounded" style="font-size: 18px;">delete</span>
                 </button>
             </td>
@@ -140,7 +154,7 @@ export function renderizarPermisos() {
                     <p class="text-xs text-slate-500 mt-1">Alta de usuarios, recuperación de acceso y cambio de correo de login.</p>
                 </div>
                 <button id="btn-sincronizar-usuarios-admin" onclick="window.sincronizarUsuariosDesdePermisosFirebase()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs px-3 py-2 rounded-xl transition flex items-center gap-1.5">
-                    <span class="material-symbols-rounded" style="font-size: 16px;">sync</span> Sincronizar usuarios
+                    <span class="material-symbols-rounded" style="font-size: 16px;">sync</span> Sincronizar padrón
                 </button>
             </div>
 
