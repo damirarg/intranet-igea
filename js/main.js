@@ -3,6 +3,7 @@ import { db, auth } from './firebase-config.js';
 import { 
     collection, 
     doc,
+    getDoc,
     onSnapshot, 
     query, 
     orderBy 
@@ -140,6 +141,31 @@ function esAdminEmail(email) {
     return normalizarEmail(email) === "damirodriguez81@gmail.com";
 }
 
+function actualizarEstadoLogin(texto) {
+    const estadoLogin = document.getElementById('estado-login');
+    if (!estadoLogin) return;
+
+    estadoLogin.textContent = texto;
+    estadoLogin.classList.remove('hidden');
+}
+
+async function cargarPermisoInicial(email) {
+    const mailLogueado = normalizarEmail(email);
+
+    if (esAdminEmail(mailLogueado)) {
+        state.listaPermisosFirebase = [];
+        evaluarPermisosUsuario(mailLogueado);
+        return;
+    }
+
+    const permisoSnap = await getDoc(doc(db, "permisos", mailLogueado));
+    state.listaPermisosFirebase = permisoSnap.exists()
+        ? [{ id: permisoSnap.id, ...permisoSnap.data() }]
+        : [];
+
+    evaluarPermisosUsuario(mailLogueado);
+}
+
 function refrescarVistasPorPermisos() {
     if (state.usuarioActualEmail) {
         evaluarPermisosUsuario(state.usuarioActualEmail);
@@ -256,14 +282,25 @@ onSnapshot(guardiasRef, (snapshot) => {
 });
 
 // Escuchar cambios de estado de sesión
-onAuthStateChanged(auth, (user) => {
+onAuthStateChanged(auth, async (user) => {
     const pantallaLogin = document.getElementById('pantalla-login');
     const appPrincipal = document.getElementById('aplicacion-principal');
+    const btnLogin = document.getElementById('btn-login');
+    const estadoLogin = document.getElementById('estado-login');
 
     if (user) {
         state.usuarioActualEmail = user.email;
-        evaluarPermisosUsuario(state.usuarioActualEmail);
-        escucharPermisosUsuario(state.usuarioActualEmail);
+        actualizarEstadoLogin("Verificando permisos...");
+
+        try {
+            await cargarPermisoInicial(state.usuarioActualEmail);
+            escucharPermisosUsuario(state.usuarioActualEmail);
+            escucharSaldosSiCorresponde();
+        } catch (error) {
+            console.error("Error al verificar permisos:", error);
+            actualizarEstadoLogin("No se pudieron verificar los permisos. Cerrá sesión y volvé a intentar.");
+            return;
+        }
 
         const mailLogueado = normalizarEmail(user.email);
         const empleadoEncontrado = baseRecibos.find(emp => emp.email.toLowerCase().trim() === mailLogueado);
@@ -276,6 +313,11 @@ onAuthStateChanged(auth, (user) => {
 
         pantallaLogin.classList.add('hidden');
         appPrincipal.classList.remove('hidden');
+        if (btnLogin) {
+            btnLogin.disabled = false;
+            btnLogin.innerHTML = 'Ingresar';
+        }
+        if (estadoLogin) estadoLogin.classList.add('hidden');
         cambiarVista('inicio');
     } else {
         state.usuarioActualEmail = "";
@@ -293,5 +335,10 @@ onAuthStateChanged(auth, (user) => {
         }
         pantallaLogin.classList.remove('hidden');
         appPrincipal.classList.add('hidden');
+        if (btnLogin) {
+            btnLogin.disabled = false;
+            btnLogin.innerHTML = 'Ingresar';
+        }
+        if (estadoLogin) estadoLogin.classList.add('hidden');
     }
 });

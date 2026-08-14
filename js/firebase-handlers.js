@@ -645,12 +645,26 @@ export async function archivarSugerenciaFirebase(docId, nuevoEstadoArchivado, ev
 export async function iniciarSesionFirebase() {
     const email = document.getElementById('input-email').value;
     const password = document.getElementById('input-password').value;
+    const btnLogin = document.getElementById('btn-login');
+    const estadoLogin = document.getElementById('estado-login');
+    const htmlOriginal = activarBotonCarga(btnLogin, "Ingresando...");
 
-    if (!email || !password) return alert("Por favor, completa todos los datos.");
+    if (estadoLogin) {
+        estadoLogin.textContent = "Validando credenciales...";
+        estadoLogin.classList.remove('hidden');
+    }
+
+    if (!email || !password) {
+        restaurarBotonCarga(btnLogin, htmlOriginal);
+        if (estadoLogin) estadoLogin.classList.add('hidden');
+        return alert("Por favor, completa todos los datos.");
+    }
 
     try {
         await signInWithEmailAndPassword(auth, email, password);
     } catch (e) {
+        restaurarBotonCarga(btnLogin, htmlOriginal);
+        if (estadoLogin) estadoLogin.classList.add('hidden');
         alert("Error al iniciar sesion. Verifica tus credenciales.");
     }
 }

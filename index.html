@@ -66,10 +66,13 @@
                     <button onclick="window.recuperarClaveFirebase()" class="text-xs font-medium text-blue-600 hover:text-blue-700 transition">¿Olvidaste tu contraseña?</button>
                 </div>
 
-                <button onclick="window.iniciarSesionFirebase()"
+                <button id="btn-login" onclick="window.iniciarSesionFirebase()"
                     class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl transition-all shadow-lg shadow-blue-200 mt-2">
                     Ingresar
                 </button>
+                <p id="estado-login" class="hidden text-center text-xs font-semibold text-slate-500 mt-3">
+                    Verificando permisos...
+                </p>
             </div>
         </div>
     </div>
