@@ -1,5 +1,5 @@
 import { state, archivosDriveBase, baseRecibos } from './app-state.js';
-import { db, auth } from './firebase-config.js';
+import { db, auth, functions } from './firebase-config.js';
 import {
     collection,
     addDoc,
@@ -17,6 +17,9 @@ import {
     signOut,
     updatePassword
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import {
+    httpsCallable
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js";
 import { parsearMontoNumerico, formatearMonedaAR } from './components/saldos.js';
 import {
     cerrarModalCobro,
@@ -34,6 +37,9 @@ const sugerenciasRef = collection(db, "sugerencias");
 const saldosRef = collection(db, "saldos");
 const permisosRef = collection(db, "permisos");
 const guardiasRef = collection(db, "guardias");
+const crearUsuarioIntranetFn = httpsCallable(functions, "crearUsuarioIntranet");
+const enviarResetClaveUsuarioFn = httpsCallable(functions, "enviarResetClaveUsuario");
+const cambiarEmailUsuarioIntranetFn = httpsCallable(functions, "cambiarEmailUsuarioIntranet");
 
 function normalizarEmailPermiso(email) {
     return email.trim().toLowerCase();
@@ -412,6 +418,108 @@ export async function otorgarPermisoFirebase() {
         alert("Error: " + e.message);
     } finally {
         restaurarBotonCarga(btnOtorgar, htmlOriginal);
+    }
+}
+
+function obtenerModulosSeleccionadosUsuario() {
+    return Array.from(document.querySelectorAll('.check-modulo-usuario:checked')).map(check => check.value);
+}
+
+// CREAR USUARIO DE AUTH Y PERMISOS
+export async function crearUsuarioIntranetFirebase() {
+    if (bloquearCambiosEnModoVerComo()) return;
+    if (!state.esAdminMaster) return alert("Solo el Administrador Principal puede crear usuarios.");
+
+    const nombre = document.getElementById('input-nombre-usuario-admin').value.trim();
+    const email = normalizarEmailPermiso(document.getElementById('input-email-usuario-admin').value);
+    const claveTemporal = document.getElementById('input-clave-usuario-admin').value.trim();
+    const modulos = obtenerModulosSeleccionadosUsuario();
+
+    if (!nombre || !email) return alert("Completá nombre y correo del usuario.");
+
+    const btnCrear = document.getElementById('btn-crear-usuario-admin');
+    const htmlOriginal = activarBotonCarga(btnCrear, "Creando...");
+
+    try {
+        const resultado = await crearUsuarioIntranetFn({
+            nombre,
+            email,
+            claveTemporal,
+            modulos
+        });
+
+        const data = resultado.data || {};
+        const clave = data.claveTemporal ? `\n\nClave temporal: ${data.claveTemporal}` : '';
+        alert(`Usuario creado correctamente.\n\nCorreo: ${data.email}${clave}\n\nSugerencia: pedile que cambie la clave al ingresar.`);
+
+        document.getElementById('input-nombre-usuario-admin').value = '';
+        document.getElementById('input-email-usuario-admin').value = '';
+        document.getElementById('input-clave-usuario-admin').value = '';
+        document.querySelectorAll('.check-modulo-usuario').forEach(check => check.checked = false);
+    } catch (error) {
+        alert("Error al crear usuario: " + (error.message || "No se pudo completar la operación."));
+    } finally {
+        restaurarBotonCarga(btnCrear, htmlOriginal);
+    }
+}
+
+// GENERAR LINK DE RESETEO DE CLAVE
+export async function generarResetClaveUsuarioFirebase(emailPreseleccionado = '') {
+    if (bloquearCambiosEnModoVerComo()) return;
+    if (!state.esAdminMaster) return alert("Solo el Administrador Principal puede resetear claves.");
+
+    const email = normalizarEmailPermiso(emailPreseleccionado || document.getElementById('input-email-reset-admin').value);
+    if (!email) return alert("Ingresá el correo del usuario.");
+
+    const btnReset = document.getElementById('btn-reset-usuario-admin');
+    const htmlOriginal = activarBotonCarga(btnReset, "Generando...");
+
+    try {
+        const resultado = await enviarResetClaveUsuarioFn({ email });
+        const link = resultado.data && resultado.data.link ? resultado.data.link : '';
+
+        if (link) {
+            await navigator.clipboard.writeText(link);
+            alert(`Link de recuperación generado y copiado al portapapeles.\n\nUsuario: ${email}`);
+        } else {
+            alert("Link generado correctamente.");
+        }
+
+        const inputReset = document.getElementById('input-email-reset-admin');
+        if (inputReset) inputReset.value = '';
+    } catch (error) {
+        alert("Error al generar recuperación: " + (error.message || "No se pudo completar la operación."));
+    } finally {
+        restaurarBotonCarga(btnReset, htmlOriginal);
+    }
+}
+
+// CAMBIAR EMAIL DE LOGIN
+export async function cambiarEmailUsuarioFirebase(emailActualPreseleccionado = '') {
+    if (bloquearCambiosEnModoVerComo()) return;
+    if (!state.esAdminMaster) return alert("Solo el Administrador Principal puede cambiar correos.");
+
+    const emailActual = normalizarEmailPermiso(emailActualPreseleccionado || document.getElementById('input-email-actual-admin').value);
+    const emailNuevo = normalizarEmailPermiso(document.getElementById('input-email-nuevo-admin').value);
+
+    if (!emailActual || !emailNuevo) return alert("Completá el correo actual y el correo nuevo.");
+    if (!confirm(`¿Confirmás cambiar el correo de login?\n\nActual: ${emailActual}\nNuevo: ${emailNuevo}`)) return;
+
+    const btnCambiar = document.getElementById('btn-cambiar-email-admin');
+    const htmlOriginal = activarBotonCarga(btnCambiar, "Cambiando...");
+
+    try {
+        await cambiarEmailUsuarioIntranetFn({ emailActual, emailNuevo });
+        alert("Correo actualizado correctamente.");
+
+        const inputActual = document.getElementById('input-email-actual-admin');
+        const inputNuevo = document.getElementById('input-email-nuevo-admin');
+        if (inputActual) inputActual.value = '';
+        if (inputNuevo) inputNuevo.value = '';
+    } catch (error) {
+        alert("Error al cambiar correo: " + (error.message || "No se pudo completar la operación."));
+    } finally {
+        restaurarBotonCarga(btnCambiar, htmlOriginal);
     }
 }
 

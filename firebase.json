@@ -6,7 +6,9 @@
       ".firebaserc",
       "firestore.rules",
       "package.json",
+      "package-lock.json",
       "DEPLOY_FIREBASE.md",
+      "functions/**",
       "firebase-debug.log",
       "**/.*",
       "**/node_modules/**"
@@ -25,5 +27,8 @@
   },
   "firestore": {
     "rules": "firestore.rules"
+  },
+  "functions": {
+    "source": "functions"
   }
 }

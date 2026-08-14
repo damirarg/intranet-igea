@@ -1,8 +1,9 @@
 {
   "scripts": {
-    "deploy": "firebase deploy --only hosting,firestore:rules --project intranet-igea",
+    "deploy": "firebase deploy --only hosting,firestore:rules,functions --project intranet-igea",
     "deploy:hosting": "firebase deploy --only hosting --project intranet-igea",
-    "deploy:rules": "firebase deploy --only firestore:rules --project intranet-igea"
+    "deploy:rules": "firebase deploy --only firestore:rules --project intranet-igea",
+    "deploy:functions": "firebase deploy --only functions --project intranet-igea"
   },
   "devDependencies": {}
 }

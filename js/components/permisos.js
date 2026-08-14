@@ -42,6 +42,12 @@ export function renderizarPermisos() {
                 ${renderizarBadgesModulos(p.modulos)}
             </td>
             <td class="p-3.5 text-right">
+                <button onclick="window.generarResetClaveUsuarioFirebase('${p.email}')" class="text-slate-400 hover:text-blue-600 transition p-1" title="Generar link de recuperación">
+                    <span class="material-symbols-rounded" style="font-size: 18px;">lock_reset</span>
+                </button>
+                <button onclick="document.getElementById('input-email-actual-admin').value='${p.email}'; document.getElementById('input-email-nuevo-admin').focus();" class="text-slate-400 hover:text-amber-600 transition p-1" title="Preparar cambio de correo">
+                    <span class="material-symbols-rounded" style="font-size: 18px;">alternate_email</span>
+                </button>
                 <button onclick="window.revocarPermisoFirebase('${p.id}')" class="text-slate-400 hover:text-red-600 transition p-1" title="Revocar Permiso">
                     <span class="material-symbols-rounded" style="font-size: 18px;">delete</span>
                 </button>
@@ -82,6 +88,61 @@ export function renderizarPermisos() {
     `).join('');
 
     return `
+        <div class="bg-white p-5 md:p-6 rounded-2xl border border-slate-200 shadow-sm mb-6 shrink-0">
+            <div class="flex items-center justify-between gap-3 mb-5">
+                <div>
+                    <h4 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                        <span class="material-symbols-rounded text-indigo-600">manage_accounts</span> Usuarios de la Intranet
+                    </h4>
+                    <p class="text-xs text-slate-500 mt-1">Alta de usuarios, recuperación de acceso y cambio de correo de login.</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
+                <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4">
+                    <h5 class="text-xs font-black text-slate-700 uppercase tracking-wide mb-3">Crear usuario</h5>
+                    <div class="space-y-3">
+                        <input type="text" id="input-nombre-usuario-admin" placeholder="Nombre completo" class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        <input type="email" id="input-email-usuario-admin" placeholder="correo@ejemplo.com" class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        <input type="text" id="input-clave-usuario-admin" placeholder="Clave temporal opcional" class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-semibold text-slate-600">
+                            <label class="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2 cursor-pointer">
+                                <input type="checkbox" value="saldos" class="check-modulo-usuario w-3.5 h-3.5 text-rose-600 rounded focus:ring-rose-500"> Saldos
+                            </label>
+                            <label class="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2 cursor-pointer">
+                                <input type="checkbox" value="guardias" class="check-modulo-usuario w-3.5 h-3.5 text-emerald-600 rounded focus:ring-emerald-500"> Guardias
+                            </label>
+                        </div>
+                        <button id="btn-crear-usuario-admin" onclick="window.crearUsuarioIntranetFirebase()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs py-2.5 rounded-xl transition shadow-md shadow-indigo-200 flex items-center justify-center gap-1.5">
+                            <span class="material-symbols-rounded" style="font-size: 16px;">person_add</span> Crear Usuario
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-blue-50 border border-blue-100 rounded-2xl p-4">
+                    <h5 class="text-xs font-black text-blue-800 uppercase tracking-wide mb-3">Resetear contraseña</h5>
+                    <div class="space-y-3">
+                        <input type="email" id="input-email-reset-admin" placeholder="correo del usuario" class="w-full bg-white border border-blue-100 rounded-xl px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        <p class="text-[11px] text-blue-700 leading-relaxed">Genera un link de recuperación y lo copia al portapapeles para enviarlo al usuario.</p>
+                        <button id="btn-reset-usuario-admin" onclick="window.generarResetClaveUsuarioFirebase()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-2.5 rounded-xl transition shadow-md shadow-blue-200 flex items-center justify-center gap-1.5">
+                            <span class="material-symbols-rounded" style="font-size: 16px;">lock_reset</span> Generar Link
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-amber-50 border border-amber-100 rounded-2xl p-4">
+                    <h5 class="text-xs font-black text-amber-800 uppercase tracking-wide mb-3">Cambiar correo de login</h5>
+                    <div class="space-y-3">
+                        <input type="email" id="input-email-actual-admin" placeholder="correo actual" class="w-full bg-white border border-amber-100 rounded-xl px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                        <input type="email" id="input-email-nuevo-admin" placeholder="correo nuevo" class="w-full bg-white border border-amber-100 rounded-xl px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                        <button id="btn-cambiar-email-admin" onclick="window.cambiarEmailUsuarioFirebase()" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs py-2.5 rounded-xl transition shadow-md shadow-amber-200 flex items-center justify-center gap-1.5">
+                            <span class="material-symbols-rounded" style="font-size: 16px;">alternate_email</span> Cambiar Correo
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Formulario para Publicar Nuevo Documento (DPP o Procedimiento) -->
         <div class="bg-white p-5 md:p-6 rounded-2xl border border-slate-200 shadow-sm mb-6 shrink-0">
             <h4 class="font-bold text-slate-800 text-sm mb-3 flex items-center gap-2">
@@ -176,7 +237,7 @@ export function renderizarPermisos() {
                             <tr class="border-b border-slate-200 text-slate-500 text-[10px] uppercase tracking-wider bg-slate-50/50">
                                 <th class="p-3.5">Usuario / Correo</th>
                                 <th class="p-3.5">Módulo Habilitado</th>
-                                <th class="p-3.5 text-right">Acción</th>
+                                <th class="p-3.5 text-right">Acciones</th>
                             </tr>
                         </thead>
                         <tbody>${filasPermisos}</tbody>

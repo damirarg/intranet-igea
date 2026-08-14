@@ -48,6 +48,9 @@ import {
     togglePagareFirebase,
     toggleAcuerdoEspecialFirebase,
     editarGestionFirebase,
+    crearUsuarioIntranetFirebase,
+    generarResetClaveUsuarioFirebase,
+    cambiarEmailUsuarioFirebase,
     otorgarPermisoFirebase,
     revocarPermisoFirebase,
     actualizarCampoFirebase,
@@ -105,6 +108,9 @@ window.procesarCobroFirebase = procesarCobroFirebase;
 window.togglePagareFirebase = togglePagareFirebase;
 window.toggleAcuerdoEspecialFirebase = toggleAcuerdoEspecialFirebase;
 window.editarGestionFirebase = editarGestionFirebase;
+window.crearUsuarioIntranetFirebase = crearUsuarioIntranetFirebase;
+window.generarResetClaveUsuarioFirebase = generarResetClaveUsuarioFirebase;
+window.cambiarEmailUsuarioFirebase = cambiarEmailUsuarioFirebase;
 window.otorgarPermisoFirebase = otorgarPermisoFirebase;
 window.revocarPermisoFirebase = revocarPermisoFirebase;
 window.actualizarCampoFirebase = actualizarCampoFirebase;
