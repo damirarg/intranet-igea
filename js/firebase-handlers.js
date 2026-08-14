@@ -39,6 +39,22 @@ function normalizarEmailPermiso(email) {
     return email.trim().toLowerCase();
 }
 
+function activarBotonCarga(btn, texto) {
+    if (!btn) return null;
+
+    const htmlOriginal = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = `<span class="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-current inline-block mr-1.5"></span> ${texto}`;
+    return htmlOriginal;
+}
+
+function restaurarBotonCarga(btn, htmlOriginal) {
+    if (!btn || !htmlOriginal) return;
+
+    btn.disabled = false;
+    btn.innerHTML = htmlOriginal;
+}
+
 function normalizarUrlGoogleDrive(url) {
     if (!url) return '';
     let limpia = url.trim();
@@ -63,7 +79,7 @@ function normalizarUrlGoogleDrive(url) {
     return limpia;
 }
 
-// CARGA SEMILLA AUTOMÁTICA
+// CARGA SEMILLA AUTOMATICA
 export async function inicializarDocumentosBase() {
     try {
         const snapshot = await getDocs(documentosRef);
@@ -107,13 +123,10 @@ export async function guardarNuevoDocumentoFirebase() {
     const areaOFecha = document.getElementById('input-area-doc').value.trim();
     let urlRaw = document.getElementById('input-url-doc').value.trim();
 
-    if (!nombre || !urlRaw) return alert("Por favor, completá el nombre y el enlace de Google Drive.");
+    if (!nombre || !urlRaw) return alert("Por favor, completa el nombre y el enlace de Google Drive.");
 
     const btnPublicar = document.getElementById('btn-publicar-doc');
-    if (btnPublicar) {
-        btnPublicar.disabled = true;
-        btnPublicar.innerHTML = `<span class="animate-spin rounded-full h-4 w-4 border-b-2 border-white inline-block mr-1.5"></span> Publicando...`;
-    }
+    const htmlOriginal = activarBotonCarga(btnPublicar, "Publicando...");
 
     let urlPreview = normalizarUrlGoogleDrive(urlRaw);
 
@@ -136,7 +149,7 @@ export async function guardarNuevoDocumentoFirebase() {
 
         await Promise.race([guardadoPromesa, timeoutPromesa]);
 
-        alert(`¡Excelente Damián! El documento '${nombre}' se publicó correctamente.`);
+        alert(`Excelente Damian. El documento '${nombre}' se publico correctamente.`);
 
         document.getElementById('input-orden-doc').value = '';
         document.getElementById('input-nombre-doc').value = '';
@@ -144,16 +157,13 @@ export async function guardarNuevoDocumentoFirebase() {
         document.getElementById('input-url-doc').value = '';
 
     } catch (error) {
-        alert("Atención: " + error.message);
+        alert("Atencion: " + error.message);
     } finally {
-        if (btnPublicar) {
-            btnPublicar.disabled = false;
-            btnPublicar.innerHTML = `<span class="material-symbols-rounded" style="font-size: 16px;">add_circle</span> Publicar Documento`;
-        }
+        restaurarBotonCarga(btnPublicar, htmlOriginal);
     }
 }
 
-// PROCESAR EDICIÓN DE DOCUMENTO Y GUARDA ANEXOS/MATERIALES DIDÁCTICOS EN FIRESTORE
+// PROCESAR EDICION DE DOCUMENTO Y GUARDA ANEXOS/MATERIALES DIDACTICOS EN FIRESTORE
 export async function procesarEdicionDocFirebase() {
     if (!state.docActualEditarId || !state.esAdminMaster) return;
 
@@ -165,15 +175,12 @@ export async function procesarEdicionDocFirebase() {
     const nuevoArea = document.getElementById('input-edit-area').value.trim();
     let nuevaUrlRaw = document.getElementById('input-edit-url').value.trim();
 
-    if (!nuevoNombre || !nuevaUrlRaw) return alert("Por favor, completá los campos.");
+    if (!nuevoNombre || !nuevaUrlRaw) return alert("Por favor, completa los campos.");
 
     let nuevaUrlPreview = normalizarUrlGoogleDrive(nuevaUrlRaw);
 
     const btnGuardar = document.getElementById('btn-guardar-edit-doc');
-    if (btnGuardar) {
-        btnGuardar.disabled = true;
-        btnGuardar.innerHTML = `<span class="animate-spin rounded-full h-4 w-4 border-b-2 border-white inline-block mr-1.5"></span> Guardando...`;
-    }
+    const htmlOriginal = activarBotonCarga(btnGuardar, "Guardando...");
 
     try {
         const docRef = doc(db, "documentos_dpp_proc", state.docActualEditarId);
@@ -192,25 +199,22 @@ export async function procesarEdicionDocFirebase() {
 
         await updateDoc(docRef, updateData);
 
-        alert("¡Documento y anexos actualizados con éxito!");
+        alert("Documento y anexos actualizados con exito.");
         cerrarModalEditarDoc();
     } catch (e) {
         alert("Error al actualizar: " + e.message);
     } finally {
-        if (btnGuardar) {
-            btnGuardar.disabled = false;
-            btnGuardar.innerHTML = `<span class="material-symbols-rounded" style="font-size: 16px;">save</span> Guardar Cambios`;
-        }
+        restaurarBotonCarga(btnGuardar, htmlOriginal);
     }
 }
 
-// ELIMINAR DOCUMENTO (DPP O PROCEDIMIENTO)
+// ELIMINAR DOCUMENTO
 export async function eliminarDocumentoFirebase(event, docId) {
     if (event) event.stopPropagation();
 
     if (!state.esAdminMaster) return alert("Solo el Administrador Principal puede eliminar documentos.");
 
-    if (confirm("¿Estás seguro de que querés eliminar este documento? Esta acción no se puede deshacer.")) {
+    if (confirm("Estas seguro de que queres eliminar este documento? Esta accion no se puede deshacer.")) {
         try {
             const docRef = doc(db, "documentos_dpp_proc", docId);
             await deleteDoc(docRef);
@@ -242,8 +246,8 @@ export async function procesarCobroFirebase() {
     const fechaPago = document.getElementById('input-fecha-cobro').value;
     const montoAbonado = parseFloat(document.getElementById('input-monto-cobro').value);
 
-    if (!fechaPago) return alert("Por favor, ingresá la fecha del cobro.");
-    if (isNaN(montoAbonado) || montoAbonado <= 0) return alert("Por favor, ingresá un monto abonado válido.");
+    if (!fechaPago) return alert("Por favor, ingresa la fecha del cobro.");
+    if (isNaN(montoAbonado) || montoAbonado <= 0) return alert("Por favor, ingresa un monto abonado valido.");
 
     let saldoActualNum = parsearMontoNumerico(cuenta.saldo);
     let nuevoSaldoNum = saldoActualNum - montoAbonado;
@@ -254,7 +258,7 @@ export async function procesarCobroFirebase() {
     if (nuevoSaldoNum <= 0.01) {
         let notaCobro = {
             fecha: new Date().toLocaleString('es-AR'),
-            texto: `PAGO TOTAL CANCELADO ($${formatearMonedaAR(montoAbonado)}) el día ${fechaFormateada}. Cuenta saldada.`,
+            texto: `PAGO TOTAL CANCELADO ($${formatearMonedaAR(montoAbonado)}) el dia ${fechaFormateada}. Cuenta saldada.`,
             autor: state.usuarioActualEmail
         };
 
@@ -268,7 +272,7 @@ export async function procesarCobroFirebase() {
             });
 
             cerrarModalCobro();
-            alert("¡Excelente! La cuenta se registró como TOTALMENTE SALDADA.");
+            alert("La cuenta se registro como totalmente saldada.");
         } catch (e) {
             alert("Error al registrar cobro: " + e.message);
         }
@@ -278,7 +282,7 @@ export async function procesarCobroFirebase() {
 
         let notaCobro = {
             fecha: new Date().toLocaleString('es-AR'),
-            texto: `PAGO PARCIAL RECOBRADO: Se abonó $${formatearMonedaAR(montoAbonado)} el día ${fechaFormateada}. Saldo restante: ${nuevoSaldoTexto}.`,
+            texto: `PAGO PARCIAL RECOBRADO: Se abono $${formatearMonedaAR(montoAbonado)} el dia ${fechaFormateada}. Saldo restante: ${nuevoSaldoTexto}.`,
             autor: state.usuarioActualEmail
         };
 
@@ -289,7 +293,7 @@ export async function procesarCobroFirebase() {
             });
 
             cerrarModalCobro();
-            alert(`¡Pago parcial registrado! Se descontó $${formatearMonedaAR(montoAbonado)}.`);
+            alert(`Pago parcial registrado. Se desconto $${formatearMonedaAR(montoAbonado)}.`);
         } catch (e) {
             alert("Error al registrar cobro parcial: " + e.message);
         }
@@ -318,15 +322,15 @@ export async function toggleAcuerdoEspecialFirebase(docId, nuevoEstado) {
     }
 }
 
-// EDITAR NOTA DE GESTIÓN
+// EDITAR NOTA DE GESTION
 export async function editarGestionFirebase(docId, indexGestion) {
-    if (!state.esAdminMaster) return alert("Solo el Administrador Principal puede editar notas de gestión.");
+    if (!state.esAdminMaster) return alert("Solo el Administrador Principal puede editar notas de gestion.");
 
     const cuenta = state.listaSaldosFirebase.find(c => c.id === docId);
     if (!cuenta || !cuenta.gestiones || !cuenta.gestiones[indexGestion]) return;
 
     let textoActual = cuenta.gestiones[indexGestion].texto;
-    let nuevoTexto = prompt("Modificar mensaje de gestión:", textoActual);
+    let nuevoTexto = prompt("Modificar mensaje de gestion:", textoActual);
 
     if (nuevoTexto !== null && nuevoTexto.trim() !== "") {
         let gestionesCopia = [...cuenta.gestiones];
@@ -338,7 +342,7 @@ export async function editarGestionFirebase(docId, indexGestion) {
             await updateDoc(cuentaRef, { gestiones: gestionesCopia });
             abrirModalGestion(docId);
         } catch (e) {
-            alert("Error al editar gestión: " + e.message);
+            alert("Error al editar gestion: " + e.message);
         }
     }
 }
@@ -348,15 +352,11 @@ export async function otorgarPermisoFirebase() {
     const emailInput = normalizarEmailPermiso(document.getElementById('input-email-permiso').value);
     const moduloSelected = document.getElementById('select-modulo-permiso').value;
 
-    if (!emailInput) return alert("Por favor, ingresá el correo del colaborador.");
+    if (!emailInput) return alert("Por favor, ingresa el correo del colaborador.");
     if (emailInput.includes('/')) return alert("El correo ingresado no puede contener barras (/).");
 
     const btnOtorgar = document.getElementById('btn-otorgar-permiso');
-
-    if (btnOtorgar) {
-        btnOtorgar.disabled = true;
-        btnOtorgar.innerHTML = `<span class="animate-spin rounded-full h-4 w-4 border-b-2 border-white inline-block mr-1.5"></span> Guardando...`;
-    }
+    const htmlOriginal = activarBotonCarga(btnOtorgar, "Guardando...");
 
     const permisoExistente = state.listaPermisosFirebase.find(p => p.email && normalizarEmailPermiso(p.email) === emailInput);
     const modulosActuales = permisoExistente && Array.isArray(permisoExistente.modulos) ? [...permisoExistente.modulos] : [];
@@ -381,35 +381,32 @@ export async function otorgarPermisoFirebase() {
         }
 
         if (yaTeniaModulo) {
-            alert(`El usuario ${emailInput} ya cuenta con acceso a este módulo. Se verificó el formato del permiso.`);
+            alert(`El usuario ${emailInput} ya cuenta con acceso a este modulo. Se verifico el formato del permiso.`);
         } else {
-            alert(`Acceso al módulo '${moduloSelected}' agregado a ${emailInput}.`);
+            alert(`Acceso al modulo '${moduloSelected}' agregado a ${emailInput}.`);
         }
 
         document.getElementById('input-email-permiso').value = '';
     } catch (e) {
         alert("Error: " + e.message);
     } finally {
-        if (btnOtorgar) {
-            btnOtorgar.disabled = false;
-            btnOtorgar.innerHTML = `<span class="material-symbols-rounded" style="font-size: 16px;">key</span> Guardar Permiso`;
-        }
+        restaurarBotonCarga(btnOtorgar, htmlOriginal);
     }
 }
 
 // REVOCAR PERMISO
 export async function revocarPermisoFirebase(docId) {
-    if (confirm("¿Estás seguro de que querés revocar los accesos de este usuario?")) {
+    if (confirm("Estas seguro de que queres revocar los accesos de este usuario?")) {
         try {
             await deleteDoc(doc(db, "permisos", docId));
-            alert("Permisos revocados con éxito.");
+            alert("Permisos revocados con exito.");
         } catch (e) {
             alert("Error al revocar permisos: " + e.message);
         }
     }
 }
 
-// ACTUALIZAR CAMPO DE SALDOS EN LÍNEA
+// ACTUALIZAR CAMPO DE SALDOS EN LINEA
 export async function actualizarCampoFirebase(docId, campo, valor) {
     const cuentaRef = doc(db, "saldos", docId);
 
@@ -422,13 +419,13 @@ export async function actualizarCampoFirebase(docId, campo, valor) {
 
 // ELIMINAR SALDOS SELECCIONADOS
 export async function eliminarSaldosSeleccionados() {
-    if (!state.esAdminMaster) return alert("No tenés permisos para eliminar registros.");
+    if (!state.esAdminMaster) return alert("No tenes permisos para eliminar registros.");
 
     const checks = document.querySelectorAll('.check-saldo-fbre:checked');
 
-    if (checks.length === 0) return alert("Por favor, seleccioná al menos un paciente para eliminar.");
+    if (checks.length === 0) return alert("Por favor, selecciona al menos un paciente para eliminar.");
 
-    if (confirm(`¿Estás seguro de que querés eliminar ${checks.length} cuentas de la base de datos? Esta acción no se puede deshacer.`)) {
+    if (confirm(`Estas seguro de que queres eliminar ${checks.length} cuentas de la base de datos? Esta accion no se puede deshacer.`)) {
         try {
             for (let check of checks) {
                 let docId = check.getAttribute('data-id');
@@ -456,11 +453,7 @@ export async function guardarSaldosSeleccionados() {
     if (cuentasAGuardar.length === 0) return alert("Debes seleccionar al menos una cuenta para guardar.");
 
     const btnGuardar = document.getElementById('btn-guardar-saldos');
-
-    if (btnGuardar) {
-        btnGuardar.disabled = true;
-        btnGuardar.innerHTML = `<span class="animate-spin rounded-full h-4 w-4 border-b-2 border-white inline-block mr-1"></span> Guardando en Firebase...`;
-    }
+    const htmlOriginal = activarBotonCarga(btnGuardar, "Guardando...");
 
     try {
         for (let cuenta of cuentasAGuardar) {
@@ -487,23 +480,20 @@ export async function guardarSaldosSeleccionados() {
         const inputCsv = document.getElementById('input-csv');
         if (inputCsv) inputCsv.value = '';
 
-        alert(`¡Excelente Damián! ${cuentasAGuardar.length} cuentas unificadas se guardaron exitosamente en Firebase.`);
+        alert(`${cuentasAGuardar.length} cuentas unificadas se guardaron exitosamente en Firebase.`);
         cambiarVista('saldos');
     } catch (e) {
         alert("Error al guardar saldos: " + e.message);
     } finally {
-        if (btnGuardar) {
-            btnGuardar.disabled = false;
-            btnGuardar.innerHTML = `<span class="material-symbols-rounded" style="font-size: 16px;">cloud_upload</span> Guardar Selección`;
-        }
+        restaurarBotonCarga(btnGuardar, htmlOriginal);
     }
 }
 
-// GUARDAR NUEVA NOTA DE GESTIÓN
+// GUARDAR NUEVA NOTA DE GESTION
 export async function guardarNuevaGestion() {
     const texto = document.getElementById('texto-nueva-gestion').value.trim();
 
-    if (!texto) return alert("Por favor, escribí un detalle de la gestión.");
+    if (!texto) return alert("Por favor, escribi un detalle de la gestion.");
 
     const cuentaRef = doc(db, "saldos", state.saldoActualGestionId);
 
@@ -526,10 +516,15 @@ export async function guardarNuevaGestion() {
 export async function guardarSugerenciaFirebase() {
     const texto = document.getElementById('texto-sugerencia').value.trim();
     const esAnonimo = document.getElementById('check-anonimo').checked;
+    const btnPublicar = document.querySelector('#modal-sugerencia button[onclick="window.guardarSugerenciaFirebase()"]');
+    const htmlOriginal = activarBotonCarga(btnPublicar, "Publicando...");
 
-    if (!texto) return alert("Por favor, escribí un texto para tu idea.");
+    if (!texto) {
+        restaurarBotonCarga(btnPublicar, htmlOriginal);
+        return alert("Por favor, escribi un texto para tu idea.");
+    }
 
-    let nombreAutor = "Anónimo";
+    let nombreAutor = "Anonimo";
 
     if (!esAnonimo) {
         const empleadoEncontrado = baseRecibos.find(emp => emp.email.toLowerCase().trim() === state.usuarioActualEmail.toLowerCase().trim());
@@ -552,10 +547,17 @@ export async function guardarSugerenciaFirebase() {
     };
 
     try {
-        await addDoc(sugerenciasRef, nuevaIdea);
+        const docCreado = await addDoc(sugerenciasRef, nuevaIdea);
+        state.listaSugerencias.unshift({ id: docCreado.id, ...nuevaIdea });
         cerrarModalSugerencia();
+
+        if (state.seccionActual === 'sugerencias') {
+            cambiarVista('sugerencias');
+        }
     } catch (error) {
         alert("Error al guardar: " + error.message);
+    } finally {
+        restaurarBotonCarga(btnPublicar, htmlOriginal);
     }
 }
 
@@ -587,38 +589,61 @@ export async function reaccionarFirebase(docId, tipoReaccion) {
 }
 
 // ELIMINAR SUGERENCIA
-export async function eliminarSugerenciaFirebase(docId) {
-    if (confirm("¿Estás seguro de que querés eliminar tu sugerencia?")) {
+export async function eliminarSugerenciaFirebase(docId, event) {
+    if (event) event.stopPropagation();
+
+    if (confirm("Estas seguro de que queres eliminar esta sugerencia?")) {
+        const btnEliminar = event ? event.currentTarget : null;
+        const htmlOriginal = activarBotonCarga(btnEliminar, "Eliminando...");
+
         try {
             await deleteDoc(doc(db, "sugerencias", docId));
+            state.listaSugerencias = state.listaSugerencias.filter(s => s.id !== docId);
+
+            if (state.seccionActual === 'sugerencias') {
+                cambiarVista('sugerencias');
+            }
         } catch (e) {
             alert("Error al eliminar sugerencia: " + e.message);
+            restaurarBotonCarga(btnEliminar, htmlOriginal);
         }
     }
 }
 
 // ARCHIVAR SUGERENCIA
-export async function archivarSugerenciaFirebase(docId, nuevoEstadoArchivado) {
+export async function archivarSugerenciaFirebase(docId, nuevoEstadoArchivado, event) {
+    if (event) event.stopPropagation();
     if (!state.esAdminMaster) return;
+
+    const btnArchivar = event ? event.currentTarget : null;
+    const htmlOriginal = activarBotonCarga(btnArchivar, nuevoEstadoArchivado ? "Archivando..." : "Restaurando...");
 
     try {
         await updateDoc(doc(db, "sugerencias", docId), { archivada: nuevoEstadoArchivado });
+
+        const sugerencia = state.listaSugerencias.find(s => s.id === docId);
+        if (sugerencia) sugerencia.archivada = nuevoEstadoArchivado;
+
+        if (state.seccionActual === 'sugerencias') {
+            cambiarVista('sugerencias');
+        }
     } catch (e) {
-        console.error(e);
+        alert("Error al actualizar sugerencia: " + e.message);
+        restaurarBotonCarga(btnArchivar, htmlOriginal);
     }
 }
 
-// INICIAR SESIÓN
+// INICIAR SESION
 export async function iniciarSesionFirebase() {
     const email = document.getElementById('input-email').value;
     const password = document.getElementById('input-password').value;
 
-    if (!email || !password) return alert("Por favor, completá todos los datos.");
+    if (!email || !password) return alert("Por favor, completa todos los datos.");
 
     try {
         await signInWithEmailAndPassword(auth, email, password);
     } catch (e) {
-        alert("Error al iniciar sesión. Verificá tus credenciales.");
+        alert("Error al iniciar sesion. Verifica tus credenciales.");
     }
 }
 
@@ -626,17 +651,17 @@ export async function iniciarSesionFirebase() {
 export async function recuperarClaveFirebase() {
     const email = document.getElementById('input-email').value;
 
-    if (!email) return alert("Ingresá tu correo arriba.");
+    if (!email) return alert("Ingresa tu correo arriba.");
 
     try {
         await sendPasswordResetEmail(auth, email);
-        alert("Correo de recuperación enviado.");
+        alert("Correo de recuperacion enviado.");
     } catch (e) {
-        alert("Error al procesar recuperación.");
+        alert("Error al procesar recuperacion.");
     }
 }
 
-// CERRAR SESIÓN
+// CERRAR SESION
 export async function cerrarSesion() {
     try {
         await signOut(auth);
@@ -652,7 +677,7 @@ export async function cambiarClaveFirebase() {
     const user = auth.currentUser;
     const nuevaClave = document.getElementById('input-nueva-clave').value;
 
-    if (!nuevaClave || nuevaClave.length < 6) return alert("Mínimo 6 caracteres.");
+    if (!nuevaClave || nuevaClave.length < 6) return alert("Minimo 6 caracteres.");
 
     if (user) {
         try {
@@ -660,7 +685,7 @@ export async function cambiarClaveFirebase() {
             alert("Clave actualizada.");
             cerrarModalClave();
         } catch (e) {
-            alert("Por seguridad, cerrá sesión y volvé a ingresar.");
+            alert("Por seguridad, cerra sesion y volve a ingresar.");
         }
     }
 }
@@ -708,7 +733,7 @@ export async function eliminarGuardiaFirebase() {
     if (!state.esAdminMaster) return alert("Solo el Administrador Principal puede gestionar guardias.");
     if (!state.guardiaDiaSeleccionado) return;
 
-    if (confirm("¿Estás seguro de que querés eliminar la asignación de este día?")) {
+    if (confirm("Estas seguro de que queres eliminar la asignacion de este dia?")) {
         try {
             const docRef = doc(db, "guardias", state.guardiaDiaSeleccionado);
             await deleteDoc(docRef);

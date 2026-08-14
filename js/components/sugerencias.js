@@ -23,12 +23,13 @@ export function renderizarSugerencias() {
     });
 
     let postitsHTML = "";
+
     if (sugerenciasFiltradas.length === 0) {
         postitsHTML = `
             <div class="col-span-full bg-white p-8 rounded-3xl border border-dashed border-slate-300 text-center">
                 <span class="material-symbols-rounded text-slate-300 text-5xl mb-2">sticky_note_2</span>
-                <h4 class="text-slate-600 font-bold mb-1">${state.verArchivadas ? 'No hay sugerencias archivadas' : '¡El mural está listo!'}</h4>
-                <p class="text-xs text-slate-400">${state.verArchivadas ? 'Las sugerencias archivadas por la administración aparecerán acá.' : 'Sé el primero en dejar una sugerencia usando el botón superior.'}</p>
+                <h4 class="text-slate-600 font-bold mb-1">${state.verArchivadas ? 'No hay sugerencias archivadas' : 'El mural esta listo'}</h4>
+                <p class="text-xs text-slate-400">${state.verArchivadas ? 'Las sugerencias archivadas por la administracion apareceran aca.' : 'Se el primero en dejar una sugerencia usando el boton superior.'}</p>
             </div>
         `;
     } else {
@@ -42,7 +43,10 @@ export function renderizarSugerencias() {
             let votosMap = sug.votosMap || {};
             let miVotoUnico = votosMap[userKey];
 
-            let cantMeGusta = 0, cantBuenaIdea = 0, cantMeEncanta = 0;
+            let cantMeGusta = 0;
+            let cantBuenaIdea = 0;
+            let cantMeEncanta = 0;
+
             Object.values(votosMap).forEach(voto => {
                 if (voto === 'meGusta') cantMeGusta++;
                 if (voto === 'buenaIdea') cantBuenaIdea++;
@@ -53,13 +57,13 @@ export function renderizarSugerencias() {
             let puedeEliminar = state.esAdminMaster || esAutor;
 
             let btnEliminarHTML = puedeEliminar ? `
-                <button onclick="window.eliminarSugerenciaFirebase('${sug.id}')" title="${state.esAdminMaster && !esAutor ? 'Eliminar sugerencia' : 'Eliminar mi sugerencia'}" class="text-slate-400 hover:text-red-600 transition">
+                <button onclick="window.eliminarSugerenciaFirebase('${sug.id}', event)" title="${state.esAdminMaster && !esAutor ? 'Eliminar sugerencia' : 'Eliminar mi sugerencia'}" class="text-slate-400 hover:text-red-600 transition disabled:opacity-60 disabled:cursor-wait">
                     <span class="material-symbols-rounded" style="font-size: 16px;">delete</span>
                 </button>
             ` : '';
 
             let btnArchivarHTML = state.esAdminMaster ? `
-                <button onclick="window.archivarSugerenciaFirebase('${sug.id}', ${!sug.archivada})" title="${sug.archivada ? 'Desarchivar' : 'Archivar'}" class="text-slate-400 hover:text-amber-600 transition">
+                <button onclick="window.archivarSugerenciaFirebase('${sug.id}', ${!sug.archivada}, event)" title="${sug.archivada ? 'Desarchivar' : 'Archivar'}" class="text-slate-400 hover:text-amber-600 transition disabled:opacity-60 disabled:cursor-wait">
                     <span class="material-symbols-rounded" style="font-size: 16px;">${sug.archivada ? 'unarchive' : 'archive'}</span>
                 </button>
             ` : '';
