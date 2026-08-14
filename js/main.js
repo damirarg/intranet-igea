@@ -2,6 +2,7 @@ import { state, baseRecibos } from './app-state.js';
 import { db, auth } from './firebase-config.js';
 import { 
     collection, 
+    doc,
     onSnapshot, 
     query, 
     orderBy 
@@ -128,6 +129,94 @@ const saldosRef = collection(db, "saldos");
 const permisosRef = collection(db, "permisos");
 const guardiasRef = collection(db, "guardias");
 
+let unsubscribePermisos = null;
+let unsubscribeSaldos = null;
+
+function normalizarEmail(email) {
+    return (email || '').toLowerCase().trim();
+}
+
+function esAdminEmail(email) {
+    return normalizarEmail(email) === "damirodriguez81@gmail.com";
+}
+
+function refrescarVistasPorPermisos() {
+    if (state.usuarioActualEmail) {
+        evaluarPermisosUsuario(state.usuarioActualEmail);
+    }
+
+    escucharSaldosSiCorresponde();
+
+    if (state.seccionActual === 'permisos') cambiarVista('permisos');
+    if (state.seccionActual === 'inicio') cambiarVista('inicio');
+    if (state.seccionActual === 'saldos' && !state.tienePermisoSaldos && !state.esAdminMaster) cambiarVista('inicio');
+}
+
+function escucharSaldosSiCorresponde() {
+    const puedeVerSaldos = state.esAdminMaster || state.tienePermisoSaldos;
+
+    if (!puedeVerSaldos) {
+        if (unsubscribeSaldos) {
+            unsubscribeSaldos();
+            unsubscribeSaldos = null;
+        }
+        state.listaSaldosFirebase = [];
+        return;
+    }
+
+    if (unsubscribeSaldos) return;
+
+    unsubscribeSaldos = onSnapshot(query(saldosRef), (snapshot) => {
+        state.listaSaldosFirebase = [];
+        snapshot.forEach((docSnap) => {
+            state.listaSaldosFirebase.push({ id: docSnap.id, ...docSnap.data() });
+        });
+
+        aplicarOrdenamientoSaldos();
+
+        if (state.seccionActual === 'saldos' && !state.viendoDocumento && state.datosCSVPrecargados.length === 0) {
+            cambiarVista('saldos');
+        }
+    }, (error) => {
+        console.error("Error al escuchar saldos:", error);
+    });
+}
+
+function escucharPermisosUsuario(email) {
+    if (unsubscribePermisos) {
+        unsubscribePermisos();
+        unsubscribePermisos = null;
+    }
+
+    const mailLogueado = normalizarEmail(email);
+
+    if (esAdminEmail(mailLogueado)) {
+        unsubscribePermisos = onSnapshot(permisosRef, (snapshot) => {
+            state.listaPermisosFirebase = [];
+            snapshot.forEach((docSnap) => {
+                state.listaPermisosFirebase.push({ id: docSnap.id, ...docSnap.data() });
+            });
+
+            refrescarVistasPorPermisos();
+        }, (error) => {
+            console.error("Error al escuchar permisos:", error);
+        });
+        return;
+    }
+
+    unsubscribePermisos = onSnapshot(doc(db, "permisos", mailLogueado), (docSnap) => {
+        state.listaPermisosFirebase = docSnap.exists()
+            ? [{ id: docSnap.id, ...docSnap.data() }]
+            : [];
+
+        refrescarVistasPorPermisos();
+    }, (error) => {
+        console.error("Error al escuchar permiso del usuario:", error);
+        state.listaPermisosFirebase = [];
+        refrescarVistasPorPermisos();
+    });
+}
+
 // Escuchar documentos
 onSnapshot(query(documentosRef, orderBy("fechaAlta", "desc")), (snapshot) => {
     state.listaDocumentosFirebase = [];
@@ -155,34 +244,6 @@ onSnapshot(query(sugerenciasRef, orderBy("fechaCreacion", "desc")), (snapshot) =
     }
 });
 
-// Escuchar saldos
-onSnapshot(query(saldosRef), (snapshot) => {
-    state.listaSaldosFirebase = [];
-    snapshot.forEach((docSnap) => {
-        state.listaSaldosFirebase.push({ id: docSnap.id, ...docSnap.data() });
-    });
-
-    aplicarOrdenamientoSaldos();
-
-    if (state.seccionActual === 'saldos' && !state.viendoDocumento && state.datosCSVPrecargados.length === 0) {
-        cambiarVista('saldos');
-    }
-});
-
-// Escuchar permisos
-onSnapshot(permisosRef, (snapshot) => {
-    state.listaPermisosFirebase = [];
-    snapshot.forEach((docSnap) => {
-        state.listaPermisosFirebase.push({ id: docSnap.id, ...docSnap.data() });
-    });
-
-    if (state.usuarioActualEmail) {
-        evaluarPermisosUsuario(state.usuarioActualEmail);
-        if (state.seccionActual === 'permisos') cambiarVista('permisos');
-        if (state.seccionActual === 'inicio') cambiarVista('inicio');
-    }
-});
-
 // Escuchar guardias
 onSnapshot(guardiasRef, (snapshot) => {
     state.listaGuardiasFirebase = [];
@@ -202,8 +263,9 @@ onAuthStateChanged(auth, (user) => {
     if (user) {
         state.usuarioActualEmail = user.email;
         evaluarPermisosUsuario(state.usuarioActualEmail);
+        escucharPermisosUsuario(state.usuarioActualEmail);
 
-        const mailLogueado = user.email.toLowerCase().trim();
+        const mailLogueado = normalizarEmail(user.email);
         const empleadoEncontrado = baseRecibos.find(emp => emp.email.toLowerCase().trim() === mailLogueado);
         
         if (empleadoEncontrado && empleadoEncontrado.nombre) {
@@ -219,6 +281,16 @@ onAuthStateChanged(auth, (user) => {
         state.usuarioActualEmail = "";
         state.esAdminMaster = false;
         state.tienePermisoSaldos = false;
+        state.listaPermisosFirebase = [];
+        state.listaSaldosFirebase = [];
+        if (unsubscribePermisos) {
+            unsubscribePermisos();
+            unsubscribePermisos = null;
+        }
+        if (unsubscribeSaldos) {
+            unsubscribeSaldos();
+            unsubscribeSaldos = null;
+        }
         pantallaLogin.classList.remove('hidden');
         appPrincipal.classList.add('hidden');
     }
