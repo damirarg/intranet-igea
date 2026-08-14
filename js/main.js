@@ -175,6 +175,7 @@ function refrescarVistasPorPermisos() {
 
     if (state.seccionActual === 'permisos') cambiarVista('permisos');
     if (state.seccionActual === 'inicio') cambiarVista('inicio');
+    if (state.seccionActual === 'guardias') cambiarVista('guardias');
     if (state.seccionActual === 'saldos' && !state.tienePermisoSaldos && !state.esAdminMaster) cambiarVista('inicio');
 }
 
@@ -323,6 +324,7 @@ onAuthStateChanged(auth, async (user) => {
         state.usuarioActualEmail = "";
         state.esAdminMaster = false;
         state.tienePermisoSaldos = false;
+        state.tienePermisoGuardias = false;
         state.listaPermisosFirebase = [];
         state.listaSaldosFirebase = [];
         if (unsubscribePermisos) {

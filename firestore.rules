@@ -1,0 +1,67 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null && request.auth.token.email != null;
+    }
+
+    function userEmail() {
+      return request.auth.token.email;
+    }
+
+    function isAdmin() {
+      return signedIn() && userEmail() == "damirodriguez81@gmail.com";
+    }
+
+    function hasModule(moduleName) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/permisos/$(userEmail()))
+        && moduleName in get(/databases/$(database)/documents/permisos/$(userEmail())).data.modulos;
+    }
+
+    match /documentos_dpp_proc/{documentoId} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
+    match /permisos/{email} {
+      allow read: if isAdmin() || (signedIn() && email == userEmail());
+      allow write: if isAdmin();
+    }
+
+    match /sugerencias/{sugerenciaId} {
+      allow read: if signedIn();
+      allow create: if signedIn()
+        && request.resource.data.emailAutor == userEmail();
+      allow update: if isAdmin()
+        || (
+          signedIn()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["votosMap"])
+        );
+      allow delete: if isAdmin()
+        || (signedIn() && resource.data.emailAutor == userEmail());
+    }
+
+    match /saldos/{saldoId} {
+      allow read: if isAdmin() || hasModule("saldos");
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin()
+        || (
+          hasModule("saldos")
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            "gestiones",
+            "saldada",
+            "fechaSaldada",
+            "montoFinalCobrado",
+            "saldo"
+          ])
+        );
+    }
+
+    match /guardias/{fecha} {
+      allow read: if signedIn();
+      allow create, update, delete: if isAdmin() || hasModule("guardias");
+    }
+  }
+}

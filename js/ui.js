@@ -186,6 +186,8 @@ export function cerrarModalCobro() {
 }
 
 export function abrirModalGuardia(fechaString) {
+    if (!state.esAdminMaster && !state.tienePermisoGuardias) return;
+
     state.guardiaDiaSeleccionado = fechaString;
     
     // Formatear la fecha para mostrarla amigablemente
@@ -203,16 +205,23 @@ export function abrirModalGuardia(fechaString) {
     // Buscar si ya existe guardia cargada
     const guardiaExistente = state.listaGuardiasFirebase.find(g => g.fecha === fechaString);
     const btnEliminar = document.getElementById('btn-eliminar-guardia');
+    const textoMedicos = document.getElementById('texto-medicos-guardia');
     
     if (guardiaExistente) {
         selectColab.value = guardiaExistente.colaboradorEmail || '';
         document.getElementById('check-feriado-guardia').checked = guardiaExistente.feriado === true;
         document.getElementById('texto-notes-guardia').value = guardiaExistente.notas || guardiaExistente.notes || '';
+        if (textoMedicos) {
+            textoMedicos.value = Array.isArray(guardiaExistente.medicos)
+                ? guardiaExistente.medicos.map(m => [m.nombre, m.especialidad, m.contacto].filter(Boolean).join(' | ')).join('\n')
+                : '';
+        }
         if (btnEliminar) btnEliminar.classList.remove('hidden');
     } else {
         selectColab.selectedIndex = 0;
         document.getElementById('check-feriado-guardia').checked = false;
         document.getElementById('texto-notes-guardia').value = '';
+        if (textoMedicos) textoMedicos.value = '';
         if (btnEliminar) btnEliminar.classList.add('hidden');
     }
     

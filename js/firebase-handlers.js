@@ -234,6 +234,8 @@ export function evaluarPermisosUsuario(email) {
 
     state.tienePermisoSaldos = state.esAdminMaster ||
         (permisoEncontrado && permisoEncontrado.modulos && permisoEncontrado.modulos.includes('saldos'));
+    state.tienePermisoGuardias = state.esAdminMaster ||
+        (permisoEncontrado && permisoEncontrado.modulos && permisoEncontrado.modulos.includes('guardias'));
 }
 
 // REGISTRAR COBRO
@@ -714,14 +716,25 @@ export async function cambiarClaveFirebase() {
 
 // GUARDAR GUARDIA PASIVA
 export async function guardarGuardiaFirebase() {
-    if (!state.esAdminMaster) return alert("Solo el Administrador Principal puede gestionar guardias.");
+    if (!state.esAdminMaster && !state.tienePermisoGuardias) return alert("No tenes permisos para gestionar guardias.");
     if (!state.guardiaDiaSeleccionado) return;
 
     const emailColab = document.getElementById('select-colaborador-guardia').value;
     const esFeriado = document.getElementById('check-feriado-guardia').checked;
     const notas = document.getElementById('texto-notes-guardia').value.trim();
+    const textoMedicos = document.getElementById('texto-medicos-guardia').value.trim();
+    const medicos = textoMedicos
+        ? textoMedicos.split('\n').map(linea => {
+            const partes = linea.split('|').map(p => p.trim());
+            return {
+                nombre: partes[0] || '',
+                especialidad: partes[1] || '',
+                contacto: partes[2] || ''
+            };
+        }).filter(m => m.nombre)
+        : [];
 
-    if (!emailColab && !esFeriado && !notas) {
+    if (!emailColab && !esFeriado && !notas && medicos.length === 0) {
         return eliminarGuardiaFirebase();
     }
 
@@ -739,10 +752,12 @@ export async function guardarGuardiaFirebase() {
             fecha: state.guardiaDiaSeleccionado,
             colaboradorEmail: emailColab,
             colaboradorNombre: nombreColab,
+            medicos: medicos,
             feriado: esFeriado,
             notas: notas,
-            fechaAlta: new Date()
-        });
+            fechaAlta: new Date(),
+            fechaActualizacion: new Date()
+        }, { merge: true });
 
         cerrarModalGuardia();
     } catch (e) {
@@ -752,7 +767,7 @@ export async function guardarGuardiaFirebase() {
 
 // ELIMINAR GUARDIA PASIVA
 export async function eliminarGuardiaFirebase() {
-    if (!state.esAdminMaster) return alert("Solo el Administrador Principal puede gestionar guardias.");
+    if (!state.esAdminMaster && !state.tienePermisoGuardias) return alert("No tenes permisos para gestionar guardias.");
     if (!state.guardiaDiaSeleccionado) return;
 
     if (confirm("Estas seguro de que queres eliminar la asignacion de este dia?")) {

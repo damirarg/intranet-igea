@@ -56,6 +56,7 @@ export const state = {
     usuarioActualEmail: "",
     esAdminMaster: false,
     tienePermisoSaldos: false,
+    tienePermisoGuardias: false,
     
     colorPostitSeleccionado: "yellow",
     listaSugerencias: [],

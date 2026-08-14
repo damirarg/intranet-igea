@@ -1,5 +1,36 @@
 import { state } from '../app-state.js';
 
+const etiquetasModulos = {
+    saldos: {
+        icono: 'request_quote',
+        texto: 'Gestión Saldos',
+        clases: 'bg-rose-50 text-rose-700 border-rose-200'
+    },
+    guardias: {
+        icono: 'clinical_notes',
+        texto: 'Guardias',
+        clases: 'bg-emerald-50 text-emerald-700 border-emerald-200'
+    }
+};
+
+function renderizarBadgesModulos(modulos = []) {
+    if (!Array.isArray(modulos) || modulos.length === 0) return '<span class="text-slate-400 italic">Sin módulos</span>';
+
+    return modulos.map(modulo => {
+        const meta = etiquetasModulos[modulo] || {
+            icono: 'extension',
+            texto: modulo,
+            clases: 'bg-slate-50 text-slate-600 border-slate-200'
+        };
+
+        return `
+            <span class="${meta.clases} px-2.5 py-1 rounded-lg border inline-flex items-center gap-1 font-semibold mr-1.5 mb-1">
+                <span class="material-symbols-rounded" style="font-size: 14px;">${meta.icono}</span> ${meta.texto}
+            </span>
+        `;
+    }).join('');
+}
+
 export function renderizarPermisos() {
     let filasPermisos = state.listaPermisosFirebase.map(p => `
         <tr class="border-b border-slate-100 hover:bg-slate-50 transition">
@@ -8,9 +39,7 @@ export function renderizarPermisos() {
                 ${p.email}
             </td>
             <td class="p-3.5 text-xs text-slate-600 font-medium">
-                <span class="bg-rose-50 text-rose-700 px-2.5 py-1 rounded-lg border border-rose-200 inline-flex items-center gap-1 font-semibold">
-                    <span class="material-symbols-rounded" style="font-size: 14px;">request_quote</span> Gestión Saldos
-                </span>
+                ${renderizarBadgesModulos(p.modulos)}
             </td>
             <td class="p-3.5 text-right">
                 <button onclick="window.revocarPermisoFirebase('${p.id}')" class="text-slate-400 hover:text-red-600 transition p-1" title="Revocar Permiso">
@@ -127,6 +156,7 @@ export function renderizarPermisos() {
                         <label class="block text-xs font-semibold text-slate-600 mb-1.5 uppercase">Módulo Autorizado</label>
                         <select id="select-modulo-permiso" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-purple-500 focus:outline-none">
                             <option value="saldos" selected>Gestión de Saldos / Cobranzas</option>
+                            <option value="guardias">Gestión de Guardias Pasivas</option>
                         </select>
                     </div>
                 </div>
