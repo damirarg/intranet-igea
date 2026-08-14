@@ -302,6 +302,8 @@ export async function procesarCobroFirebase() {
 
 // TOGGLE PAGARE
 export async function togglePagareFirebase(docId, nuevoEstado) {
+    if (!state.esAdminMaster) return alert("Solo el Administrador Principal puede modificar pagarés.");
+
     const cuentaRef = doc(db, "saldos", docId);
 
     try {
@@ -313,6 +315,8 @@ export async function togglePagareFirebase(docId, nuevoEstado) {
 
 // TOGGLE ACUERDO ESPECIAL
 export async function toggleAcuerdoEspecialFirebase(docId, nuevoEstado) {
+    if (!state.esAdminMaster) return alert("Solo el Administrador Principal puede modificar acuerdos especiales.");
+
     const cuentaRef = doc(db, "saldos", docId);
 
     try {
@@ -408,6 +412,8 @@ export async function revocarPermisoFirebase(docId) {
 
 // ACTUALIZAR CAMPO DE SALDOS EN LINEA
 export async function actualizarCampoFirebase(docId, campo, valor) {
+    if (!state.esAdminMaster) return alert("Solo el Administrador Principal puede modificar este campo.");
+
     const cuentaRef = doc(db, "saldos", docId);
 
     try {
@@ -442,6 +448,8 @@ export async function eliminarSaldosSeleccionados() {
 
 // GUARDAR SALDOS IMPORTADOS DESDE CSV
 export async function guardarSaldosSeleccionados() {
+    if (!state.esAdminMaster) return alert("Solo el Administrador Principal puede cargar saldos desde CSV.");
+
     const checks = document.querySelectorAll('.check-saldo:checked');
     let cuentasAGuardar = [];
 

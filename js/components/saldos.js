@@ -18,6 +18,11 @@ export function alternarFiltroSaldadas(estado) {
 }
 
 export function procesarArchivoCSV(event) {
+    if (!state.esAdminMaster) {
+        if (event && event.target) event.target.value = '';
+        return alert("Solo el Administrador Principal puede cargar archivos CSV.");
+    }
+
     const archivo = event.target.files[0];
     if (!archivo) return;
 
@@ -169,6 +174,7 @@ function iconoOrden(columnaKey) {
 
 export function renderizarSaldos() {
     if (!state.esAdminMaster) state.verCuentasSaldadas = false;
+    if (!state.esAdminMaster && state.datosCSVPrecargados.length > 0) state.datosCSVPrecargados = [];
 
     let cuentasVisibles = state.listaSaldosFirebase.filter(c => state.verCuentasSaldadas ? c.saldada === true : c.saldada !== true);
 
@@ -187,6 +193,13 @@ export function renderizarSaldos() {
         </div>
     ` : '';
 
+    let cargaCsvHTML = state.esAdminMaster ? `
+                    <label for="input-csv" class="cursor-pointer bg-white border border-rose-200 text-rose-700 hover:bg-rose-100 font-bold px-3.5 py-2 rounded-xl transition shadow-sm inline-flex items-center justify-center gap-1.5 text-xs w-full md:w-auto">
+                        <span class="material-symbols-rounded" style="font-size: 16px;">upload_file</span> Cargar CSV
+                    </label>
+                    <input type="file" id="input-csv" accept=".csv" class="hidden" onchange="window.procesarArchivoCSV(event)">
+    ` : '';
+
     let htmlSuperior = `
         <div class="mb-4 grid grid-cols-1 md:grid-cols-3 gap-3 shrink-0">
             <div class="md:col-span-2 bg-rose-50 p-4 md:p-5 rounded-3xl border border-rose-100 shadow-sm relative overflow-hidden flex flex-col justify-between">
@@ -196,10 +209,7 @@ export function renderizarSaldos() {
                     <p class="text-xs text-rose-700 font-medium mt-0.5">Módulo para seguimiento de pagarés, obras sociales y cobranzas.</p>
                 </div>
                 <div class="relative z-10 mt-3 flex items-center justify-between gap-3">
-                    <label for="input-csv" class="cursor-pointer bg-white border border-rose-200 text-rose-700 hover:bg-rose-100 font-bold px-3.5 py-2 rounded-xl transition shadow-sm inline-flex items-center justify-center gap-1.5 text-xs w-full md:w-auto">
-                        <span class="material-symbols-rounded" style="font-size: 16px;">upload_file</span> Cargar CSV
-                    </label>
-                    <input type="file" id="input-csv" accept=".csv" class="hidden" onchange="window.procesarArchivoCSV(event)">
+                    ${cargaCsvHTML}
                 </div>
             </div>
 
@@ -301,7 +311,9 @@ export function renderizarSaldos() {
                 bgCeldaFija = 'bg-amber-50';
             }
 
-            let columnaEstadoHTML = esAcuerdoEspecial ? `
+            let columnaEstadoHTML = '';
+            if (state.esAdminMaster) {
+                columnaEstadoHTML = esAcuerdoEspecial ? `
                 <button onclick="window.toggleAcuerdoEspecialFirebase('${cuenta.id}', false)" 
                     title="Quitar marca de acuerdo especial" 
                     class="bg-amber-100 text-amber-800 border border-amber-300 px-1.5 py-0.5 rounded text-[10px] font-bold flex items-center gap-0.5 shadow-2xs hover:bg-amber-200 transition truncate max-w-full">
@@ -313,6 +325,44 @@ export function renderizarSaldos() {
                     class="bg-slate-100 text-slate-500 border border-slate-200 px-1.5 py-0.5 rounded text-[10px] font-semibold hover:bg-amber-50 hover:text-amber-700 hover:border-amber-200 transition flex items-center gap-0.5 truncate max-w-full">
                     <span class="material-symbols-rounded shrink-0" style="font-size: 12px;">handshake</span> + Acu
                 </button>
+            `;
+            } else {
+                columnaEstadoHTML = esAcuerdoEspecial ? `
+                    <span class="bg-amber-100 text-amber-800 border border-amber-300 px-1.5 py-0.5 rounded text-[10px] font-bold inline-flex items-center gap-0.5 truncate max-w-full">
+                        🤝 Acuerdo
+                    </span>
+                ` : '<span class="text-slate-300 text-[10px]">-</span>';
+            }
+
+            let pagareHTML = state.esAdminMaster ? `
+                        <label class="inline-flex items-center gap-1 cursor-pointer select-none">
+                            <input type="checkbox" ${tienePagare ? 'checked' : ''} 
+                                onchange="window.togglePagareFirebase('${cuenta.id}', this.checked)"
+                                class="w-3.5 h-3.5 text-sky-600 rounded border-slate-300 focus:ring-sky-500 cursor-pointer">
+                            <span class="text-[9px] font-bold ${tienePagare ? 'text-sky-800' : 'text-slate-400'}">${tienePagare ? 'SI' : 'NO'}</span>
+                        </label>
+            ` : `
+                        <span class="text-[9px] font-bold ${tienePagare ? 'text-sky-800' : 'text-slate-400'}">${tienePagare ? 'SI' : 'NO'}</span>
+            `;
+
+            let obraSocialHTML = state.esAdminMaster ? `
+                        <input type="text" 
+                            value="${cuenta.obraSocial || ''}" 
+                            placeholder="OSDE"
+                            onchange="window.actualizarCampoFirebase('${cuenta.id}', 'obraSocial', this.value)"
+                            class="w-full min-w-0 bg-slate-50/80 border border-slate-200 rounded px-1.5 py-0.5 text-[11px] focus:bg-white focus:ring-1 focus:ring-rose-400 focus:outline-none transition">
+            ` : `
+                        <span class="text-[11px] text-slate-500">${cuenta.obraSocial || '-'}</span>
+            `;
+
+            let practicaHTML = state.esAdminMaster ? `
+                        <input type="text" 
+                            value="${cuenta.practica || ''}" 
+                            placeholder="VEDA"
+                            onchange="window.actualizarCampoFirebase('${cuenta.id}', 'practica', this.value)"
+                            class="w-full min-w-0 bg-slate-50/80 border border-slate-200 rounded px-1.5 py-0.5 text-[11px] focus:bg-white focus:ring-1 focus:ring-rose-400 focus:outline-none transition">
+            ` : `
+                        <span class="text-[11px] text-slate-500">${cuenta.practica || '-'}</span>
             `;
 
             let casillaSeleccionHTML = state.esAdminMaster ? `
@@ -330,12 +380,7 @@ export function renderizarSaldos() {
                     </td>
 
                     <td class="p-1.5 text-center celda-recortable">
-                        <label class="inline-flex items-center gap-1 cursor-pointer select-none">
-                            <input type="checkbox" ${tienePagare ? 'checked' : ''} 
-                                onchange="window.togglePagareFirebase('${cuenta.id}', this.checked)"
-                                class="w-3.5 h-3.5 text-sky-600 rounded border-slate-300 focus:ring-sky-500 cursor-pointer">
-                            <span class="text-[9px] font-bold ${tienePagare ? 'text-sky-800' : 'text-slate-400'}">${tienePagare ? 'SI' : 'NO'}</span>
-                        </label>
+                        ${pagareHTML}
                     </td>
 
                     <td class="p-1.5 celda-recortable">
@@ -343,19 +388,11 @@ export function renderizarSaldos() {
                     </td>
                     
                     <td class="p-1.5 celda-recortable">
-                        <input type="text" 
-                            value="${cuenta.obraSocial || ''}" 
-                            placeholder="OSDE"
-                            onchange="window.actualizarCampoFirebase('${cuenta.id}', 'obraSocial', this.value)"
-                            class="w-full min-w-0 bg-slate-50/80 border border-slate-200 rounded px-1.5 py-0.5 text-[11px] focus:bg-white focus:ring-1 focus:ring-rose-400 focus:outline-none transition">
+                        ${obraSocialHTML}
                     </td>
 
                     <td class="p-1.5 celda-recortable">
-                        <input type="text" 
-                            value="${cuenta.practica || ''}" 
-                            placeholder="VEDA"
-                            onchange="window.actualizarCampoFirebase('${cuenta.id}', 'practica', this.value)"
-                            class="w-full min-w-0 bg-slate-50/80 border border-slate-200 rounded px-1.5 py-0.5 text-[11px] focus:bg-white focus:ring-1 focus:ring-rose-400 focus:outline-none transition">
+                        ${practicaHTML}
                     </td>
 
                     <td class="p-2 text-slate-500 text-[11px] text-center celda-recortable" title="${cuenta.ultimoPago}">${cuenta.ultimoPago}</td>
