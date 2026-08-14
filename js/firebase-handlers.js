@@ -55,6 +55,13 @@ function restaurarBotonCarga(btn, htmlOriginal) {
     btn.innerHTML = htmlOriginal;
 }
 
+function bloquearCambiosEnModoVerComo() {
+    if (!state.verComoEmail) return false;
+
+    alert("Estás usando 'Ver como'. Es una vista de prueba: volvé a Vista administrador para guardar cambios.");
+    return true;
+}
+
 function normalizarUrlGoogleDrive(url) {
     if (!url) return '';
     let limpia = url.trim();
@@ -115,6 +122,7 @@ export async function inicializarDocumentosBase() {
 
 // PUBLICAR NUEVO DOCUMENTO
 export async function guardarNuevoDocumentoFirebase() {
+    if (bloquearCambiosEnModoVerComo()) return;
     if (!state.esAdminMaster) return alert("Solo el Administrador Principal puede agregar documentos.");
 
     const tipo = document.getElementById('select-tipo-doc').value;
@@ -165,6 +173,7 @@ export async function guardarNuevoDocumentoFirebase() {
 
 // PROCESAR EDICION DE DOCUMENTO Y GUARDA ANEXOS/MATERIALES DIDACTICOS EN FIRESTORE
 export async function procesarEdicionDocFirebase() {
+    if (bloquearCambiosEnModoVerComo()) return;
     if (!state.docActualEditarId || !state.esAdminMaster) return;
 
     const docFind = state.listaDocumentosFirebase.find(d => d.id === state.docActualEditarId);
@@ -210,6 +219,7 @@ export async function procesarEdicionDocFirebase() {
 
 // ELIMINAR DOCUMENTO
 export async function eliminarDocumentoFirebase(event, docId) {
+    if (bloquearCambiosEnModoVerComo()) return;
     if (event) event.stopPropagation();
 
     if (!state.esAdminMaster) return alert("Solo el Administrador Principal puede eliminar documentos.");
@@ -240,6 +250,7 @@ export function evaluarPermisosUsuario(email) {
 
 // REGISTRAR COBRO
 export async function procesarCobroFirebase() {
+    if (bloquearCambiosEnModoVerComo()) return;
     if (!state.saldoActualCobroId) return;
 
     const cuenta = state.listaSaldosFirebase.find(c => c.id === state.saldoActualCobroId);
@@ -304,6 +315,7 @@ export async function procesarCobroFirebase() {
 
 // TOGGLE PAGARE
 export async function togglePagareFirebase(docId, nuevoEstado) {
+    if (bloquearCambiosEnModoVerComo()) return;
     if (!state.esAdminMaster) return alert("Solo el Administrador Principal puede modificar pagarés.");
 
     const cuentaRef = doc(db, "saldos", docId);
@@ -317,6 +329,7 @@ export async function togglePagareFirebase(docId, nuevoEstado) {
 
 // TOGGLE ACUERDO ESPECIAL
 export async function toggleAcuerdoEspecialFirebase(docId, nuevoEstado) {
+    if (bloquearCambiosEnModoVerComo()) return;
     if (!state.esAdminMaster) return alert("Solo el Administrador Principal puede modificar acuerdos especiales.");
 
     const cuentaRef = doc(db, "saldos", docId);
@@ -330,6 +343,7 @@ export async function toggleAcuerdoEspecialFirebase(docId, nuevoEstado) {
 
 // EDITAR NOTA DE GESTION
 export async function editarGestionFirebase(docId, indexGestion) {
+    if (bloquearCambiosEnModoVerComo()) return;
     if (!state.esAdminMaster) return alert("Solo el Administrador Principal puede editar notas de gestion.");
 
     const cuenta = state.listaSaldosFirebase.find(c => c.id === docId);
@@ -355,6 +369,7 @@ export async function editarGestionFirebase(docId, indexGestion) {
 
 // OTORGAR PERMISO
 export async function otorgarPermisoFirebase() {
+    if (bloquearCambiosEnModoVerComo()) return;
     const emailInput = normalizarEmailPermiso(document.getElementById('input-email-permiso').value);
     const moduloSelected = document.getElementById('select-modulo-permiso').value;
 
@@ -402,6 +417,7 @@ export async function otorgarPermisoFirebase() {
 
 // REVOCAR PERMISO
 export async function revocarPermisoFirebase(docId) {
+    if (bloquearCambiosEnModoVerComo()) return;
     if (confirm("Estas seguro de que queres revocar los accesos de este usuario?")) {
         try {
             await deleteDoc(doc(db, "permisos", docId));
@@ -414,6 +430,7 @@ export async function revocarPermisoFirebase(docId) {
 
 // ACTUALIZAR CAMPO DE SALDOS EN LINEA
 export async function actualizarCampoFirebase(docId, campo, valor) {
+    if (bloquearCambiosEnModoVerComo()) return;
     if (!state.esAdminMaster) return alert("Solo el Administrador Principal puede modificar este campo.");
 
     const cuentaRef = doc(db, "saldos", docId);
@@ -427,6 +444,7 @@ export async function actualizarCampoFirebase(docId, campo, valor) {
 
 // ELIMINAR SALDOS SELECCIONADOS
 export async function eliminarSaldosSeleccionados() {
+    if (bloquearCambiosEnModoVerComo()) return;
     if (!state.esAdminMaster) return alert("No tenes permisos para eliminar registros.");
 
     const checks = document.querySelectorAll('.check-saldo-fbre:checked');
@@ -450,6 +468,7 @@ export async function eliminarSaldosSeleccionados() {
 
 // GUARDAR SALDOS IMPORTADOS DESDE CSV
 export async function guardarSaldosSeleccionados() {
+    if (bloquearCambiosEnModoVerComo()) return;
     if (!state.esAdminMaster) return alert("Solo el Administrador Principal puede cargar saldos desde CSV.");
 
     const checks = document.querySelectorAll('.check-saldo:checked');
@@ -501,6 +520,7 @@ export async function guardarSaldosSeleccionados() {
 
 // GUARDAR NUEVA NOTA DE GESTION
 export async function guardarNuevaGestion() {
+    if (bloquearCambiosEnModoVerComo()) return;
     const texto = document.getElementById('texto-nueva-gestion').value.trim();
 
     if (!texto) return alert("Por favor, escribi un detalle de la gestion.");
@@ -524,6 +544,7 @@ export async function guardarNuevaGestion() {
 
 // GUARDAR SUGERENCIA / IDEA
 export async function guardarSugerenciaFirebase() {
+    if (bloquearCambiosEnModoVerComo()) return;
     const texto = document.getElementById('texto-sugerencia').value.trim();
     const esAnonimo = document.getElementById('check-anonimo').checked;
     const btnPublicar = document.querySelector('#modal-sugerencia button[onclick="window.guardarSugerenciaFirebase()"]');
@@ -573,6 +594,7 @@ export async function guardarSugerenciaFirebase() {
 
 // REACCIONAR A SUGERENCIA
 export async function reaccionarFirebase(docId, tipoReaccion) {
+    if (bloquearCambiosEnModoVerComo()) return;
     if (!state.usuarioActualEmail) return;
 
     const sugerenciaDocRef = doc(db, "sugerencias", docId);
@@ -600,6 +622,7 @@ export async function reaccionarFirebase(docId, tipoReaccion) {
 
 // ELIMINAR SUGERENCIA
 export async function eliminarSugerenciaFirebase(docId, event) {
+    if (bloquearCambiosEnModoVerComo()) return;
     if (event) event.stopPropagation();
 
     if (confirm("Estas seguro de que queres eliminar esta sugerencia?")) {
@@ -622,6 +645,7 @@ export async function eliminarSugerenciaFirebase(docId, event) {
 
 // ARCHIVAR SUGERENCIA
 export async function archivarSugerenciaFirebase(docId, nuevoEstadoArchivado, event) {
+    if (bloquearCambiosEnModoVerComo()) return;
     if (event) event.stopPropagation();
     if (!state.esAdminMaster) return;
 
@@ -698,6 +722,7 @@ export async function cerrarSesion() {
 
 // CAMBIAR CLAVE
 export async function cambiarClaveFirebase() {
+    if (bloquearCambiosEnModoVerComo()) return;
     const user = auth.currentUser;
     const nuevaClave = document.getElementById('input-nueva-clave').value;
 
@@ -716,6 +741,7 @@ export async function cambiarClaveFirebase() {
 
 // GUARDAR GUARDIA PASIVA
 export async function guardarGuardiaFirebase() {
+    if (bloquearCambiosEnModoVerComo()) return;
     if (!state.esAdminMaster && !state.tienePermisoGuardias) return alert("No tenes permisos para gestionar guardias.");
     if (!state.guardiaDiaSeleccionado) return;
 
@@ -767,6 +793,7 @@ export async function guardarGuardiaFirebase() {
 
 // ELIMINAR GUARDIA PASIVA
 export async function eliminarGuardiaFirebase() {
+    if (bloquearCambiosEnModoVerComo()) return;
     if (!state.esAdminMaster && !state.tienePermisoGuardias) return alert("No tenes permisos para gestionar guardias.");
     if (!state.guardiaDiaSeleccionado) return;
 

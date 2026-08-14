@@ -141,6 +141,88 @@ function esAdminEmail(email) {
     return normalizarEmail(email) === "damirodriguez81@gmail.com";
 }
 
+function obtenerNombreUsuario(email) {
+    const mail = normalizarEmail(email);
+    const empleadoEncontrado = baseRecibos.find(emp => normalizarEmail(emp.email) === mail);
+    return empleadoEncontrado && empleadoEncontrado.nombre ? empleadoEncontrado.nombre : email;
+}
+
+function actualizarNombreHeader() {
+    const nombreHeader = document.getElementById('nombre-usuario-header');
+    if (!nombreHeader) return;
+
+    const nombre = obtenerNombreUsuario(state.usuarioActualEmail);
+    nombreHeader.textContent = state.verComoEmail ? `Viendo: ${nombre}` : nombre;
+    nombreHeader.title = state.verComoEmail
+        ? `Sesión real: ${state.usuarioAutenticadoEmail}`
+        : state.usuarioActualEmail;
+}
+
+function actualizarSelectorVerComo() {
+    const contenedor = document.getElementById('admin-ver-como');
+    const select = document.getElementById('select-ver-como');
+    if (!contenedor || !select) return;
+
+    if (!state.esAdminAutenticado) {
+        contenedor.classList.add('hidden');
+        contenedor.classList.remove('flex');
+        return;
+    }
+
+    const usuarios = new Map();
+    baseRecibos.forEach(emp => usuarios.set(normalizarEmail(emp.email), emp.nombre || emp.email));
+    state.listaPermisosFirebase.forEach(p => {
+        if (p.email) usuarios.set(normalizarEmail(p.email), obtenerNombreUsuario(p.email));
+    });
+
+    select.innerHTML = `
+        <option value="">Vista administrador</option>
+        <option value="__comun__">Usuario común sin permisos</option>
+        ${Array.from(usuarios.entries())
+            .filter(([email]) => email && !esAdminEmail(email))
+            .sort((a, b) => a[1].localeCompare(b[1], 'es'))
+            .map(([email, nombre]) => `<option value="${email}">Ver como ${nombre}</option>`)
+            .join('')}
+    `;
+
+    select.value = state.verComoEmail === "usuario.comun@simulado.local" ? "__comun__" : (state.verComoEmail || '');
+    contenedor.classList.remove('hidden');
+    contenedor.classList.add('flex');
+}
+
+function aplicarVistaEfectiva(email) {
+    state.usuarioActualEmail = email;
+    evaluarPermisosUsuario(email);
+    escucharSaldosSiCorresponde();
+    actualizarNombreHeader();
+    actualizarSelectorVerComo();
+
+    if (state.seccionActual === 'permisos' && !state.esAdminMaster) cambiarVista('inicio');
+    else if (state.seccionActual === 'saldos' && !state.tienePermisoSaldos && !state.esAdminMaster) cambiarVista('inicio');
+    else cambiarVista(state.seccionActual || 'inicio');
+}
+
+function cambiarVerComoAdmin(valor) {
+    if (!state.esAdminAutenticado) return;
+
+    if (!valor) {
+        state.verComoEmail = "";
+        aplicarVistaEfectiva(state.usuarioAutenticadoEmail);
+        return;
+    }
+
+    if (valor === "__comun__") {
+        state.verComoEmail = "usuario.comun@simulado.local";
+        aplicarVistaEfectiva(state.verComoEmail);
+        return;
+    }
+
+    state.verComoEmail = normalizarEmail(valor);
+    aplicarVistaEfectiva(state.verComoEmail);
+}
+
+window.cambiarVerComoAdmin = cambiarVerComoAdmin;
+
 function actualizarEstadoLogin(texto) {
     const estadoLogin = document.getElementById('estado-login');
     if (!estadoLogin) return;
@@ -172,8 +254,11 @@ function refrescarVistasPorPermisos() {
     }
 
     escucharSaldosSiCorresponde();
+    actualizarSelectorVerComo();
+    actualizarNombreHeader();
 
-    if (state.seccionActual === 'permisos') cambiarVista('permisos');
+    if (state.seccionActual === 'permisos' && !state.esAdminMaster) cambiarVista('inicio');
+    else if (state.seccionActual === 'permisos') cambiarVista('permisos');
     if (state.seccionActual === 'inicio') cambiarVista('inicio');
     if (state.seccionActual === 'guardias') cambiarVista('guardias');
     if (state.seccionActual === 'saldos' && !state.tienePermisoSaldos && !state.esAdminMaster) cambiarVista('inicio');
@@ -290,7 +375,10 @@ onAuthStateChanged(auth, async (user) => {
     const estadoLogin = document.getElementById('estado-login');
 
     if (user) {
+        state.usuarioAutenticadoEmail = user.email;
         state.usuarioActualEmail = user.email;
+        state.esAdminAutenticado = esAdminEmail(user.email);
+        state.verComoEmail = "";
         actualizarEstadoLogin("Verificando permisos...");
 
         try {
@@ -303,14 +391,8 @@ onAuthStateChanged(auth, async (user) => {
             return;
         }
 
-        const mailLogueado = normalizarEmail(user.email);
-        const empleadoEncontrado = baseRecibos.find(emp => emp.email.toLowerCase().trim() === mailLogueado);
-        
-        if (empleadoEncontrado && empleadoEncontrado.nombre) {
-            document.getElementById('nombre-usuario-header').textContent = empleadoEncontrado.nombre;
-        } else {
-            document.getElementById('nombre-usuario-header').textContent = user.email;
-        }
+        actualizarNombreHeader();
+        actualizarSelectorVerComo();
 
         pantallaLogin.classList.add('hidden');
         appPrincipal.classList.remove('hidden');
@@ -322,6 +404,9 @@ onAuthStateChanged(auth, async (user) => {
         cambiarVista('inicio');
     } else {
         state.usuarioActualEmail = "";
+        state.usuarioAutenticadoEmail = "";
+        state.esAdminAutenticado = false;
+        state.verComoEmail = "";
         state.esAdminMaster = false;
         state.tienePermisoSaldos = false;
         state.tienePermisoGuardias = false;
@@ -337,6 +422,7 @@ onAuthStateChanged(auth, async (user) => {
         }
         pantallaLogin.classList.remove('hidden');
         appPrincipal.classList.add('hidden');
+        actualizarSelectorVerComo();
         if (btnLogin) {
             btnLogin.disabled = false;
             btnLogin.innerHTML = 'Ingresar';

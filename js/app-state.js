@@ -54,6 +54,9 @@ export const archivosDriveBase = {
 // Objeto de estado mutable unificado
 export const state = {
     usuarioActualEmail: "",
+    usuarioAutenticadoEmail: "",
+    esAdminAutenticado: false,
+    verComoEmail: "",
     esAdminMaster: false,
     tienePermisoSaldos: false,
     tienePermisoGuardias: false,
