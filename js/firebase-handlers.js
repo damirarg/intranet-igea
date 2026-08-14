@@ -1,30 +1,30 @@
 import { state, archivosDriveBase, baseRecibos } from './app-state.js';
 import { db, auth } from './firebase-config.js';
-import { 
-    collection, 
-    addDoc, 
-    doc, 
-    updateDoc, 
-    deleteDoc, 
-    deleteField, 
-    arrayUnion, 
+import {
+    collection,
+    addDoc,
+    doc,
+    updateDoc,
+    deleteDoc,
+    deleteField,
+    arrayUnion,
     getDocs,
     setDoc
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import { 
-    signInWithEmailAndPassword, 
-    sendPasswordResetEmail, 
-    signOut, 
-    updatePassword 
+import {
+    signInWithEmailAndPassword,
+    sendPasswordResetEmail,
+    signOut,
+    updatePassword
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { parsearMontoNumerico, formatearMonedaAR } from './components/saldos.js';
-import { 
-    cerrarModalCobro, 
-    cerrarModalGestion, 
-    cerrarModalEditarDoc, 
-    cerrarModalSugerencia, 
-    cerrarModalClave, 
-    cambiarVista, 
+import {
+    cerrarModalCobro,
+    cerrarModalGestion,
+    cerrarModalEditarDoc,
+    cerrarModalSugerencia,
+    cerrarModalClave,
+    cambiarVista,
     abrirModalGestion,
     cerrarModalGuardia
 } from './ui.js';
@@ -35,10 +35,39 @@ const saldosRef = collection(db, "saldos");
 const permisosRef = collection(db, "permisos");
 const guardiasRef = collection(db, "guardias");
 
+function normalizarEmailPermiso(email) {
+    return email.trim().toLowerCase();
+}
+
+function normalizarUrlGoogleDrive(url) {
+    if (!url) return '';
+    let limpia = url.trim();
+
+    if (limpia.includes('drive.google.com') || limpia.includes('docs.google.com')) {
+        if (limpia.endsWith('/preview')) return limpia;
+
+        let base = limpia.split('?')[0];
+
+        if (base.endsWith('/view')) base = base.slice(0, -5);
+        if (base.endsWith('/edit')) base = base.slice(0, -5);
+        if (base.endsWith('/sharing')) base = base.slice(0, -8);
+
+        if (!base.endsWith('/preview')) {
+            if (base.endsWith('/')) base = base.slice(0, -1);
+            base = base + '/preview';
+        }
+
+        return base;
+    }
+
+    return limpia;
+}
+
 // CARGA SEMILLA AUTOMÁTICA
 export async function inicializarDocumentosBase() {
     try {
         const snapshot = await getDocs(documentosRef);
+
         if (snapshot.empty) {
             for (let dpp of archivosDriveBase.dpp) {
                 await addDoc(documentosRef, {
@@ -68,28 +97,6 @@ export async function inicializarDocumentosBase() {
     }
 }
 
-function normalizarUrlGoogleDrive(url) {
-    if (!url) return '';
-    let limpia = url.trim();
-    if (limpia.includes('drive.google.com') || limpia.includes('docs.google.com')) {
-        if (limpia.endsWith('/preview')) return limpia;
-        let base = limpia.split('?')[0];
-        if (base.endsWith('/view')) base = base.slice(0, -5);
-        if (base.endsWith('/edit')) base = base.slice(0, -5);
-        if (base.endsWith('/sharing')) base = base.slice(0, -8);
-        if (!base.endsWith('/preview')) {
-            if (base.endsWith('/')) base = base.slice(0, -1);
-            base = base + '/preview';
-        }
-        return base;
-    }
-    return limpia;
-}
-
-function normalizarEmailPermiso(email) {
-    return email.trim().toLowerCase();
-}
-
 // PUBLICAR NUEVO DOCUMENTO
 export async function guardarNuevoDocumentoFirebase() {
     if (!state.esAdminMaster) return alert("Solo el Administrador Principal puede agregar documentos.");
@@ -115,7 +122,7 @@ export async function guardarNuevoDocumentoFirebase() {
 
     try {
         const timeoutPromesa = new Promise((_, reject) => setTimeout(() => reject(new Error("Tiempo de espera agotado.")), 8000));
-        
+
         const guardadoPromesa = addDoc(documentosRef, {
             tipo: tipo,
             nombre: nombre,
@@ -130,7 +137,7 @@ export async function guardarNuevoDocumentoFirebase() {
         await Promise.race([guardadoPromesa, timeoutPromesa]);
 
         alert(`¡Excelente Damián! El documento '${nombre}' se publicó correctamente.`);
-        
+
         document.getElementById('input-orden-doc').value = '';
         document.getElementById('input-nombre-doc').value = '';
         document.getElementById('input-area-doc').value = '';
@@ -177,9 +184,10 @@ export async function procesarEdicionDocFirebase() {
         };
 
         if (docFind.tipo === 'dpp') updateData.area = nuevoArea;
+
         if (docFind.tipo === 'procedimiento') {
             updateData.fecha = nuevoArea;
-            updateData.materialesDidacticos = state.anexosEditMemoria; // Guarda lista de anexos
+            updateData.materialesDidacticos = state.anexosEditMemoria;
         }
 
         await updateDoc(docRef, updateData);
@@ -199,7 +207,9 @@ export async function procesarEdicionDocFirebase() {
 // ELIMINAR DOCUMENTO (DPP O PROCEDIMIENTO)
 export async function eliminarDocumentoFirebase(event, docId) {
     if (event) event.stopPropagation();
+
     if (!state.esAdminMaster) return alert("Solo el Administrador Principal puede eliminar documentos.");
+
     if (confirm("¿Estás seguro de que querés eliminar este documento? Esta acción no se puede deshacer.")) {
         try {
             const docRef = doc(db, "documentos_dpp_proc", docId);
@@ -217,7 +227,9 @@ export function evaluarPermisosUsuario(email) {
     state.esAdminMaster = (mailClean === "damirodriguez81@gmail.com");
 
     const permisoEncontrado = state.listaPermisosFirebase.find(p => p.email && normalizarEmailPermiso(p.email) === mailClean);
-    state.tienePermisoSaldos = state.esAdminMaster || (permisoEncontrado && permisoEncontrado.modulos && permisoEncontrado.modulos.includes('saldos'));
+
+    state.tienePermisoSaldos = state.esAdminMaster ||
+        (permisoEncontrado && permisoEncontrado.modulos && permisoEncontrado.modulos.includes('saldos'));
 }
 
 // REGISTRAR COBRO
@@ -242,7 +254,7 @@ export async function procesarCobroFirebase() {
     if (nuevoSaldoNum <= 0.01) {
         let notaCobro = {
             fecha: new Date().toLocaleString('es-AR'),
-            texto: `💰 PAGO TOTAL CANCELADO ($${formatearMonedaAR(montoAbonado)}) el día ${fechaFormateada}. Cuenta saldada.`,
+            texto: `PAGO TOTAL CANCELADO ($${formatearMonedaAR(montoAbonado)}) el día ${fechaFormateada}. Cuenta saldada.`,
             autor: state.usuarioActualEmail
         };
 
@@ -254,6 +266,7 @@ export async function procesarCobroFirebase() {
                 saldo: "$ 0,00",
                 gestiones: arrayUnion(notaCobro)
             });
+
             cerrarModalCobro();
             alert("¡Excelente! La cuenta se registró como TOTALMENTE SALDADA.");
         } catch (e) {
@@ -262,9 +275,10 @@ export async function procesarCobroFirebase() {
 
     } else {
         let nuevoSaldoTexto = formatearMonedaAR(nuevoSaldoNum);
+
         let notaCobro = {
             fecha: new Date().toLocaleString('es-AR'),
-            texto: `💵 PAGO PARCIAL RECOBRADO: Se abonó $${formatearMonedaAR(montoAbonado)} el día ${fechaFormateada}. Saldo restante: ${nuevoSaldoTexto}.`,
+            texto: `PAGO PARCIAL RECOBRADO: Se abonó $${formatearMonedaAR(montoAbonado)} el día ${fechaFormateada}. Saldo restante: ${nuevoSaldoTexto}.`,
             autor: state.usuarioActualEmail
         };
 
@@ -273,6 +287,7 @@ export async function procesarCobroFirebase() {
                 saldo: nuevoSaldoTexto,
                 gestiones: arrayUnion(notaCobro)
             });
+
             cerrarModalCobro();
             alert(`¡Pago parcial registrado! Se descontó $${formatearMonedaAR(montoAbonado)}.`);
         } catch (e) {
@@ -284,6 +299,7 @@ export async function procesarCobroFirebase() {
 // TOGGLE PAGARE
 export async function togglePagareFirebase(docId, nuevoEstado) {
     const cuentaRef = doc(db, "saldos", docId);
+
     try {
         await updateDoc(cuentaRef, { tienePagare: nuevoEstado });
     } catch (e) {
@@ -294,6 +310,7 @@ export async function togglePagareFirebase(docId, nuevoEstado) {
 // TOGGLE ACUERDO ESPECIAL
 export async function toggleAcuerdoEspecialFirebase(docId, nuevoEstado) {
     const cuentaRef = doc(db, "saldos", docId);
+
     try {
         await updateDoc(cuentaRef, { acuerdoEspecial: nuevoEstado });
     } catch (e) {
@@ -316,6 +333,7 @@ export async function editarGestionFirebase(docId, indexGestion) {
         gestionesCopia[indexGestion].texto = nuevoTexto.trim();
 
         const cuentaRef = doc(db, "saldos", docId);
+
         try {
             await updateDoc(cuentaRef, { gestiones: gestionesCopia });
             abrirModalGestion(docId);
@@ -334,6 +352,7 @@ export async function otorgarPermisoFirebase() {
     if (emailInput.includes('/')) return alert("El correo ingresado no puede contener barras (/).");
 
     const btnOtorgar = document.getElementById('btn-otorgar-permiso');
+
     if (btnOtorgar) {
         btnOtorgar.disabled = true;
         btnOtorgar.innerHTML = `<span class="animate-spin rounded-full h-4 w-4 border-b-2 border-white inline-block mr-1.5"></span> Guardando...`;
@@ -393,6 +412,7 @@ export async function revocarPermisoFirebase(docId) {
 // ACTUALIZAR CAMPO DE SALDOS EN LÍNEA
 export async function actualizarCampoFirebase(docId, campo, valor) {
     const cuentaRef = doc(db, "saldos", docId);
+
     try {
         await updateDoc(cuentaRef, { [campo]: valor.trim() });
     } catch (e) {
@@ -403,7 +423,9 @@ export async function actualizarCampoFirebase(docId, campo, valor) {
 // ELIMINAR SALDOS SELECCIONADOS
 export async function eliminarSaldosSeleccionados() {
     if (!state.esAdminMaster) return alert("No tenés permisos para eliminar registros.");
+
     const checks = document.querySelectorAll('.check-saldo-fbre:checked');
+
     if (checks.length === 0) return alert("Por favor, seleccioná al menos un paciente para eliminar.");
 
     if (confirm(`¿Estás seguro de que querés eliminar ${checks.length} cuentas de la base de datos? Esta acción no se puede deshacer.`)) {
@@ -412,6 +434,7 @@ export async function eliminarSaldosSeleccionados() {
                 let docId = check.getAttribute('data-id');
                 await deleteDoc(doc(db, "saldos", docId));
             }
+
             alert("Cuentas eliminadas correctamente.");
             cambiarVista('saldos');
         } catch (e) {
@@ -424,7 +447,7 @@ export async function eliminarSaldosSeleccionados() {
 export async function guardarSaldosSeleccionados() {
     const checks = document.querySelectorAll('.check-saldo:checked');
     let cuentasAGuardar = [];
-    
+
     checks.forEach(check => {
         let index = check.getAttribute('data-index');
         cuentasAGuardar.push(state.datosCSVPrecargados[index]);
@@ -433,6 +456,7 @@ export async function guardarSaldosSeleccionados() {
     if (cuentasAGuardar.length === 0) return alert("Debes seleccionar al menos una cuenta para guardar.");
 
     const btnGuardar = document.getElementById('btn-guardar-saldos');
+
     if (btnGuardar) {
         btnGuardar.disabled = true;
         btnGuardar.innerHTML = `<span class="animate-spin rounded-full h-4 w-4 border-b-2 border-white inline-block mr-1"></span> Guardando en Firebase...`;
@@ -459,7 +483,7 @@ export async function guardarSaldosSeleccionados() {
         }
 
         state.datosCSVPrecargados = [];
-        
+
         const inputCsv = document.getElementById('input-csv');
         if (inputCsv) inputCsv.value = '';
 
@@ -478,9 +502,11 @@ export async function guardarSaldosSeleccionados() {
 // GUARDAR NUEVA NOTA DE GESTIÓN
 export async function guardarNuevaGestion() {
     const texto = document.getElementById('texto-nueva-gestion').value.trim();
+
     if (!texto) return alert("Por favor, escribí un detalle de la gestión.");
 
     const cuentaRef = doc(db, "saldos", state.saldoActualGestionId);
+
     const nuevaGestion = {
         fecha: new Date().toLocaleString('es-AR'),
         texto: texto,
@@ -504,12 +530,191 @@ export async function guardarSugerenciaFirebase() {
     if (!texto) return alert("Por favor, escribí un texto para tu idea.");
 
     let nombreAutor = "Anónimo";
+
     if (!esAnonimo) {
         const empleadoEncontrado = baseRecibos.find(emp => emp.email.toLowerCase().trim() === state.usuarioActualEmail.toLowerCase().trim());
+
         if (empleadoEncontrado) {
             let partesDelNombre = empleadoEncontrado.nombre.trim().split(/\s+/);
             nombreAutor = partesDelNombre.pop();
         }
     }
 
-    const nuevaIdea =
+    const nuevaIdea = {
+        texto: texto,
+        color: state.colorPostitSeleccionado,
+        autor: nombreAutor,
+        emailAutor: state.usuarioActualEmail.toLowerCase(),
+        archivada: false,
+        fecha: new Date().toLocaleDateString('es-AR'),
+        fechaCreacion: new Date(),
+        votosMap: {}
+    };
+
+    try {
+        await addDoc(sugerenciasRef, nuevaIdea);
+        cerrarModalSugerencia();
+    } catch (error) {
+        alert("Error al guardar: " + error.message);
+    }
+}
+
+// REACCIONAR A SUGERENCIA
+export async function reaccionarFirebase(docId, tipoReaccion) {
+    if (!state.usuarioActualEmail) return;
+
+    const sugerenciaDocRef = doc(db, "sugerencias", docId);
+    const sug = state.listaSugerencias.find(s => s.id === docId);
+
+    if (!sug) return;
+
+    let userKey = state.usuarioActualEmail.toLowerCase().replace(/\./g, '_');
+    let votosMap = sug.votosMap || {};
+    let votoAnterior = votosMap[userKey];
+    let cambios = {};
+
+    if (votoAnterior === tipoReaccion) {
+        cambios[`votosMap.${userKey}`] = deleteField();
+    } else {
+        cambios[`votosMap.${userKey}`] = tipoReaccion;
+    }
+
+    try {
+        await updateDoc(sugerenciaDocRef, cambios);
+    } catch (error) {
+        console.error(error);
+    }
+}
+
+// ELIMINAR SUGERENCIA
+export async function eliminarSugerenciaFirebase(docId) {
+    if (confirm("¿Estás seguro de que querés eliminar tu sugerencia?")) {
+        try {
+            await deleteDoc(doc(db, "sugerencias", docId));
+        } catch (e) {
+            alert("Error al eliminar sugerencia: " + e.message);
+        }
+    }
+}
+
+// ARCHIVAR SUGERENCIA
+export async function archivarSugerenciaFirebase(docId, nuevoEstadoArchivado) {
+    if (!state.esAdminMaster) return;
+
+    try {
+        await updateDoc(doc(db, "sugerencias", docId), { archivada: nuevoEstadoArchivado });
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+// INICIAR SESIÓN
+export async function iniciarSesionFirebase() {
+    const email = document.getElementById('input-email').value;
+    const password = document.getElementById('input-password').value;
+
+    if (!email || !password) return alert("Por favor, completá todos los datos.");
+
+    try {
+        await signInWithEmailAndPassword(auth, email, password);
+    } catch (e) {
+        alert("Error al iniciar sesión. Verificá tus credenciales.");
+    }
+}
+
+// RECUPERAR CLAVE
+export async function recuperarClaveFirebase() {
+    const email = document.getElementById('input-email').value;
+
+    if (!email) return alert("Ingresá tu correo arriba.");
+
+    try {
+        await sendPasswordResetEmail(auth, email);
+        alert("Correo de recuperación enviado.");
+    } catch (e) {
+        alert("Error al procesar recuperación.");
+    }
+}
+
+// CERRAR SESIÓN
+export async function cerrarSesion() {
+    try {
+        await signOut(auth);
+        document.getElementById('input-password').value = '';
+        document.getElementById('input-email').value = '';
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+// CAMBIAR CLAVE
+export async function cambiarClaveFirebase() {
+    const user = auth.currentUser;
+    const nuevaClave = document.getElementById('input-nueva-clave').value;
+
+    if (!nuevaClave || nuevaClave.length < 6) return alert("Mínimo 6 caracteres.");
+
+    if (user) {
+        try {
+            await updatePassword(user, nuevaClave);
+            alert("Clave actualizada.");
+            cerrarModalClave();
+        } catch (e) {
+            alert("Por seguridad, cerrá sesión y volvé a ingresar.");
+        }
+    }
+}
+
+// GUARDAR GUARDIA PASIVA
+export async function guardarGuardiaFirebase() {
+    if (!state.esAdminMaster) return alert("Solo el Administrador Principal puede gestionar guardias.");
+    if (!state.guardiaDiaSeleccionado) return;
+
+    const emailColab = document.getElementById('select-colaborador-guardia').value;
+    const esFeriado = document.getElementById('check-feriado-guardia').checked;
+    const notas = document.getElementById('texto-notes-guardia').value.trim();
+
+    if (!emailColab && !esFeriado && !notas) {
+        return eliminarGuardiaFirebase();
+    }
+
+    let nombreColab = "";
+
+    if (emailColab) {
+        const emp = baseRecibos.find(e => e.email.toLowerCase().trim() === emailColab.toLowerCase().trim());
+        if (emp) nombreColab = emp.nombre;
+    }
+
+    try {
+        const docRef = doc(db, "guardias", state.guardiaDiaSeleccionado);
+
+        await setDoc(docRef, {
+            fecha: state.guardiaDiaSeleccionado,
+            colaboradorEmail: emailColab,
+            colaboradorNombre: nombreColab,
+            feriado: esFeriado,
+            notas: notas,
+            fechaAlta: new Date()
+        });
+
+        cerrarModalGuardia();
+    } catch (e) {
+        alert("Error al guardar guardia: " + e.message);
+    }
+}
+
+// ELIMINAR GUARDIA PASIVA
+export async function eliminarGuardiaFirebase() {
+    if (!state.esAdminMaster) return alert("Solo el Administrador Principal puede gestionar guardias.");
+    if (!state.guardiaDiaSeleccionado) return;
+
+    if (confirm("¿Estás seguro de que querés eliminar la asignación de este día?")) {
+        try {
+            const docRef = doc(db, "guardias", state.guardiaDiaSeleccionado);
+            await deleteDoc(docRef);
+            cerrarModalGuardia();
+        } catch (e) {
+            alert("Error al eliminar la guardia: " + e.message);
+        }
+    }
+}
