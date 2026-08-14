@@ -40,6 +40,7 @@ const guardiasRef = collection(db, "guardias");
 const crearUsuarioIntranetFn = httpsCallable(functions, "crearUsuarioIntranet");
 const enviarResetClaveUsuarioFn = httpsCallable(functions, "enviarResetClaveUsuario");
 const cambiarEmailUsuarioIntranetFn = httpsCallable(functions, "cambiarEmailUsuarioIntranet");
+const cambiarEstadoUsuarioIntranetFn = httpsCallable(functions, "cambiarEstadoUsuarioIntranet");
 
 function normalizarEmailPermiso(email) {
     return email.trim().toLowerCase();
@@ -520,6 +521,29 @@ export async function cambiarEmailUsuarioFirebase(emailActualPreseleccionado = '
         alert("Error al cambiar correo: " + (error.message || "No se pudo completar la operación."));
     } finally {
         restaurarBotonCarga(btnCambiar, htmlOriginal);
+    }
+}
+
+// DESACTIVAR O REACTIVAR USUARIO
+export async function cambiarEstadoUsuarioFirebase(email, activo) {
+    if (bloquearCambiosEnModoVerComo()) return;
+    if (!state.esAdminMaster) return alert("Solo el Administrador Principal puede cambiar estados de usuarios.");
+
+    const emailNormalizado = normalizarEmailPermiso(email);
+    const accion = activo ? "reactivar" : "desactivar";
+
+    if (!emailNormalizado) return alert("No se pudo identificar el usuario.");
+    if (!confirm(`¿Confirmás ${accion} este usuario?\n\n${emailNormalizado}`)) return;
+
+    try {
+        await cambiarEstadoUsuarioIntranetFn({
+            email: emailNormalizado,
+            activo
+        });
+
+        alert(`Usuario ${activo ? "reactivado" : "desactivado"} correctamente.`);
+    } catch (error) {
+        alert("Error al cambiar estado: " + (error.message || "No se pudo completar la operación."));
     }
 }
 

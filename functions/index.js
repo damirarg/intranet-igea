@@ -171,3 +171,40 @@ exports.cambiarEmailUsuarioIntranet = onCall({ region: "us-central1", maxInstanc
     throw new HttpsError("internal", error.message || "No se pudo cambiar el correo.");
   }
 });
+
+exports.cambiarEstadoUsuarioIntranet = onCall({ region: "us-central1", maxInstances: 1 }, async (request) => {
+  validarAdmin(request);
+
+  const email = normalizarEmail(request.data && request.data.email);
+  const activo = Boolean(request.data && request.data.activo);
+
+  if (!email || !email.includes("@")) {
+    throw new HttpsError("invalid-argument", "Ingresá un correo válido.");
+  }
+
+  if (email === ADMIN_EMAIL) {
+    throw new HttpsError("failed-precondition", "No se puede desactivar el administrador principal.");
+  }
+
+  try {
+    const usuario = await admin.auth().getUserByEmail(email);
+    await admin.auth().updateUser(usuario.uid, { disabled: !activo });
+
+    await admin.firestore().collection("permisos").doc(email).set({
+      email,
+      uid: usuario.uid,
+      activo,
+      fechaActualizacion: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+
+    logger.info("Estado de usuario actualizado", { email, uid: usuario.uid, activo });
+    return { email, activo };
+  } catch (error) {
+    if (error.code === "auth/user-not-found") {
+      throw new HttpsError("not-found", "No existe un usuario con ese correo.");
+    }
+
+    logger.error("Error al cambiar estado de usuario", error);
+    throw new HttpsError("internal", error.message || "No se pudo cambiar el estado del usuario.");
+  }
+});

@@ -51,6 +51,7 @@ import {
     crearUsuarioIntranetFirebase,
     generarResetClaveUsuarioFirebase,
     cambiarEmailUsuarioFirebase,
+    cambiarEstadoUsuarioFirebase,
     otorgarPermisoFirebase,
     revocarPermisoFirebase,
     actualizarCampoFirebase,
@@ -111,6 +112,7 @@ window.editarGestionFirebase = editarGestionFirebase;
 window.crearUsuarioIntranetFirebase = crearUsuarioIntranetFirebase;
 window.generarResetClaveUsuarioFirebase = generarResetClaveUsuarioFirebase;
 window.cambiarEmailUsuarioFirebase = cambiarEmailUsuarioFirebase;
+window.cambiarEstadoUsuarioFirebase = cambiarEstadoUsuarioFirebase;
 window.otorgarPermisoFirebase = otorgarPermisoFirebase;
 window.revocarPermisoFirebase = revocarPermisoFirebase;
 window.actualizarCampoFirebase = actualizarCampoFirebase;

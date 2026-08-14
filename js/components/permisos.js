@@ -32,11 +32,26 @@ function renderizarBadgesModulos(modulos = []) {
 }
 
 export function renderizarPermisos() {
-    let filasPermisos = state.listaPermisosFirebase.map(p => `
-        <tr class="border-b border-slate-100 hover:bg-slate-50 transition">
+    let filasPermisos = state.listaPermisosFirebase.map(p => {
+        const estaActivo = p.activo !== false;
+        const botonEstadoHTML = estaActivo ? `
+            <button onclick="window.cambiarEstadoUsuarioFirebase('${p.email}', false)" class="text-slate-400 hover:text-red-600 transition p-1" title="Desactivar usuario">
+                <span class="material-symbols-rounded" style="font-size: 18px;">person_off</span>
+            </button>
+        ` : `
+            <button onclick="window.cambiarEstadoUsuarioFirebase('${p.email}', true)" class="text-slate-400 hover:text-emerald-600 transition p-1" title="Reactivar usuario">
+                <span class="material-symbols-rounded" style="font-size: 18px;">person_check</span>
+            </button>
+        `;
+
+        return `
+        <tr class="border-b border-slate-100 hover:bg-slate-50 transition ${estaActivo ? '' : 'bg-slate-50 opacity-70'}">
             <td class="p-3.5 font-semibold text-slate-800 text-xs flex items-center gap-2">
-                <span class="material-symbols-rounded text-purple-600" style="font-size:18px;">account_circle</span>
-                ${p.email}
+                <span class="material-symbols-rounded ${estaActivo ? 'text-purple-600' : 'text-slate-400'}" style="font-size:18px;">account_circle</span>
+                <span>
+                    ${p.email}
+                    <span class="${estaActivo ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-slate-100 text-slate-500 border-slate-200'} ml-2 px-2 py-0.5 rounded-lg border text-[10px] font-black uppercase">${estaActivo ? 'Activo' : 'Desactivado'}</span>
+                </span>
             </td>
             <td class="p-3.5 text-xs text-slate-600 font-medium">
                 ${renderizarBadgesModulos(p.modulos)}
@@ -48,12 +63,14 @@ export function renderizarPermisos() {
                 <button onclick="document.getElementById('input-email-actual-admin').value='${p.email}'; document.getElementById('input-email-nuevo-admin').focus();" class="text-slate-400 hover:text-amber-600 transition p-1" title="Preparar cambio de correo">
                     <span class="material-symbols-rounded" style="font-size: 18px;">alternate_email</span>
                 </button>
+                ${botonEstadoHTML}
                 <button onclick="window.revocarPermisoFirebase('${p.id}')" class="text-slate-400 hover:text-red-600 transition p-1" title="Revocar Permiso">
                     <span class="material-symbols-rounded" style="font-size: 18px;">delete</span>
                 </button>
             </td>
         </tr>
-    `).join('');
+    `;
+    }).join('');
 
     if (state.listaPermisosFirebase.length === 0) {
         filasPermisos = `
