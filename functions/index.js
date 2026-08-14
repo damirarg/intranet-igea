@@ -54,7 +54,7 @@ async function guardarPerfilPermisos({ email, nombre, uid, modulos }) {
   }, { merge: true });
 }
 
-exports.crearUsuarioIntranet = onCall({ region: "us-central1" }, async (request) => {
+exports.crearUsuarioIntranet = onCall({ region: "us-central1", maxInstances: 1 }, async (request) => {
   validarAdmin(request);
 
   const email = normalizarEmail(request.data && request.data.email);
@@ -103,7 +103,7 @@ exports.crearUsuarioIntranet = onCall({ region: "us-central1" }, async (request)
   }
 });
 
-exports.enviarResetClaveUsuario = onCall({ region: "us-central1" }, async (request) => {
+exports.enviarResetClaveUsuario = onCall({ region: "us-central1", maxInstances: 1 }, async (request) => {
   validarAdmin(request);
 
   const email = normalizarEmail(request.data && request.data.email);
@@ -122,7 +122,7 @@ exports.enviarResetClaveUsuario = onCall({ region: "us-central1" }, async (reque
   }
 });
 
-exports.cambiarEmailUsuarioIntranet = onCall({ region: "us-central1" }, async (request) => {
+exports.cambiarEmailUsuarioIntranet = onCall({ region: "us-central1", maxInstances: 1 }, async (request) => {
   validarAdmin(request);
 
   const emailActual = normalizarEmail(request.data && request.data.emailActual);
