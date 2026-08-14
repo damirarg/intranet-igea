@@ -30,6 +30,11 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    match /usuarios/{email} {
+      allow read: if isAdmin() || (signedIn() && email == userEmail());
+      allow write: if isAdmin();
+    }
+
     match /sugerencias/{sugerenciaId} {
       allow read: if signedIn();
       allow create: if signedIn()

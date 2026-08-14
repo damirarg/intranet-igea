@@ -52,6 +52,7 @@ import {
     generarResetClaveUsuarioFirebase,
     cambiarEmailUsuarioFirebase,
     cambiarEstadoUsuarioFirebase,
+    sincronizarUsuariosDesdePermisosFirebase,
     otorgarPermisoFirebase,
     revocarPermisoFirebase,
     actualizarCampoFirebase,
@@ -113,6 +114,7 @@ window.crearUsuarioIntranetFirebase = crearUsuarioIntranetFirebase;
 window.generarResetClaveUsuarioFirebase = generarResetClaveUsuarioFirebase;
 window.cambiarEmailUsuarioFirebase = cambiarEmailUsuarioFirebase;
 window.cambiarEstadoUsuarioFirebase = cambiarEstadoUsuarioFirebase;
+window.sincronizarUsuariosDesdePermisosFirebase = sincronizarUsuariosDesdePermisosFirebase;
 window.otorgarPermisoFirebase = otorgarPermisoFirebase;
 window.revocarPermisoFirebase = revocarPermisoFirebase;
 window.actualizarCampoFirebase = actualizarCampoFirebase;
@@ -136,10 +138,12 @@ const documentosRef = collection(db, "documentos_dpp_proc");
 const sugerenciasRef = collection(db, "sugerencias");
 const saldosRef = collection(db, "saldos");
 const permisosRef = collection(db, "permisos");
+const usuariosRef = collection(db, "usuarios");
 const guardiasRef = collection(db, "guardias");
 
 let unsubscribePermisos = null;
 let unsubscribeSaldos = null;
+let unsubscribeUsuarios = null;
 
 function normalizarEmail(email) {
     return (email || '').toLowerCase().trim();
@@ -179,6 +183,9 @@ function actualizarSelectorVerComo() {
 
     const usuarios = new Map();
     baseRecibos.forEach(emp => usuarios.set(normalizarEmail(emp.email), emp.nombre || emp.email));
+    state.listaUsuariosFirebase.forEach(u => {
+        if (u.email) usuarios.set(normalizarEmail(u.email), u.nombre || u.displayName || u.email);
+    });
     state.listaPermisosFirebase.forEach(p => {
         if (p.email) usuarios.set(normalizarEmail(p.email), obtenerNombreUsuario(p.email));
     });
@@ -337,6 +344,33 @@ function escucharPermisosUsuario(email) {
     });
 }
 
+function escucharUsuariosAdmin() {
+    if (unsubscribeUsuarios) {
+        unsubscribeUsuarios();
+        unsubscribeUsuarios = null;
+    }
+
+    if (!state.esAdminAutenticado) {
+        state.listaUsuariosFirebase = [];
+        return;
+    }
+
+    unsubscribeUsuarios = onSnapshot(usuariosRef, (snapshot) => {
+        state.listaUsuariosFirebase = [];
+        snapshot.forEach((docSnap) => {
+            state.listaUsuariosFirebase.push({ id: docSnap.id, ...docSnap.data() });
+        });
+
+        actualizarSelectorVerComo();
+
+        if (state.seccionActual === 'permisos' && !state.viendoDocumento) {
+            cambiarVista('permisos');
+        }
+    }, (error) => {
+        console.error("Error al escuchar usuarios:", error);
+    });
+}
+
 // Escuchar documentos
 onSnapshot(query(documentosRef, orderBy("fechaAlta", "desc")), (snapshot) => {
     state.listaDocumentosFirebase = [];
@@ -392,6 +426,7 @@ onAuthStateChanged(auth, async (user) => {
         try {
             await cargarPermisoInicial(state.usuarioActualEmail);
             escucharPermisosUsuario(state.usuarioActualEmail);
+            escucharUsuariosAdmin();
             escucharSaldosSiCorresponde();
         } catch (error) {
             console.error("Error al verificar permisos:", error);
@@ -419,6 +454,7 @@ onAuthStateChanged(auth, async (user) => {
         state.tienePermisoSaldos = false;
         state.tienePermisoGuardias = false;
         state.listaPermisosFirebase = [];
+        state.listaUsuariosFirebase = [];
         state.listaSaldosFirebase = [];
         if (unsubscribePermisos) {
             unsubscribePermisos();
@@ -427,6 +463,10 @@ onAuthStateChanged(auth, async (user) => {
         if (unsubscribeSaldos) {
             unsubscribeSaldos();
             unsubscribeSaldos = null;
+        }
+        if (unsubscribeUsuarios) {
+            unsubscribeUsuarios();
+            unsubscribeUsuarios = null;
         }
         pantallaLogin.classList.remove('hidden');
         appPrincipal.classList.add('hidden');

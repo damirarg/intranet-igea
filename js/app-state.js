@@ -68,6 +68,7 @@ export const state = {
     datosCSVPrecargados: [],
     listaSaldosFirebase: [],
     listaPermisosFirebase: [],
+    listaUsuariosFirebase: [],
     listaDocumentosFirebase: [],
     docActualEditarId: null,
     anexosEditMemoria: [],

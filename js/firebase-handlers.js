@@ -41,6 +41,7 @@ const crearUsuarioIntranetFn = httpsCallable(functions, "crearUsuarioIntranet");
 const enviarResetClaveUsuarioFn = httpsCallable(functions, "enviarResetClaveUsuario");
 const cambiarEmailUsuarioIntranetFn = httpsCallable(functions, "cambiarEmailUsuarioIntranet");
 const cambiarEstadoUsuarioIntranetFn = httpsCallable(functions, "cambiarEstadoUsuarioIntranet");
+const sincronizarUsuariosDesdePermisosFn = httpsCallable(functions, "sincronizarUsuariosDesdePermisos");
 
 function normalizarEmailPermiso(email) {
     return email.trim().toLowerCase();
@@ -544,6 +545,25 @@ export async function cambiarEstadoUsuarioFirebase(email, activo) {
         alert(`Usuario ${activo ? "reactivado" : "desactivado"} correctamente.`);
     } catch (error) {
         alert("Error al cambiar estado: " + (error.message || "No se pudo completar la operación."));
+    }
+}
+
+// SINCRONIZAR PADRON DE USUARIOS DESDE PERMISOS
+export async function sincronizarUsuariosDesdePermisosFirebase() {
+    if (bloquearCambiosEnModoVerComo()) return;
+    if (!state.esAdminMaster) return alert("Solo el Administrador Principal puede sincronizar usuarios.");
+
+    const btn = document.getElementById('btn-sincronizar-usuarios-admin');
+    const htmlOriginal = activarBotonCarga(btn, "Sincronizando...");
+
+    try {
+        const resultado = await sincronizarUsuariosDesdePermisosFn();
+        const cantidad = resultado.data && typeof resultado.data.cantidad === 'number' ? resultado.data.cantidad : 0;
+        alert(`Padrón de usuarios sincronizado.\n\nUsuarios procesados: ${cantidad}`);
+    } catch (error) {
+        alert("Error al sincronizar usuarios: " + (error.message || "No se pudo completar la operación."));
+    } finally {
+        restaurarBotonCarga(btn, htmlOriginal);
     }
 }
 

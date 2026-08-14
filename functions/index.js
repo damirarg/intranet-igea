@@ -41,9 +41,21 @@ function generarClaveTemporal() {
 }
 
 async function guardarPerfilPermisos({ email, nombre, uid, modulos }) {
-  const permisoRef = admin.firestore().collection("permisos").doc(email);
+  const db = admin.firestore();
+  const permisoRef = db.collection("permisos").doc(email);
+  const usuarioRef = db.collection("usuarios").doc(email);
 
   await permisoRef.set({
+    email,
+    nombre,
+    uid,
+    modulos,
+    activo: true,
+    fechaAlta: admin.firestore.FieldValue.serverTimestamp(),
+    fechaActualizacion: admin.firestore.FieldValue.serverTimestamp()
+  }, { merge: true });
+
+  await usuarioRef.set({
     email,
     nombre,
     uid,
@@ -141,9 +153,13 @@ exports.cambiarEmailUsuarioIntranet = onCall({ region: "us-central1", maxInstanc
     await admin.auth().updateUser(usuario.uid, { email: emailNuevo });
 
     const permisosRef = admin.firestore().collection("permisos");
+    const usuariosRef = admin.firestore().collection("usuarios");
     const permisoActualRef = permisosRef.doc(emailActual);
+    const usuarioActualRef = usuariosRef.doc(emailActual);
     const permisoActual = await permisoActualRef.get();
+    const usuarioActual = await usuarioActualRef.get();
     const dataActual = permisoActual.exists ? permisoActual.data() : {};
+    const dataUsuarioActual = usuarioActual.exists ? usuarioActual.data() : {};
 
     await permisosRef.doc(emailNuevo).set({
       ...dataActual,
@@ -152,8 +168,19 @@ exports.cambiarEmailUsuarioIntranet = onCall({ region: "us-central1", maxInstanc
       fechaActualizacion: admin.firestore.FieldValue.serverTimestamp()
     }, { merge: true });
 
+    await usuariosRef.doc(emailNuevo).set({
+      ...dataUsuarioActual,
+      email: emailNuevo,
+      uid: usuario.uid,
+      fechaActualizacion: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+
     if (permisoActual.exists) {
       await permisoActualRef.delete();
+    }
+
+    if (usuarioActual.exists) {
+      await usuarioActualRef.delete();
     }
 
     logger.info("Correo de usuario actualizado", { emailActual, emailNuevo, uid: usuario.uid });
@@ -197,6 +224,14 @@ exports.cambiarEstadoUsuarioIntranet = onCall({ region: "us-central1", maxInstan
       fechaActualizacion: admin.firestore.FieldValue.serverTimestamp()
     }, { merge: true });
 
+    await admin.firestore().collection("usuarios").doc(email).set({
+      email,
+      uid: usuario.uid,
+      displayName: usuario.displayName || "",
+      activo,
+      fechaActualizacion: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+
     logger.info("Estado de usuario actualizado", { email, uid: usuario.uid, activo });
     return { email, activo };
   } catch (error) {
@@ -207,4 +242,43 @@ exports.cambiarEstadoUsuarioIntranet = onCall({ region: "us-central1", maxInstan
     logger.error("Error al cambiar estado de usuario", error);
     throw new HttpsError("internal", error.message || "No se pudo cambiar el estado del usuario.");
   }
+});
+
+exports.sincronizarUsuariosDesdePermisos = onCall({ region: "us-central1", maxInstances: 1 }, async (request) => {
+  validarAdmin(request);
+
+  const db = admin.firestore();
+  const permisosSnap = await db.collection("permisos").get();
+  const batch = db.batch();
+  let cantidad = 0;
+
+  for (const permisoDoc of permisosSnap.docs) {
+    const data = permisoDoc.data();
+    const email = normalizarEmail(data.email || permisoDoc.id);
+    if (!email || !email.includes("@")) continue;
+
+    let usuarioAuth = null;
+    try {
+      usuarioAuth = await admin.auth().getUserByEmail(email);
+    } catch (error) {
+      logger.warn("Usuario en permisos sin cuenta Auth", { email, error: error.message });
+    }
+
+    const usuarioRef = db.collection("usuarios").doc(email);
+    batch.set(usuarioRef, {
+      email,
+      nombre: data.nombre || (usuarioAuth && usuarioAuth.displayName) || "",
+      uid: data.uid || (usuarioAuth && usuarioAuth.uid) || "",
+      modulos: Array.isArray(data.modulos) ? data.modulos : [],
+      activo: data.activo !== false && !(usuarioAuth && usuarioAuth.disabled),
+      fechaAlta: data.fechaAlta || admin.firestore.FieldValue.serverTimestamp(),
+      fechaActualizacion: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+
+    cantidad++;
+  }
+
+  await batch.commit();
+  logger.info("Usuarios sincronizados desde permisos", { cantidad });
+  return { cantidad };
 });
