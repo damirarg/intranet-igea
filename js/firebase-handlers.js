@@ -40,6 +40,7 @@ const guardiasRef = collection(db, "guardias");
 const crearUsuarioIntranetFn = httpsCallable(functions, "crearUsuarioIntranet");
 const enviarResetClaveUsuarioFn = httpsCallable(functions, "enviarResetClaveUsuario");
 const cambiarEmailUsuarioIntranetFn = httpsCallable(functions, "cambiarEmailUsuarioIntranet");
+const actualizarNombreUsuarioIntranetFn = httpsCallable(functions, "actualizarNombreUsuarioIntranet");
 const cambiarEstadoUsuarioIntranetFn = httpsCallable(functions, "cambiarEstadoUsuarioIntranet");
 const sincronizarUsuariosDesdePermisosFn = httpsCallable(functions, "sincronizarUsuariosDesdePermisos");
 
@@ -522,6 +523,30 @@ export async function cambiarEmailUsuarioFirebase(emailActualPreseleccionado = '
         alert("Error al cambiar correo: " + (error.message || "No se pudo completar la operación."));
     } finally {
         restaurarBotonCarga(btnCambiar, htmlOriginal);
+    }
+}
+
+// ACTUALIZAR NOMBRE VISIBLE DEL USUARIO
+export async function actualizarNombreUsuarioFirebase(emailPreseleccionado = '') {
+    if (bloquearCambiosEnModoVerComo()) return;
+    if (!state.esAdminMaster) return alert("Solo el Administrador Principal puede editar nombres de usuarios.");
+
+    const email = normalizarEmailPermiso(emailPreseleccionado);
+    if (!email) return alert("No se pudo identificar el usuario.");
+
+    const usuarioActual = state.listaUsuariosFirebase.find(u => normalizarEmailPermiso(u.email || '') === email)
+        || state.listaPermisosFirebase.find(u => normalizarEmailPermiso(u.email || '') === email)
+        || {};
+    const nombreActual = (usuarioActual.nombre || usuarioActual.displayName || '').trim();
+    const nombre = (prompt(`Nombre completo para:\n${email}`, nombreActual) || '').trim();
+
+    if (!nombre) return;
+
+    try {
+        await actualizarNombreUsuarioIntranetFn({ email, nombre });
+        alert("Nombre actualizado correctamente.");
+    } catch (error) {
+        alert("Error al actualizar nombre: " + (error.message || "No se pudo completar la operación."));
     }
 }
 

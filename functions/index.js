@@ -199,6 +199,57 @@ exports.cambiarEmailUsuarioIntranet = onCall({ region: "us-central1", maxInstanc
   }
 });
 
+exports.actualizarNombreUsuarioIntranet = onCall({ region: "us-central1", maxInstances: 1 }, async (request) => {
+  validarAdmin(request);
+
+  const email = normalizarEmail(request.data && request.data.email);
+  const nombre = limpiarTexto(request.data && request.data.nombre);
+
+  if (!email || !email.includes("@")) {
+    throw new HttpsError("invalid-argument", "Ingresá un correo válido.");
+  }
+
+  if (!nombre) {
+    throw new HttpsError("invalid-argument", "Ingresá el nombre del usuario.");
+  }
+
+  try {
+    const usuario = await admin.auth().getUserByEmail(email);
+    await admin.auth().updateUser(usuario.uid, { displayName: nombre });
+
+    const db = admin.firestore();
+    const permisoRef = db.collection("permisos").doc(email);
+    const permisoSnap = await permisoRef.get();
+
+    await db.collection("usuarios").doc(email).set({
+      email,
+      nombre,
+      uid: usuario.uid,
+      activo: !usuario.disabled,
+      fechaActualizacion: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+
+    if (permisoSnap.exists) {
+      await permisoRef.set({
+        email,
+        nombre,
+        uid: usuario.uid,
+        fechaActualizacion: admin.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+    }
+
+    logger.info("Nombre de usuario actualizado", { email, uid: usuario.uid });
+    return { email, nombre };
+  } catch (error) {
+    if (error.code === "auth/user-not-found") {
+      throw new HttpsError("not-found", "No existe un usuario con ese correo.");
+    }
+
+    logger.error("Error al actualizar nombre", error);
+    throw new HttpsError("internal", error.message || "No se pudo actualizar el nombre.");
+  }
+});
+
 exports.cambiarEstadoUsuarioIntranet = onCall({ region: "us-central1", maxInstances: 1 }, async (request) => {
   validarAdmin(request);
 

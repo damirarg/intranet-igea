@@ -100,6 +100,9 @@ export function renderizarPermisos() {
                 <button onclick="window.generarResetClaveUsuarioFirebase('${emailUsuario}')" class="text-slate-400 hover:text-blue-600 transition p-1" title="Generar link de recuperación">
                     <span class="material-symbols-rounded" style="font-size: 18px;">lock_reset</span>
                 </button>
+                <button onclick="window.actualizarNombreUsuarioFirebase('${emailUsuario}')" class="text-slate-400 hover:text-indigo-600 transition p-1" title="Editar nombre">
+                    <span class="material-symbols-rounded" style="font-size: 18px;">badge</span>
+                </button>
                 <button onclick="document.getElementById('input-email-actual-admin').value='${emailUsuario}'; document.getElementById('input-email-nuevo-admin').focus();" class="text-slate-400 hover:text-amber-600 transition p-1" title="Preparar cambio de correo">
                     <span class="material-symbols-rounded" style="font-size: 18px;">alternate_email</span>
                 </button>
