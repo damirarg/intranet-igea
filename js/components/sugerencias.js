@@ -50,8 +50,10 @@ export function renderizarSugerencias() {
             });
 
             let esAutor = sug.emailAutor && state.usuarioActualEmail && sug.emailAutor.toLowerCase() === state.usuarioActualEmail.toLowerCase();
-            let btnEliminarHTML = esAutor ? `
-                <button onclick="window.eliminarSugerenciaFirebase('${sug.id}')" title="Eliminar mi sugerencia" class="text-slate-400 hover:text-red-600 transition">
+            let puedeEliminar = state.esAdminMaster || esAutor;
+
+            let btnEliminarHTML = puedeEliminar ? `
+                <button onclick="window.eliminarSugerenciaFirebase('${sug.id}')" title="${state.esAdminMaster && !esAutor ? 'Eliminar sugerencia' : 'Eliminar mi sugerencia'}" class="text-slate-400 hover:text-red-600 transition">
                     <span class="material-symbols-rounded" style="font-size: 16px;">delete</span>
                 </button>
             ` : '';
