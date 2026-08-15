@@ -272,6 +272,8 @@ export async function guardarEmpleadoRRHHFirebase() {
 
     const empleadoId = valorInput('input-id-empleado-rrhh');
     const nombreCompleto = valorInput('input-nombre-empleado-rrhh');
+    const fechaSalida = valorInput('input-fecha-salida-empleado-rrhh');
+    const motivoSalida = valorInput('input-motivo-salida-empleado-rrhh');
 
     if (!nombreCompleto) return alert("Ingresá el nombre completo del empleado.");
 
@@ -285,6 +287,9 @@ export async function guardarEmpleadoRRHHFirebase() {
         domicilio: valorInput('input-domicilio-empleado-rrhh'),
         telefono: valorInput('input-telefono-empleado-rrhh'),
         emailIntranet: normalizarEmailPermiso(valorInput('input-email-intranet-empleado-rrhh')),
+        fechaSalida,
+        motivoSalida,
+        archivado: Boolean(fechaSalida || motivoSalida),
         contactoEmergenciaNombre: valorInput('input-contacto-emergencia-empleado-rrhh'),
         contactoEmergenciaTelefono: valorInput('input-telefono-emergencia-empleado-rrhh'),
         notas: valorInput('input-notas-empleado-rrhh'),

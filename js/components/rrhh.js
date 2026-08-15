@@ -22,6 +22,16 @@ function etiquetaArea(area = '') {
     return areas[area] || '-';
 }
 
+function etiquetaMotivoSalida(motivo = '') {
+    const motivos = {
+        renuncia: 'Renuncia',
+        despido: 'Despido',
+        fallecimiento: 'Fallecimiento'
+    };
+
+    return motivos[motivo] || '-';
+}
+
 function formatearFecha(fechaISO = '') {
     if (!fechaISO) return '-';
     const [anio, mes, dia] = String(fechaISO).split('-');
@@ -43,12 +53,20 @@ export function filtrarEmpleadosRRHH() {
     });
 }
 
+export function alternarArchivadosRRHH() {
+    state.verEmpleadosArchivadosRRHH = !state.verEmpleadosArchivadosRRHH;
+    window.cambiarVista('rrhh');
+}
+
 export function renderizarRRHH() {
     const empleadoEditando = state.empleadoRRHHEditandoId
         ? state.listaEmpleadosRRHHFirebase.find(e => e.id === state.empleadoRRHHEditandoId)
         : null;
 
-    const empleadosOrdenados = [...state.listaEmpleadosRRHHFirebase].sort((a, b) => {
+    const totalActivos = state.listaEmpleadosRRHHFirebase.filter(e => !e.archivado).length;
+    const totalArchivados = state.listaEmpleadosRRHHFirebase.filter(e => e.archivado).length;
+    const empleadosVisibles = state.listaEmpleadosRRHHFirebase.filter(e => state.verEmpleadosArchivadosRRHH ? e.archivado : !e.archivado);
+    const empleadosOrdenados = [...empleadosVisibles].sort((a, b) => {
         const nombreA = (a.nombreCompleto || '').toLowerCase();
         const nombreB = (b.nombreCompleto || '').toLowerCase();
         return nombreA.localeCompare(nombreB, 'es');
@@ -61,6 +79,8 @@ export function renderizarRRHH() {
             e.cuil,
             e.area,
             e.fechaIngreso,
+            e.fechaSalida,
+            e.motivoSalida,
             e.emailIntranet,
             e.obraSocial,
             e.telefono,
@@ -76,6 +96,7 @@ export function renderizarRRHH() {
                         <div class="flex flex-wrap gap-1.5 mt-2">
                             <span class="bg-cyan-50 text-cyan-700 border border-cyan-100 px-2 py-0.5 rounded-lg text-[10px] font-black">${escaparHTML(etiquetaArea(e.area))}</span>
                             <span class="bg-slate-50 text-slate-600 border border-slate-100 px-2 py-0.5 rounded-lg text-[10px] font-black">Ingreso ${escaparHTML(formatearFecha(e.fechaIngreso))}</span>
+                            ${e.archivado ? `<span class="bg-rose-50 text-rose-700 border border-rose-100 px-2 py-0.5 rounded-lg text-[10px] font-black">Archivada</span>` : ''}
                         </div>
                     </div>
                     <div class="flex items-center gap-1">
@@ -99,6 +120,12 @@ export function renderizarRRHH() {
                             </button>
                         </div>
                     </div>
+                    ${e.archivado ? `
+                        <div class="bg-rose-50 border border-rose-100 rounded-xl p-3 md:col-span-2">
+                            <p class="text-[10px] uppercase font-black text-rose-500 tracking-wide">Salida</p>
+                            <p class="font-bold text-rose-800 mt-1">${escaparHTML(formatearFecha(e.fechaSalida))} · ${escaparHTML(etiquetaMotivoSalida(e.motivoSalida))}</p>
+                        </div>
+                    ` : ''}
                     <div class="bg-slate-50 rounded-xl p-3">
                         <p class="text-[10px] uppercase font-black text-slate-400 tracking-wide">Obra social</p>
                         <p class="font-bold text-slate-700 mt-1">${escaparHTML(e.obraSocial || '-')}</p>
@@ -126,7 +153,7 @@ export function renderizarRRHH() {
         `;
     }).join('') : `
         <div class="bg-white border border-dashed border-slate-200 rounded-2xl p-8 text-center text-slate-400 text-sm italic">
-            Todavía no hay empleados cargados en RRHH.
+            ${state.verEmpleadosArchivadosRRHH ? 'No hay empleados archivados.' : 'Todavía no hay empleados activos cargados en RRHH.'}
         </div>
     `;
 
@@ -193,6 +220,19 @@ export function renderizarRRHH() {
                         <input type="email" list="lista-usuarios-intranet-rrhh" id="input-email-intranet-empleado-rrhh" value="${valorEmpleado(empleadoEditando, 'emailIntranet')}" placeholder="correo@ejemplo.com" class="w-full bg-purple-50 border border-purple-100 rounded-xl px-3 py-2.5 text-xs focus:ring-2 focus:ring-purple-500 focus:outline-none">
                     </div>
                     <div>
+                        <label class="block text-[10px] font-black uppercase text-slate-500 mb-1">Fecha de salida</label>
+                        <input type="date" id="input-fecha-salida-empleado-rrhh" value="${valorEmpleado(empleadoEditando, 'fechaSalida')}" class="w-full bg-rose-50 border border-rose-100 rounded-xl px-3 py-2.5 text-xs focus:ring-2 focus:ring-rose-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-black uppercase text-slate-500 mb-1">Motivo de salida</label>
+                        <select id="input-motivo-salida-empleado-rrhh" class="w-full bg-rose-50 border border-rose-100 rounded-xl px-3 py-2.5 text-xs focus:ring-2 focus:ring-rose-500 focus:outline-none">
+                            <option value="">Sin salida</option>
+                            <option value="renuncia" ${empleadoEditando && empleadoEditando.motivoSalida === 'renuncia' ? 'selected' : ''}>Renuncia</option>
+                            <option value="despido" ${empleadoEditando && empleadoEditando.motivoSalida === 'despido' ? 'selected' : ''}>Despido</option>
+                            <option value="fallecimiento" ${empleadoEditando && empleadoEditando.motivoSalida === 'fallecimiento' ? 'selected' : ''}>Fallecimiento</option>
+                        </select>
+                    </div>
+                    <div>
                         <label class="block text-[10px] font-black uppercase text-slate-500 mb-1">Contacto emergencia</label>
                         <input id="input-contacto-emergencia-empleado-rrhh" value="${valorEmpleado(empleadoEditando, 'contactoEmergenciaNombre')}" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs focus:ring-2 focus:ring-cyan-500 focus:outline-none">
                     </div>
@@ -215,12 +255,18 @@ export function renderizarRRHH() {
                 <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-4 mb-4">
                     <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
                         <div>
-                            <h3 class="text-base font-black text-slate-800">Base de empleados (${empleadosOrdenados.length})</h3>
-                            <p class="text-xs text-slate-500 mt-1">Información confidencial exclusiva de RRHH.</p>
+                            <h3 class="text-base font-black text-slate-800">${state.verEmpleadosArchivadosRRHH ? 'Empleados archivados' : 'Base de empleados'} (${empleadosOrdenados.length})</h3>
+                            <p class="text-xs text-slate-500 mt-1">Activos: ${totalActivos} · Archivados: ${totalArchivados}</p>
                         </div>
-                        <div class="relative w-full md:w-80">
-                            <span class="material-symbols-rounded absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" style="font-size:18px;">search</span>
-                            <input id="input-buscar-empleado-rrhh" oninput="window.filtrarEmpleadosRRHH()" placeholder="Buscar empleado..." class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-xs focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+                        <div class="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+                            <button onclick="window.alternarArchivadosRRHH()" class="${state.verEmpleadosArchivadosRRHH ? 'bg-cyan-700 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'} px-3 py-2.5 rounded-xl text-xs font-black transition inline-flex items-center justify-center gap-1.5">
+                                <span class="material-symbols-rounded" style="font-size:16px;">inventory_2</span>
+                                ${state.verEmpleadosArchivadosRRHH ? 'Ver activos' : 'Ver archivados'}
+                            </button>
+                            <div class="relative w-full md:w-80">
+                                <span class="material-symbols-rounded absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" style="font-size:18px;">search</span>
+                                <input id="input-buscar-empleado-rrhh" oninput="window.filtrarEmpleadosRRHH()" placeholder="Buscar empleado..." class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-xs focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+                            </div>
                         </div>
                     </div>
                 </div>

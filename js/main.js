@@ -36,7 +36,7 @@ import { alternarVistaArchivadas, seleccionarColorPostit } from './components/su
 import { alternarFiltroSaldadas, procesarArchivoCSV, cancelarCargaCSV, seleccionarTodosSaldos, ordenarSaldos, aplicarOrdenamientoSaldos } from './components/saldos.js';
 import { seleccionarMaterialDidactico } from './components/procedimientos.js';
 import { guardiasMesSiguiente, guardiasMesAnterior } from './components/guardias.js';
-import { filtrarEmpleadosRRHH } from './components/rrhh.js';
+import { alternarArchivadosRRHH, filtrarEmpleadosRRHH } from './components/rrhh.js';
 
 // Importamos manejadores asincrónicos de base de datos
 import {
@@ -110,6 +110,7 @@ window.seleccionarMaterialDidactico = seleccionarMaterialDidactico;
 window.guardiasMesSiguiente = guardiasMesSiguiente;
 window.guardiasMesAnterior = guardiasMesAnterior;
 window.filtrarEmpleadosRRHH = filtrarEmpleadosRRHH;
+window.alternarArchivadosRRHH = alternarArchivadosRRHH;
 
 window.guardarNuevoDocumentoFirebase = guardarNuevoDocumentoFirebase;
 window.procesarEdicionDocFirebase = procesarEdicionDocFirebase;

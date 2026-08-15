@@ -73,6 +73,7 @@ export const state = {
     listaEmpleadosRRHHFirebase: [],
     listaDocumentosFirebase: [],
     empleadoRRHHEditandoId: null,
+    verEmpleadosArchivadosRRHH: false,
     docActualEditarId: null,
     anexosEditMemoria: [],
 
