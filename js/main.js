@@ -56,6 +56,7 @@ import {
     cambiarEstadoUsuarioFirebase,
     sincronizarUsuariosDesdePermisosFirebase,
     guardarEmpleadoRRHHFirebase,
+    prepararUsuarioDesdeEmpleadoRRHH,
     editarEmpleadoRRHH,
     cancelarEdicionEmpleadoRRHH,
     eliminarEmpleadoRRHHFirebase,
@@ -124,6 +125,7 @@ window.actualizarNombreUsuarioFirebase = actualizarNombreUsuarioFirebase;
 window.cambiarEstadoUsuarioFirebase = cambiarEstadoUsuarioFirebase;
 window.sincronizarUsuariosDesdePermisosFirebase = sincronizarUsuariosDesdePermisosFirebase;
 window.guardarEmpleadoRRHHFirebase = guardarEmpleadoRRHHFirebase;
+window.prepararUsuarioDesdeEmpleadoRRHH = prepararUsuarioDesdeEmpleadoRRHH;
 window.editarEmpleadoRRHH = editarEmpleadoRRHH;
 window.cancelarEdicionEmpleadoRRHH = cancelarEdicionEmpleadoRRHH;
 window.eliminarEmpleadoRRHHFirebase = eliminarEmpleadoRRHHFirebase;

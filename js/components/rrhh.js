@@ -13,6 +13,22 @@ function valorEmpleado(empleado, campo) {
     return escaparHTML(empleado && empleado[campo] ? empleado[campo] : '');
 }
 
+function etiquetaArea(area = '') {
+    const areas = {
+        administracion: 'Administración',
+        asistencial: 'Asistencial'
+    };
+
+    return areas[area] || '-';
+}
+
+function formatearFecha(fechaISO = '') {
+    if (!fechaISO) return '-';
+    const [anio, mes, dia] = String(fechaISO).split('-');
+    if (!anio || !mes || !dia) return fechaISO;
+    return `${dia}/${mes}/${anio}`;
+}
+
 function normalizarBusqueda(valor = '') {
     return String(valor).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 }
@@ -43,6 +59,9 @@ export function renderizarRRHH() {
             e.nombreCompleto,
             e.dni,
             e.cuil,
+            e.area,
+            e.fechaIngreso,
+            e.emailIntranet,
             e.obraSocial,
             e.telefono,
             e.contactoEmergenciaNombre
@@ -54,8 +73,17 @@ export function renderizarRRHH() {
                     <div>
                         <h4 class="text-sm font-black text-slate-800">${escaparHTML(e.nombreCompleto || 'Sin nombre')}</h4>
                         <p class="text-[11px] text-slate-500 font-semibold mt-0.5">DNI ${escaparHTML(e.dni || '-')} · CUIL ${escaparHTML(e.cuil || '-')}</p>
+                        <div class="flex flex-wrap gap-1.5 mt-2">
+                            <span class="bg-cyan-50 text-cyan-700 border border-cyan-100 px-2 py-0.5 rounded-lg text-[10px] font-black">${escaparHTML(etiquetaArea(e.area))}</span>
+                            <span class="bg-slate-50 text-slate-600 border border-slate-100 px-2 py-0.5 rounded-lg text-[10px] font-black">Ingreso ${escaparHTML(formatearFecha(e.fechaIngreso))}</span>
+                        </div>
                     </div>
                     <div class="flex items-center gap-1">
+                        ${e.emailIntranet ? '' : `
+                            <button onclick="window.prepararUsuarioDesdeEmpleadoRRHH('${e.id}')" class="text-slate-400 hover:text-purple-600 p-1 rounded-lg transition" title="Preparar usuario de intranet">
+                                <span class="material-symbols-rounded" style="font-size:18px;">person_add</span>
+                            </button>
+                        `}
                         <button onclick="window.editarEmpleadoRRHH('${e.id}')" class="text-slate-400 hover:text-cyan-700 p-1 rounded-lg transition" title="Editar ficha">
                             <span class="material-symbols-rounded" style="font-size:18px;">edit</span>
                         </button>
@@ -66,6 +94,10 @@ export function renderizarRRHH() {
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4 text-xs">
+                    <div class="bg-purple-50 border border-purple-100 rounded-xl p-3 md:col-span-2">
+                        <p class="text-[10px] uppercase font-black text-purple-500 tracking-wide">Usuario de intranet asociado</p>
+                        <p class="font-bold text-purple-800 mt-1">${escaparHTML(e.emailIntranet || 'Sin usuario asociado')}</p>
+                    </div>
                     <div class="bg-slate-50 rounded-xl p-3">
                         <p class="text-[10px] uppercase font-black text-slate-400 tracking-wide">Obra social</p>
                         <p class="font-bold text-slate-700 mt-1">${escaparHTML(e.obraSocial || '-')}</p>
@@ -112,10 +144,28 @@ export function renderizarRRHH() {
 
                 <input type="hidden" id="input-id-empleado-rrhh" value="${empleadoEditando ? escaparHTML(empleadoEditando.id) : ''}">
 
+                <datalist id="lista-usuarios-intranet-rrhh">
+                    ${state.listaUsuariosFirebase.map(u => `
+                        <option value="${escaparHTML(u.email || '')}">${escaparHTML(u.nombre || u.displayName || u.email || '')}</option>
+                    `).join('')}
+                </datalist>
+
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div class="sm:col-span-2">
                         <label class="block text-[10px] font-black uppercase text-slate-500 mb-1">Nombre completo</label>
                         <input id="input-nombre-empleado-rrhh" value="${valorEmpleado(empleadoEditando, 'nombreCompleto')}" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-black uppercase text-slate-500 mb-1">Fecha de ingreso</label>
+                        <input type="date" id="input-fecha-ingreso-empleado-rrhh" value="${valorEmpleado(empleadoEditando, 'fechaIngreso')}" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-black uppercase text-slate-500 mb-1">Área</label>
+                        <select id="input-area-empleado-rrhh" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+                            <option value="">Seleccionar área</option>
+                            <option value="administracion" ${empleadoEditando && empleadoEditando.area === 'administracion' ? 'selected' : ''}>Administración</option>
+                            <option value="asistencial" ${empleadoEditando && empleadoEditando.area === 'asistencial' ? 'selected' : ''}>Asistencial</option>
+                        </select>
                     </div>
                     <div>
                         <label class="block text-[10px] font-black uppercase text-slate-500 mb-1">DNI</label>
@@ -136,6 +186,10 @@ export function renderizarRRHH() {
                     <div class="sm:col-span-2">
                         <label class="block text-[10px] font-black uppercase text-slate-500 mb-1">Teléfono</label>
                         <input id="input-telefono-empleado-rrhh" value="${valorEmpleado(empleadoEditando, 'telefono')}" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label class="block text-[10px] font-black uppercase text-slate-500 mb-1">Usuario de intranet asociado</label>
+                        <input type="email" list="lista-usuarios-intranet-rrhh" id="input-email-intranet-empleado-rrhh" value="${valorEmpleado(empleadoEditando, 'emailIntranet')}" placeholder="correo@ejemplo.com" class="w-full bg-purple-50 border border-purple-100 rounded-xl px-3 py-2.5 text-xs focus:ring-2 focus:ring-purple-500 focus:outline-none">
                     </div>
                     <div>
                         <label class="block text-[10px] font-black uppercase text-slate-500 mb-1">Contacto emergencia</label>

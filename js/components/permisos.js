@@ -74,10 +74,16 @@ export function renderizarPermisos() {
         const estaActivo = u.activo !== false;
         const modulos = Array.isArray(u.modulos) ? u.modulos : [];
         const email = (u.email || '').toLowerCase().trim();
-        const nombre = (u.nombre || u.displayName || '').trim();
+        const empleadoRRHH = state.listaEmpleadosRRHHFirebase.find(e => (e.emailIntranet || '').toLowerCase().trim() === email);
+        const nombre = (u.nombre || u.displayName || (empleadoRRHH && empleadoRRHH.nombreCompleto) || '').trim();
         const tieneNombreVisible = nombre && nombre.toLowerCase() !== email;
         const tituloUsuario = escaparHTML(tieneNombreVisible ? nombre : email);
         const emailUsuario = escaparHTML(email);
+        const areaRRHH = empleadoRRHH && empleadoRRHH.area === 'administracion'
+            ? 'Administración'
+            : empleadoRRHH && empleadoRRHH.area === 'asistencial'
+                ? 'Asistencial'
+                : '';
         const botonEstadoHTML = estaActivo ? `
             <button onclick="window.cambiarEstadoUsuarioFirebase('${emailUsuario}', false)" class="text-slate-400 hover:text-red-600 transition p-1" title="Desactivar usuario">
                 <span class="material-symbols-rounded" style="font-size: 18px;">person_off</span>
@@ -95,6 +101,7 @@ export function renderizarPermisos() {
                 <span>
                     <span class="block font-black">${tituloUsuario}</span>
                     ${tieneNombreVisible ? `<span class="block text-[11px] text-slate-500 font-semibold">${emailUsuario}</span>` : ''}
+                    ${empleadoRRHH ? `<span class="block text-[10px] text-cyan-700 font-black mt-1">Ficha RRHH${areaRRHH ? ` · ${areaRRHH}` : ''}</span>` : ''}
                     <span class="${estaActivo ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-slate-100 text-slate-500 border-slate-200'} ml-2 px-2 py-0.5 rounded-lg border text-[10px] font-black uppercase">${estaActivo ? 'Activo' : 'Desactivado'}</span>
                 </span>
             </td>

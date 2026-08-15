@@ -277,11 +277,14 @@ export async function guardarEmpleadoRRHHFirebase() {
 
     const data = {
         nombreCompleto,
+        fechaIngreso: valorInput('input-fecha-ingreso-empleado-rrhh'),
+        area: valorInput('input-area-empleado-rrhh'),
         dni: valorInput('input-dni-empleado-rrhh'),
         cuil: valorInput('input-cuil-empleado-rrhh'),
         obraSocial: valorInput('input-obra-social-empleado-rrhh'),
         domicilio: valorInput('input-domicilio-empleado-rrhh'),
         telefono: valorInput('input-telefono-empleado-rrhh'),
+        emailIntranet: normalizarEmailPermiso(valorInput('input-email-intranet-empleado-rrhh')),
         contactoEmergenciaNombre: valorInput('input-contacto-emergencia-empleado-rrhh'),
         contactoEmergenciaTelefono: valorInput('input-telefono-emergencia-empleado-rrhh'),
         notas: valorInput('input-notas-empleado-rrhh'),
@@ -306,6 +309,46 @@ export async function guardarEmpleadoRRHHFirebase() {
         cambiarVista('rrhh');
     } catch (error) {
         alert("Error al guardar ficha de RRHH: " + (error.message || "No se pudo completar la operación."));
+    }
+}
+
+export async function prepararUsuarioDesdeEmpleadoRRHH(id) {
+    if (bloquearCambiosEnModoVerComo()) return;
+    if (!state.esAdminMaster) return alert("Solo el Administrador Principal puede crear usuarios de intranet.");
+
+    const empleado = state.listaEmpleadosRRHHFirebase.find(e => e.id === id);
+    if (!empleado) return alert("No se pudo encontrar la ficha del empleado.");
+
+    const emailActual = normalizarEmailPermiso(empleado.emailIntranet || '');
+    const email = normalizarEmailPermiso(prompt(`Correo de login para ${empleado.nombreCompleto || 'este empleado'}:`, emailActual) || '');
+
+    if (!email) return;
+
+    const crearAhora = confirm(`¿Querés crear ahora el usuario de intranet?\n\nEmpleado: ${empleado.nombreCompleto || '-'}\nCorreo: ${email}`);
+
+    try {
+        await updateDoc(doc(db, "empleados_rrhh", id), {
+            emailIntranet: email,
+            fechaActualizacion: new Date(),
+            actualizadoPor: state.usuarioAutenticadoEmail || state.usuarioActualEmail
+        });
+
+        if (!crearAhora) {
+            alert("Correo asociado a la ficha de RRHH.");
+            return;
+        }
+
+        const resultado = await crearUsuarioIntranetFn({
+            nombre: empleado.nombreCompleto || email,
+            email,
+            modulos: []
+        });
+
+        const data = resultado.data || {};
+        const clave = data.claveTemporal ? `\n\nClave temporal: ${data.claveTemporal}` : '';
+        alert(`Usuario de intranet creado y asociado a RRHH.\n\nCorreo: ${email}${clave}\n\nSugerencia: pedile que cambie la clave al ingresar.`);
+    } catch (error) {
+        alert("Error al preparar usuario desde RRHH: " + (error.message || "No se pudo completar la operación."));
     }
 }
 
