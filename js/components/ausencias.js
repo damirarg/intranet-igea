@@ -398,6 +398,15 @@ function periodoVacacionalParaFecha(fechaISO = fechaAISO(new Date())) {
     return mes <= 5 ? anio - 1 : anio;
 }
 
+function estadoDisponibilidadPeriodo(periodoVacacional, fechaCorte = fechaAISO(new Date())) {
+    const desde = fechaDisponibilidadVacaciones(periodoVacacional);
+    const hasta = fechaVencimientoVacaciones(periodoVacacional);
+
+    if (fechaCorte < desde) return 'futuro';
+    if (fechaCorte > hasta) return 'vencido';
+    return 'vigente';
+}
+
 function ajustesVacacionesPeriodo(empleadoId, periodoVacacional, fechaCorte = fechaAISO(new Date())) {
     return state.listaAjustesVacacionesFirebase.filter(a => {
         if (a.empleadoId !== empleadoId) return false;
@@ -464,7 +473,9 @@ function calcularSaldoEmpleadoVacaciones(empleado, anio, fechaCorte = `${anio}-1
         .reduce((acc, a) => acc + (Number(a.diasADescontar) || 0), 0);
     const vencimiento = fechaVencimientoVacaciones(periodoVacacional);
     const saldoBruto = diasBase + ajustes - usados - pendientes;
-    const vencido = fechaCorte > vencimiento ? Math.max(0, saldoBruto) : 0;
+    const estadoPeriodo = estadoDisponibilidadPeriodo(periodoVacacional, fechaCorte);
+    const noDisponible = estadoPeriodo === 'futuro' ? Math.max(0, saldoBruto) : 0;
+    const vencido = estadoPeriodo === 'vencido' ? Math.max(0, saldoBruto) : 0;
 
     return {
         diasBase,
@@ -473,10 +484,12 @@ function calcularSaldoEmpleadoVacaciones(empleado, anio, fechaCorte = `${anio}-1
         reglas,
         usados,
         pendientes,
+        noDisponible,
         vencido,
-        disponibles: saldoBruto - vencido,
+        disponibles: saldoBruto - vencido - noDisponible,
         antiguedad: calcularAntiguedadAl31(empleado.fechaIngreso, periodoVacacional),
         periodoVacacional,
+        estadoPeriodo,
         fechaDisponibleDesde: fechaDisponibilidadVacaciones(periodoVacacional),
         fechaVencimiento: vencimiento,
         solicitudesFuturas: vacacionesPeriodoPosteriores(empleado.id, periodoVacacional, fechaCorte)
@@ -503,7 +516,7 @@ export function filtrarAusencias() {
 export function cambiarAnioAusencias(valor) {
     const anio = parseInt(valor, 10);
     state.filtroAnioAusencias = Number.isNaN(anio) ? new Date().getFullYear() : anio;
-    state.vacacionesFechaInicio = `${state.filtroAnioAusencias}-01-01`;
+    state.vacacionesFechaInicio = fechaDisponibilidadVacaciones(state.filtroAnioAusencias);
     state.empleadoVacacionesSeleccionadoId = null;
     window.cambiarVista('ausencias');
 }
@@ -602,6 +615,13 @@ function renderizarTableroVacaciones(anioActual) {
     const nombresDias = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
     const hoyISO = fechaAISO(new Date());
     const vacaciones = vacacionesEnRango(inicio, fin);
+    const periodoTablero = periodoVacacionalParaFecha(fin);
+    const estadoPeriodoTablero = estadoDisponibilidadPeriodo(periodoTablero, fin);
+    const etiquetaEstadoPeriodo = estadoPeriodoTablero === 'futuro'
+        ? `Disponible desde ${formatearFecha(fechaDisponibilidadVacaciones(periodoTablero))}`
+        : estadoPeriodoTablero === 'vencido'
+            ? `Vencido el ${formatearFecha(fechaVencimientoVacaciones(periodoTablero))}`
+            : `Vigente hasta ${formatearFecha(fechaVencimientoVacaciones(periodoTablero))}`;
     const totalDisponibles = empleados.reduce((acc, e) => acc + calcularSaldoEmpleadoVacaciones(e, anioActual, fin).disponibles, 0);
     const totalUsados = empleados.reduce((acc, e) => acc + calcularSaldoEmpleadoVacaciones(e, anioActual, fin).usados, 0);
     const totalPendientes = empleados.reduce((acc, e) => acc + calcularSaldoEmpleadoVacaciones(e, anioActual, fin).pendientes, 0);
@@ -655,8 +675,9 @@ function renderizarTableroVacaciones(anioActual) {
                             <span class="bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded-md text-[10px] font-black">${saldo.disponibles}</span>
                             <span class="text-[10px] text-slate-400 font-semibold">disp.</span>
                             <span class="text-[10px] text-slate-300">·</span>
-                            <span class="text-[10px] text-slate-500 font-semibold">${saldo.antiguedad} años</span>
+                            <span class="text-[10px] text-slate-500 font-semibold">P. ${saldo.periodoVacacional}</span>
                         </div>
+                        <p class="text-[10px] text-slate-400 font-semibold mt-0.5">${saldo.estadoPeriodo === 'futuro' ? 'Aún no disponible' : `${saldo.antiguedad} años`}</p>
                     </div>
                 </button>
                 ${celdas}
@@ -671,7 +692,10 @@ function renderizarTableroVacaciones(anioActual) {
                     <button onclick="window.moverRangoVacaciones(-35)" class="w-9 h-9 bg-white hover:bg-indigo-100 border border-indigo-100 rounded-xl text-indigo-700 transition flex items-center justify-center" title="Rango anterior">
                         <span class="material-symbols-rounded" style="font-size:18px;">chevron_left</span>
                     </button>
-                    <div class="px-3 text-sm font-black text-indigo-900">${formatearRangoCorto(inicio, fin)}</div>
+                    <div>
+                        <div class="px-3 text-sm font-black text-indigo-900">${formatearRangoCorto(inicio, fin)}</div>
+                        <div class="px-3 text-[11px] font-bold text-indigo-500">Período vacacional ${periodoTablero} · ${etiquetaEstadoPeriodo}</div>
+                    </div>
                     <button onclick="window.moverRangoVacaciones(35)" class="w-9 h-9 bg-white hover:bg-indigo-100 border border-indigo-100 rounded-xl text-indigo-700 transition flex items-center justify-center" title="Rango siguiente">
                         <span class="material-symbols-rounded" style="font-size:18px;">chevron_right</span>
                     </button>
@@ -1031,13 +1055,14 @@ function renderizarFichaEmpleadoVacaciones(anioActual, fechaCorte = `${anioActua
                     <p class="text-2xl font-black text-amber-800 mt-1">${saldo.pendientes}</p>
                 </div>
                 <div class="bg-indigo-50 border border-indigo-100 rounded-xl p-3">
-                    <p class="text-[10px] uppercase font-black text-indigo-600">Saldo disponible</p>
+                    <p class="text-[10px] uppercase font-black text-indigo-600">${saldo.estadoPeriodo === 'futuro' ? 'Aún no disponible' : 'Saldo disponible'}</p>
                     <p class="text-2xl font-black text-indigo-900 mt-1">${saldo.disponibles}</p>
                 </div>
             </div>
             <div class="px-4 py-3 bg-slate-50 border-b border-slate-100 flex flex-wrap items-center gap-2 text-[11px] font-bold text-slate-500">
                 <span class="bg-white border border-slate-200 rounded-lg px-2 py-1">Disponible desde ${formatearFecha(saldo.fechaDisponibleDesde)}</span>
                 <span class="bg-white border border-slate-200 rounded-lg px-2 py-1">Vence ${formatearFecha(saldo.fechaVencimiento)}</span>
+                ${saldo.noDisponible > 0 ? `<span class="bg-blue-50 border border-blue-100 text-blue-700 rounded-lg px-2 py-1">${saldo.noDisponible} días todavía no habilitados</span>` : ''}
                 ${saldo.vencido > 0 ? `<span class="bg-rose-50 border border-rose-100 text-rose-700 rounded-lg px-2 py-1">${saldo.vencido} vencidos</span>` : ''}
                 ${saldo.solicitudesFuturas > 0 ? `<span class="bg-indigo-50 border border-indigo-100 text-indigo-700 rounded-lg px-2 py-1">${saldo.solicitudesFuturas} días cargados después de esta fecha</span>` : ''}
             </div>
