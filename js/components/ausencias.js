@@ -98,13 +98,30 @@ function obtenerFeriadosArgentinaAnio(anio) {
     return state.feriadosArgentinaPorAnio[anio] || [];
 }
 
+function feriadosLocalesIGEA(anio) {
+    return [
+        { date: `${anio}-04-11`, name: 'Aniversario de Bahía Blanca', nationalHoliday: false, localHoliday: true },
+        { date: `${anio}-09-21`, name: 'Día de la Sanidad', nationalHoliday: false, localHoliday: true }
+    ];
+}
+
+function combinarFeriadosIGEA(anio, feriados = []) {
+    const mapa = new Map();
+
+    [...(feriados || []), ...feriadosLocalesIGEA(anio)].forEach(feriado => {
+        if (feriado?.date) mapa.set(feriado.date, feriado);
+    });
+
+    return Array.from(mapa.values()).sort((a, b) => a.date.localeCompare(b.date));
+}
+
 function obtenerFechasFeriadasArgentina(anio) {
-    return obtenerFeriadosArgentinaAnio(anio).map(f => f.date);
+    return combinarFeriadosIGEA(anio, obtenerFeriadosArgentinaAnio(anio)).map(f => f.date);
 }
 
 function obtenerFeriadoPorFecha(fechaISO = '') {
     const anio = Number(String(fechaISO).slice(0, 4));
-    return obtenerFeriadosArgentinaAnio(anio).find(f => f.date === fechaISO) || null;
+    return combinarFeriadosIGEA(anio, obtenerFeriadosArgentinaAnio(anio)).find(f => f.date === fechaISO) || null;
 }
 
 function feriadosArgentinaRango(fechaDesde = '', fechaHasta = '') {
@@ -121,19 +138,18 @@ export async function cargarFeriadosArgentina(anio) {
         const respuesta = await fetch(`https://date.nager.at/api/v4/Holidays/AR/${anioNumero}`);
         if (!respuesta.ok) throw new Error("No se pudieron cargar feriados.");
         const datos = await respuesta.json();
-        state.feriadosArgentinaPorAnio[anioNumero] = datos
+        state.feriadosArgentinaPorAnio[anioNumero] = combinarFeriadosIGEA(anioNumero, datos
             .filter(f => f.date)
             .map(f => ({
                 date: f.date,
                 name: f.localName || f.name || 'Feriado',
                 nationalHoliday: f.nationalHoliday !== false
-            }))
-            .sort((a, b) => a.date.localeCompare(b.date));
+            })));
 
         if (state.seccionActual === 'ausencias') window.cambiarVista('ausencias');
     } catch (error) {
         console.warn("No se pudieron cargar feriados de Argentina:", error);
-        state.feriadosArgentinaPorAnio[anioNumero] = [];
+        state.feriadosArgentinaPorAnio[anioNumero] = feriadosLocalesIGEA(anioNumero);
     } finally {
         state.feriadosArgentinaCargando[anioNumero] = false;
     }
@@ -203,11 +219,21 @@ function calcularAntiguedadAl31(fechaIngreso = '', anio = new Date().getFullYear
 }
 
 function calcularDiasBaseVacaciones(fechaIngreso = '', anio = new Date().getFullYear()) {
+    const ingreso = parsearFechaLocal(fechaIngreso);
+    if (!ingreso || ingreso > new Date(anio, 11, 31)) return 0;
+
     const antiguedad = calcularAntiguedadAl31(fechaIngreso, anio);
-    if (antiguedad > 20) return 35;
-    if (antiguedad > 10) return 28;
-    if (antiguedad > 5) return 21;
-    return 14;
+    const diasPorAntiguedad = antiguedad > 20 ? 35 : antiguedad > 10 ? 28 : antiguedad > 5 ? 21 : 14;
+    const inicioAnio = new Date(anio, 0, 1);
+
+    if (ingreso <= inicioAnio) return diasPorAntiguedad;
+
+    const diasComputablesAnio = calcularDiasAusenciaCCT108(`${anio}-01-01`, `${anio}-12-31`, obtenerFechasFeriadasArgentina(anio));
+    const diasTrabajados = calcularDiasAusenciaCCT108(fechaAISO(ingreso), `${anio}-12-31`, obtenerFechasFeriadasArgentina(anio));
+
+    return diasTrabajados >= Math.ceil(diasComputablesAnio / 2)
+        ? diasPorAntiguedad
+        : Math.floor(diasTrabajados / 20);
 }
 
 function normalizarBusqueda(valor = '') {
@@ -341,12 +367,16 @@ function fechaDisponibilidadVacaciones(anio) {
     return `${anio}-10-01`;
 }
 
+function fechaVencimientoVacaciones(anio) {
+    return `${Number(anio) + 1}-05-31`;
+}
+
 function periodoVacacionalParaFecha(fechaISO = fechaAISO(new Date())) {
     const fecha = parsearFechaLocal(fechaISO) || new Date();
     const anio = fecha.getFullYear();
     const mes = fecha.getMonth() + 1;
 
-    return mes <= 4 ? anio - 1 : anio;
+    return mes <= 5 ? anio - 1 : anio;
 }
 
 function ajustesVacacionesPeriodo(empleadoId, periodoVacacional, fechaCorte = fechaAISO(new Date())) {
@@ -372,6 +402,18 @@ function vacacionesEmpleadoPeriodoHasta(empleadoId, periodoVacacional, fechaCort
     );
 }
 
+function vacacionesPeriodoPosteriores(empleadoId, periodoVacacional, fechaCorte = fechaAISO(new Date())) {
+    return state.listaAusenciasFirebase.filter(a =>
+        a.empleadoId === empleadoId
+        && a.tipo === 'vacaciones'
+        && a.descuentaVacaciones === true
+        && a.estado !== 'rechazado'
+        && a.estado !== 'cancelado'
+        && periodoVacacionalParaFecha(a.fechaDesde) === Number(periodoVacacional)
+        && String(a.fechaDesde || '') > fechaCorte
+    );
+}
+
 function calcularSaldoEmpleadoVacaciones(empleado, anio, fechaCorte = `${anio}-12-31`) {
     const periodoVacacional = periodoVacacionalParaFecha(fechaCorte);
     const diasBase = calcularDiasBaseVacaciones(empleado.fechaIngreso, periodoVacacional);
@@ -384,15 +426,23 @@ function calcularSaldoEmpleadoVacaciones(empleado, anio, fechaCorte = `${anio}-1
     const pendientes = vacacionesEmpleado
         .filter(a => a.estado === 'solicitado')
         .reduce((acc, a) => acc + (Number(a.diasADescontar) || 0), 0);
+    const vencimiento = fechaVencimientoVacaciones(periodoVacacional);
+    const saldoBruto = diasBase + ajustes - usados - pendientes;
+    const vencido = fechaCorte > vencimiento ? Math.max(0, saldoBruto) : 0;
 
     return {
         diasBase,
         ajustes,
         usados,
         pendientes,
-        disponibles: diasBase + ajustes - usados - pendientes,
+        vencido,
+        disponibles: saldoBruto - vencido,
         antiguedad: calcularAntiguedadAl31(empleado.fechaIngreso, periodoVacacional),
-        periodoVacacional
+        periodoVacacional,
+        fechaDisponibleDesde: fechaDisponibilidadVacaciones(periodoVacacional),
+        fechaVencimiento: vencimiento,
+        solicitudesFuturas: vacacionesPeriodoPosteriores(empleado.id, periodoVacacional, fechaCorte)
+            .reduce((acc, a) => acc + (Number(a.diasADescontar) || 0), 0)
     };
 }
 
@@ -721,7 +771,7 @@ function renderizarFichaEmpleadoVacaciones(anioActual, fechaCorte = `${anioActua
         {
             orden: fechaDisponibilidadVacaciones(saldo.periodoVacacional),
             tipo: 'Base legal',
-            detalle: `Vacaciones ${saldo.periodoVacacional} · disponibles desde ${formatearFecha(fechaDisponibilidadVacaciones(saldo.periodoVacacional))}`,
+            detalle: `Período ${saldo.periodoVacacional} · ${saldo.antiguedad} años de antigüedad · goce hasta ${formatearFecha(saldo.fechaVencimiento)}`,
             dias: saldo.diasBase,
             clases: 'bg-indigo-50 text-indigo-700 border-indigo-100'
         },
@@ -745,6 +795,16 @@ function renderizarFichaEmpleadoVacaciones(anioActual, fechaCorte = `${anioActua
                 : 'bg-emerald-50 text-emerald-700 border-emerald-100'
         }))
     ].sort((a, b) => String(a.orden).localeCompare(String(b.orden)));
+
+    if (saldo.vencido > 0) {
+        movimientos.push({
+            orden: saldo.fechaVencimiento,
+            tipo: 'Saldo vencido',
+            detalle: `Días no utilizados del período ${saldo.periodoVacacional}`,
+            dias: -saldo.vencido,
+            clases: 'bg-rose-50 text-rose-700 border-rose-100'
+        });
+    }
 
     const filasMovimientos = movimientos.map(m => `
         <div class="flex items-center justify-between gap-3 border-b border-slate-100 py-2 last:border-b-0">
@@ -784,7 +844,7 @@ function renderizarFichaEmpleadoVacaciones(anioActual, fechaCorte = `${anioActua
             </div>
             <div class="grid grid-cols-1 md:grid-cols-5 gap-3 p-4 border-b border-slate-100">
                 <div class="bg-slate-50 border border-slate-200 rounded-xl p-3">
-                    <p class="text-[10px] uppercase font-black text-slate-400">Base acumulada</p>
+                    <p class="text-[10px] uppercase font-black text-slate-400">Base período ${saldo.periodoVacacional}</p>
                     <p class="text-2xl font-black text-slate-800 mt-1">${saldo.diasBase}</p>
                 </div>
                 <div class="bg-blue-50 border border-blue-100 rounded-xl p-3">
@@ -803,6 +863,12 @@ function renderizarFichaEmpleadoVacaciones(anioActual, fechaCorte = `${anioActua
                     <p class="text-[10px] uppercase font-black text-indigo-600">Saldo disponible</p>
                     <p class="text-2xl font-black text-indigo-900 mt-1">${saldo.disponibles}</p>
                 </div>
+            </div>
+            <div class="px-4 py-3 bg-slate-50 border-b border-slate-100 flex flex-wrap items-center gap-2 text-[11px] font-bold text-slate-500">
+                <span class="bg-white border border-slate-200 rounded-lg px-2 py-1">Disponible desde ${formatearFecha(saldo.fechaDisponibleDesde)}</span>
+                <span class="bg-white border border-slate-200 rounded-lg px-2 py-1">Vence ${formatearFecha(saldo.fechaVencimiento)}</span>
+                ${saldo.vencido > 0 ? `<span class="bg-rose-50 border border-rose-100 text-rose-700 rounded-lg px-2 py-1">${saldo.vencido} vencidos</span>` : ''}
+                ${saldo.solicitudesFuturas > 0 ? `<span class="bg-indigo-50 border border-indigo-100 text-indigo-700 rounded-lg px-2 py-1">${saldo.solicitudesFuturas} días cargados después de esta fecha</span>` : ''}
             </div>
             <div class="grid grid-cols-1 xl:grid-cols-2 gap-4 p-4">
                 <div>

@@ -307,9 +307,26 @@ function aniosEnRango(fechaDesde = '', fechaHasta = '') {
 
 function feriadosArgentinaRango(fechaDesde = '', fechaHasta = '') {
     return aniosEnRango(fechaDesde, fechaHasta)
-        .flatMap(anio => state.feriadosArgentinaPorAnio[anio] || [])
+        .flatMap(anio => combinarFeriadosIGEA(anio, state.feriadosArgentinaPorAnio[anio] || []))
         .map(f => f.date)
         .filter(Boolean);
+}
+
+function feriadosLocalesIGEA(anio) {
+    return [
+        { date: `${anio}-04-11`, name: 'Aniversario de Bahía Blanca', nationalHoliday: false, localHoliday: true },
+        { date: `${anio}-09-21`, name: 'Día de la Sanidad', nationalHoliday: false, localHoliday: true }
+    ];
+}
+
+function combinarFeriadosIGEA(anio, feriados = []) {
+    const mapa = new Map();
+
+    [...(feriados || []), ...feriadosLocalesIGEA(anio)].forEach(feriado => {
+        if (feriado?.date) mapa.set(feriado.date, feriado);
+    });
+
+    return Array.from(mapa.values()).sort((a, b) => a.date.localeCompare(b.date));
 }
 
 async function asegurarFeriadosArgentinaRango(fechaDesde = '', fechaHasta = '') {
@@ -321,17 +338,16 @@ async function asegurarFeriadosArgentinaRango(fechaDesde = '', fechaHasta = '') 
             const respuesta = await fetch(`https://date.nager.at/api/v4/Holidays/AR/${anio}`);
             if (!respuesta.ok) throw new Error("No se pudieron cargar feriados.");
             const datos = await respuesta.json();
-            state.feriadosArgentinaPorAnio[anio] = datos
+            state.feriadosArgentinaPorAnio[anio] = combinarFeriadosIGEA(anio, datos
                 .filter(f => f.date)
                 .map(f => ({
                     date: f.date,
                     name: f.localName || f.name || 'Feriado',
                     nationalHoliday: f.nationalHoliday !== false
-                }))
-                .sort((a, b) => a.date.localeCompare(b.date));
+                })));
         } catch (error) {
             console.warn("No se pudieron cargar feriados de Argentina:", error);
-            state.feriadosArgentinaPorAnio[anio] = [];
+            state.feriadosArgentinaPorAnio[anio] = feriadosLocalesIGEA(anio);
         }
     }));
 }
