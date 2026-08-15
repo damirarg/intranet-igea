@@ -47,7 +47,8 @@ const subareasPorArea = {
         { valor: 'admision', texto: 'Admisión' },
         { valor: 'coordinacion', texto: 'Coordinación' },
         { valor: 'atencion_telefonica', texto: 'Atención Telefónica' },
-        { valor: 'tesoreria_facturacion', texto: 'Tesorería y Facturación' }
+        { valor: 'tesoreria', texto: 'Tesorería' },
+        { valor: 'facturacion', texto: 'Facturación' }
     ],
     asistencial: [
         { valor: 'coordinacion', texto: 'Coordinación' },
@@ -57,6 +58,8 @@ const subareasPorArea = {
 };
 
 function etiquetaSubarea(area = '', subarea = '') {
+    if (subarea === 'tesoreria_facturacion') return 'Tesorería y Facturación';
+
     const opciones = subareasPorArea[area] || [];
     const encontrada = opciones.find(opcion => opcion.valor === subarea);
     return encontrada ? encontrada.texto : '-';
