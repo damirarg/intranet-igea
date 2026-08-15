@@ -7,6 +7,7 @@ import { renderizarSugerencias } from './components/sugerencias.js';
 import { renderizarSaldos, parsearMontoNumerico } from './components/saldos.js';
 import { renderizarPermisos } from './components/permisos.js';
 import { renderizarGuardias } from './components/guardias.js';
+import { renderizarRRHH } from './components/rrhh.js';
 
 export function abrirModalClave() {
     document.getElementById('modal-clave').classList.remove('hidden');
@@ -254,6 +255,7 @@ export function cambiarVista(vista) {
         if (vista === 'saldos') { titulo.textContent = "Control Operativo"; contenido.innerHTML = renderizarSaldos(); }
         if (vista === 'permisos') { titulo.textContent = "Administración de Permisos"; contenido.innerHTML = renderizarPermisos(); }
         if (vista === 'guardias') { titulo.textContent = "Cronograma de Guardias"; contenido.innerHTML = renderizarGuardias(); }
+        if (vista === 'rrhh') { titulo.textContent = "Recursos Humanos"; contenido.innerHTML = renderizarRRHH(); }
     }
 }
 

@@ -68,5 +68,9 @@ service cloud.firestore {
       allow read: if signedIn();
       allow create, update, delete: if isAdmin() || hasModule("guardias");
     }
+
+    match /empleados_rrhh/{empleadoId} {
+      allow read, create, update, delete: if isAdmin() || hasModule("rrhh");
+    }
   }
 }

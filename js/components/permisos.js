@@ -10,6 +10,11 @@ const etiquetasModulos = {
         icono: 'clinical_notes',
         texto: 'Guardias',
         clases: 'bg-emerald-50 text-emerald-700 border-emerald-200'
+    },
+    rrhh: {
+        icono: 'groups',
+        texto: 'RRHH',
+        clases: 'bg-cyan-50 text-cyan-700 border-cyan-200'
     }
 };
 
@@ -281,6 +286,7 @@ export function renderizarPermisos() {
                         <select id="select-modulo-permiso" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-purple-500 focus:outline-none">
                             <option value="saldos" selected>Gestión de Saldos / Cobranzas</option>
                             <option value="guardias">Gestión de Guardias Pasivas</option>
+                            <option value="rrhh">Recursos Humanos</option>
                         </select>
                     </div>
                 </div>

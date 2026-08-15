@@ -60,6 +60,7 @@ export const state = {
     esAdminMaster: false,
     tienePermisoSaldos: false,
     tienePermisoGuardias: false,
+    tienePermisoRRHH: false,
     
     colorPostitSeleccionado: "yellow",
     listaSugerencias: [],
@@ -69,7 +70,9 @@ export const state = {
     listaSaldosFirebase: [],
     listaPermisosFirebase: [],
     listaUsuariosFirebase: [],
+    listaEmpleadosRRHHFirebase: [],
     listaDocumentosFirebase: [],
+    empleadoRRHHEditandoId: null,
     docActualEditarId: null,
     anexosEditMemoria: [],
 

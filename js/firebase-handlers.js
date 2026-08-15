@@ -36,6 +36,7 @@ const documentosRef = collection(db, "documentos_dpp_proc");
 const sugerenciasRef = collection(db, "sugerencias");
 const saldosRef = collection(db, "saldos");
 const permisosRef = collection(db, "permisos");
+const empleadosRRHHRef = collection(db, "empleados_rrhh");
 const guardiasRef = collection(db, "guardias");
 const crearUsuarioIntranetFn = httpsCallable(functions, "crearUsuarioIntranet");
 const enviarResetClaveUsuarioFn = httpsCallable(functions, "enviarResetClaveUsuario");
@@ -255,6 +256,81 @@ export function evaluarPermisosUsuario(email) {
         (permisoEncontrado && permisoEncontrado.modulos && permisoEncontrado.modulos.includes('saldos'));
     state.tienePermisoGuardias = state.esAdminMaster ||
         (permisoEncontrado && permisoEncontrado.modulos && permisoEncontrado.modulos.includes('guardias'));
+    state.tienePermisoRRHH = state.esAdminMaster ||
+        (permisoEncontrado && permisoEncontrado.modulos && permisoEncontrado.modulos.includes('rrhh'));
+}
+
+function valorInput(id) {
+    const input = document.getElementById(id);
+    return input ? input.value.trim() : '';
+}
+
+// GUARDAR FICHA DE RRHH
+export async function guardarEmpleadoRRHHFirebase() {
+    if (bloquearCambiosEnModoVerComo()) return;
+    if (!state.esAdminMaster && !state.tienePermisoRRHH) return alert("No tenes permisos para gestionar RRHH.");
+
+    const empleadoId = valorInput('input-id-empleado-rrhh');
+    const nombreCompleto = valorInput('input-nombre-empleado-rrhh');
+
+    if (!nombreCompleto) return alert("Ingresá el nombre completo del empleado.");
+
+    const data = {
+        nombreCompleto,
+        dni: valorInput('input-dni-empleado-rrhh'),
+        cuil: valorInput('input-cuil-empleado-rrhh'),
+        obraSocial: valorInput('input-obra-social-empleado-rrhh'),
+        domicilio: valorInput('input-domicilio-empleado-rrhh'),
+        telefono: valorInput('input-telefono-empleado-rrhh'),
+        contactoEmergenciaNombre: valorInput('input-contacto-emergencia-empleado-rrhh'),
+        contactoEmergenciaTelefono: valorInput('input-telefono-emergencia-empleado-rrhh'),
+        notas: valorInput('input-notas-empleado-rrhh'),
+        fechaActualizacion: new Date(),
+        actualizadoPor: state.usuarioAutenticadoEmail || state.usuarioActualEmail
+    };
+
+    try {
+        if (empleadoId) {
+            await updateDoc(doc(db, "empleados_rrhh", empleadoId), data);
+            state.empleadoRRHHEditandoId = null;
+            alert("Ficha actualizada correctamente.");
+        } else {
+            await addDoc(empleadosRRHHRef, {
+                ...data,
+                fechaAlta: new Date(),
+                creadoPor: state.usuarioAutenticadoEmail || state.usuarioActualEmail
+            });
+            alert("Ficha creada correctamente.");
+        }
+
+        cambiarVista('rrhh');
+    } catch (error) {
+        alert("Error al guardar ficha de RRHH: " + (error.message || "No se pudo completar la operación."));
+    }
+}
+
+export function editarEmpleadoRRHH(id) {
+    state.empleadoRRHHEditandoId = id;
+    cambiarVista('rrhh');
+}
+
+export function cancelarEdicionEmpleadoRRHH() {
+    state.empleadoRRHHEditandoId = null;
+    cambiarVista('rrhh');
+}
+
+export async function eliminarEmpleadoRRHHFirebase(id) {
+    if (bloquearCambiosEnModoVerComo()) return;
+    if (!state.esAdminMaster && !state.tienePermisoRRHH) return alert("No tenes permisos para gestionar RRHH.");
+    if (!confirm("¿Confirmás eliminar esta ficha de RRHH?")) return;
+
+    try {
+        await deleteDoc(doc(db, "empleados_rrhh", id));
+        if (state.empleadoRRHHEditandoId === id) state.empleadoRRHHEditandoId = null;
+        alert("Ficha eliminada correctamente.");
+    } catch (error) {
+        alert("Error al eliminar ficha de RRHH: " + (error.message || "No se pudo completar la operación."));
+    }
 }
 
 // REGISTRAR COBRO

@@ -36,6 +36,7 @@ import { alternarVistaArchivadas, seleccionarColorPostit } from './components/su
 import { alternarFiltroSaldadas, procesarArchivoCSV, cancelarCargaCSV, seleccionarTodosSaldos, ordenarSaldos, aplicarOrdenamientoSaldos } from './components/saldos.js';
 import { seleccionarMaterialDidactico } from './components/procedimientos.js';
 import { guardiasMesSiguiente, guardiasMesAnterior } from './components/guardias.js';
+import { filtrarEmpleadosRRHH } from './components/rrhh.js';
 
 // Importamos manejadores asincrónicos de base de datos
 import {
@@ -54,6 +55,10 @@ import {
     actualizarNombreUsuarioFirebase,
     cambiarEstadoUsuarioFirebase,
     sincronizarUsuariosDesdePermisosFirebase,
+    guardarEmpleadoRRHHFirebase,
+    editarEmpleadoRRHH,
+    cancelarEdicionEmpleadoRRHH,
+    eliminarEmpleadoRRHHFirebase,
     otorgarPermisoFirebase,
     revocarPermisoFirebase,
     actualizarCampoFirebase,
@@ -103,6 +108,7 @@ window.ordenarSaldos = ordenarSaldos;
 window.seleccionarMaterialDidactico = seleccionarMaterialDidactico;
 window.guardiasMesSiguiente = guardiasMesSiguiente;
 window.guardiasMesAnterior = guardiasMesAnterior;
+window.filtrarEmpleadosRRHH = filtrarEmpleadosRRHH;
 
 window.guardarNuevoDocumentoFirebase = guardarNuevoDocumentoFirebase;
 window.procesarEdicionDocFirebase = procesarEdicionDocFirebase;
@@ -117,6 +123,10 @@ window.cambiarEmailUsuarioFirebase = cambiarEmailUsuarioFirebase;
 window.actualizarNombreUsuarioFirebase = actualizarNombreUsuarioFirebase;
 window.cambiarEstadoUsuarioFirebase = cambiarEstadoUsuarioFirebase;
 window.sincronizarUsuariosDesdePermisosFirebase = sincronizarUsuariosDesdePermisosFirebase;
+window.guardarEmpleadoRRHHFirebase = guardarEmpleadoRRHHFirebase;
+window.editarEmpleadoRRHH = editarEmpleadoRRHH;
+window.cancelarEdicionEmpleadoRRHH = cancelarEdicionEmpleadoRRHH;
+window.eliminarEmpleadoRRHHFirebase = eliminarEmpleadoRRHHFirebase;
 window.otorgarPermisoFirebase = otorgarPermisoFirebase;
 window.revocarPermisoFirebase = revocarPermisoFirebase;
 window.actualizarCampoFirebase = actualizarCampoFirebase;
@@ -142,10 +152,12 @@ const saldosRef = collection(db, "saldos");
 const permisosRef = collection(db, "permisos");
 const usuariosRef = collection(db, "usuarios");
 const guardiasRef = collection(db, "guardias");
+const empleadosRRHHRef = collection(db, "empleados_rrhh");
 
 let unsubscribePermisos = null;
 let unsubscribeSaldos = null;
 let unsubscribeUsuarios = null;
+let unsubscribeEmpleadosRRHH = null;
 
 function normalizarEmail(email) {
     return (email || '').toLowerCase().trim();
@@ -211,11 +223,13 @@ function aplicarVistaEfectiva(email) {
     state.usuarioActualEmail = email;
     evaluarPermisosUsuario(email);
     escucharSaldosSiCorresponde();
+    escucharEmpleadosRRHHSiCorresponde();
     actualizarNombreHeader();
     actualizarSelectorVerComo();
 
     if (state.seccionActual === 'permisos' && !state.esAdminMaster) cambiarVista('inicio');
     else if (state.seccionActual === 'saldos' && !state.tienePermisoSaldos && !state.esAdminMaster) cambiarVista('inicio');
+    else if (state.seccionActual === 'rrhh' && !state.tienePermisoRRHH && !state.esAdminMaster) cambiarVista('inicio');
     else cambiarVista(state.seccionActual || 'inicio');
 }
 
@@ -271,6 +285,7 @@ function refrescarVistasPorPermisos() {
     }
 
     escucharSaldosSiCorresponde();
+    escucharEmpleadosRRHHSiCorresponde();
     actualizarSelectorVerComo();
     actualizarNombreHeader();
 
@@ -279,6 +294,8 @@ function refrescarVistasPorPermisos() {
     if (state.seccionActual === 'inicio') cambiarVista('inicio');
     if (state.seccionActual === 'guardias') cambiarVista('guardias');
     if (state.seccionActual === 'saldos' && !state.tienePermisoSaldos && !state.esAdminMaster) cambiarVista('inicio');
+    if (state.seccionActual === 'rrhh' && !state.tienePermisoRRHH && !state.esAdminMaster) cambiarVista('inicio');
+    else if (state.seccionActual === 'rrhh') cambiarVista('rrhh');
 }
 
 function escucharSaldosSiCorresponde() {
@@ -308,6 +325,34 @@ function escucharSaldosSiCorresponde() {
         }
     }, (error) => {
         console.error("Error al escuchar saldos:", error);
+    });
+}
+
+function escucharEmpleadosRRHHSiCorresponde() {
+    const puedeVerRRHH = state.esAdminMaster || state.tienePermisoRRHH;
+
+    if (!puedeVerRRHH) {
+        if (unsubscribeEmpleadosRRHH) {
+            unsubscribeEmpleadosRRHH();
+            unsubscribeEmpleadosRRHH = null;
+        }
+        state.listaEmpleadosRRHHFirebase = [];
+        return;
+    }
+
+    if (unsubscribeEmpleadosRRHH) return;
+
+    unsubscribeEmpleadosRRHH = onSnapshot(query(empleadosRRHHRef), (snapshot) => {
+        state.listaEmpleadosRRHHFirebase = [];
+        snapshot.forEach((docSnap) => {
+            state.listaEmpleadosRRHHFirebase.push({ id: docSnap.id, ...docSnap.data() });
+        });
+
+        if (state.seccionActual === 'rrhh' && !state.viendoDocumento) {
+            cambiarVista('rrhh');
+        }
+    }, (error) => {
+        console.error("Error al escuchar empleados de RRHH:", error);
     });
 }
 
@@ -430,6 +475,7 @@ onAuthStateChanged(auth, async (user) => {
             escucharPermisosUsuario(state.usuarioActualEmail);
             escucharUsuariosAdmin();
             escucharSaldosSiCorresponde();
+            escucharEmpleadosRRHHSiCorresponde();
         } catch (error) {
             console.error("Error al verificar permisos:", error);
             actualizarEstadoLogin("No se pudieron verificar los permisos. Cerrá sesión y volvé a intentar.");
@@ -455,9 +501,12 @@ onAuthStateChanged(auth, async (user) => {
         state.esAdminMaster = false;
         state.tienePermisoSaldos = false;
         state.tienePermisoGuardias = false;
+        state.tienePermisoRRHH = false;
         state.listaPermisosFirebase = [];
         state.listaUsuariosFirebase = [];
         state.listaSaldosFirebase = [];
+        state.listaEmpleadosRRHHFirebase = [];
+        state.empleadoRRHHEditandoId = null;
         if (unsubscribePermisos) {
             unsubscribePermisos();
             unsubscribePermisos = null;
@@ -469,6 +518,10 @@ onAuthStateChanged(auth, async (user) => {
         if (unsubscribeUsuarios) {
             unsubscribeUsuarios();
             unsubscribeUsuarios = null;
+        }
+        if (unsubscribeEmpleadosRRHH) {
+            unsubscribeEmpleadosRRHH();
+            unsubscribeEmpleadosRRHH = null;
         }
         pantallaLogin.classList.remove('hidden');
         appPrincipal.classList.add('hidden');
