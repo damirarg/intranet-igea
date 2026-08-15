@@ -18,6 +18,13 @@ const estadosAusencia = {
     cancelado: 'Cancelado'
 };
 
+const tiposAjusteVacaciones = {
+    carga_manual: { texto: 'Carga manual', icono: 'edit_calendar', color: 'blue' },
+    acuerdo_especial: { texto: 'Acuerdo especial', icono: 'handshake', color: 'violet' },
+    guardia: { texto: 'Días por guardia', icono: 'clinical_notes', color: 'emerald' },
+    correccion: { texto: 'Corrección', icono: 'tune', color: 'slate' }
+};
+
 function escaparHTML(valor = '') {
     return String(valor)
         .replace(/&/g, '&amp;')
@@ -41,11 +48,38 @@ function fechaAISO(fecha) {
     return `${anio}-${mes}-${dia}`;
 }
 
+function sumarDias(fechaISO = '', dias = 0) {
+    const fecha = parsearFechaLocal(fechaISO) || new Date();
+    fecha.setDate(fecha.getDate() + dias);
+    return fechaAISO(fecha);
+}
+
+function inicioSemana(fechaISO = '') {
+    const fecha = parsearFechaLocal(fechaISO) || new Date();
+    const dia = fecha.getDay();
+    const ajuste = dia === 0 ? -6 : 1 - dia;
+    fecha.setDate(fecha.getDate() + ajuste);
+    return fechaAISO(fecha);
+}
+
+function rangoFechas(fechaInicio = '', cantidadDias = 35) {
+    const inicio = parsearFechaLocal(fechaInicio) || new Date();
+    return Array.from({ length: cantidadDias }, (_, index) => {
+        const fecha = new Date(inicio);
+        fecha.setDate(inicio.getDate() + index);
+        return fechaAISO(fecha);
+    });
+}
+
 function formatearFecha(fechaISO = '') {
     if (!fechaISO) return '-';
     const [anio, mes, dia] = String(fechaISO).split('-');
     if (!anio || !mes || !dia) return fechaISO;
     return `${dia}/${mes}/${anio}`;
+}
+
+function formatearRangoCorto(fechaDesde = '', fechaHasta = '') {
+    return `${formatearFecha(fechaDesde)} a ${formatearFecha(fechaHasta)}`;
 }
 
 export function calcularDiasAusenciaCCT108(fechaDesde = '', fechaHasta = '', feriados = []) {
@@ -92,6 +126,33 @@ function etiquetaArea(area = '') {
     return 'Sin área';
 }
 
+function inicialesEmpleado(empleado = {}) {
+    const nombre = nombreEmpleado(empleado);
+    const partes = nombre.replace(',', ' ').split(/\s+/).filter(Boolean);
+    return partes.slice(0, 2).map(p => p[0]).join('').toUpperCase() || 'IG';
+}
+
+function calcularAntiguedadAl31(fechaIngreso = '', anio = new Date().getFullYear()) {
+    const ingreso = parsearFechaLocal(fechaIngreso);
+    const corte = new Date(anio, 11, 31);
+    if (!ingreso || corte < ingreso) return 0;
+
+    let antiguedad = corte.getFullYear() - ingreso.getFullYear();
+    const antesDelAniversario = corte.getMonth() < ingreso.getMonth()
+        || (corte.getMonth() === ingreso.getMonth() && corte.getDate() < ingreso.getDate());
+
+    if (antesDelAniversario) antiguedad--;
+    return Math.max(0, antiguedad);
+}
+
+function calcularDiasBaseVacaciones(fechaIngreso = '', anio = new Date().getFullYear()) {
+    const antiguedad = calcularAntiguedadAl31(fechaIngreso, anio);
+    if (antiguedad > 20) return 35;
+    if (antiguedad > 10) return 28;
+    if (antiguedad > 5) return 21;
+    return 14;
+}
+
 function normalizarBusqueda(valor = '') {
     return String(valor).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 }
@@ -105,6 +166,17 @@ function colorChip(tipo = 'otro') {
         blue: 'bg-blue-50 text-blue-700 border-blue-100',
         violet: 'bg-violet-50 text-violet-700 border-violet-100',
         indigo: 'bg-indigo-50 text-indigo-700 border-indigo-100',
+        slate: 'bg-slate-50 text-slate-600 border-slate-200'
+    };
+    return clases[meta.color] || clases.slate;
+}
+
+function colorAjuste(tipo = 'correccion') {
+    const meta = tiposAjusteVacaciones[tipo] || tiposAjusteVacaciones.correccion;
+    const clases = {
+        blue: 'bg-blue-50 text-blue-700 border-blue-100',
+        violet: 'bg-violet-50 text-violet-700 border-violet-100',
+        emerald: 'bg-emerald-50 text-emerald-700 border-emerald-100',
         slate: 'bg-slate-50 text-slate-600 border-slate-200'
     };
     return clases[meta.color] || clases.slate;
@@ -137,6 +209,12 @@ function opcionesEstados(estadoSeleccionado = 'aprobado') {
     `).join('');
 }
 
+function opcionesAjustes(tipoSeleccionado = 'carga_manual') {
+    return Object.entries(tiposAjusteVacaciones).map(([valor, meta]) => `
+        <option value="${valor}" ${valor === tipoSeleccionado ? 'selected' : ''}>${meta.texto}</option>
+    `).join('');
+}
+
 function ausenciasFiltradas() {
     return state.listaAusenciasFirebase
         .filter(a => !state.filtroAnioAusencias || String(a.fechaDesde || '').startsWith(String(state.filtroAnioAusencias)))
@@ -161,6 +239,38 @@ function resumenAusencias(lista) {
     return { vacacionesDeducidas, enCurso, proximas };
 }
 
+function ajustesVacacionesAnio(anio) {
+    return state.listaAjustesVacacionesFirebase.filter(a => Number(a.anio) === Number(anio));
+}
+
+function vacacionesAprobadasAnio(anio) {
+    return state.listaAusenciasFirebase.filter(a =>
+        a.tipo === 'vacaciones'
+        && a.descuentaVacaciones === true
+        && a.estado !== 'rechazado'
+        && a.estado !== 'cancelado'
+        && String(a.fechaDesde || '').startsWith(String(anio))
+    );
+}
+
+function calcularSaldoEmpleadoVacaciones(empleado, anio) {
+    const diasBase = calcularDiasBaseVacaciones(empleado.fechaIngreso, anio);
+    const ajustes = ajustesVacacionesAnio(anio)
+        .filter(a => a.empleadoId === empleado.id)
+        .reduce((acc, a) => acc + (Number(a.dias) || 0), 0);
+    const usados = vacacionesAprobadasAnio(anio)
+        .filter(a => a.empleadoId === empleado.id)
+        .reduce((acc, a) => acc + (Number(a.diasADescontar) || 0), 0);
+
+    return {
+        diasBase,
+        ajustes,
+        usados,
+        disponibles: diasBase + ajustes - usados,
+        antiguedad: calcularAntiguedadAl31(empleado.fechaIngreso, anio)
+    };
+}
+
 export function filtrarAusencias() {
     const input = document.getElementById('input-buscar-ausencia');
     const filtro = normalizarBusqueda(input ? input.value : '');
@@ -175,6 +285,35 @@ export function cambiarAnioAusencias(valor) {
     const anio = parseInt(valor, 10);
     state.filtroAnioAusencias = Number.isNaN(anio) ? new Date().getFullYear() : anio;
     window.cambiarVista('ausencias');
+}
+
+export function moverRangoVacaciones(dias) {
+    state.vacacionesFechaInicio = sumarDias(state.vacacionesFechaInicio || fechaAISO(new Date()), Number(dias) || 0);
+    window.cambiarVista('ausencias');
+}
+
+export function irAHoyVacaciones() {
+    state.vacacionesFechaInicio = fechaAISO(new Date());
+    window.cambiarVista('ausencias');
+}
+
+export function prepararVacacionEmpleado(empleadoId, fecha) {
+    const empleadoSelect = document.getElementById('input-empleado-ausencia');
+    const tipoSelect = document.getElementById('input-tipo-ausencia');
+    const estadoSelect = document.getElementById('input-estado-ausencia');
+    const desdeInput = document.getElementById('input-fecha-desde-ausencia');
+    const hastaInput = document.getElementById('input-fecha-hasta-ausencia');
+    const descuentaCheck = document.getElementById('input-descuenta-vacaciones-ausencia');
+
+    if (empleadoSelect) empleadoSelect.value = empleadoId;
+    if (tipoSelect) tipoSelect.value = 'vacaciones';
+    if (estadoSelect) estadoSelect.value = 'aprobado';
+    if (desdeInput) desdeInput.value = fecha;
+    if (hastaInput) hastaInput.value = fecha;
+    if (descuentaCheck) descuentaCheck.checked = true;
+
+    recalcularDiasAusenciaPreview();
+    empleadoSelect?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 export function recalcularDiasAusenciaPreview() {
@@ -203,6 +342,164 @@ export function sincronizarDescuentoAusencia() {
     const check = document.getElementById('input-descuenta-vacaciones-ausencia');
     if (check && tipo === 'vacaciones') check.checked = true;
     recalcularDiasAusenciaPreview();
+}
+
+function renderizarTableroVacaciones(anioActual) {
+    const empleados = [...state.listaEmpleadosRRHHFirebase]
+        .filter(e => !e.archivado)
+        .sort((a, b) => nombreEmpleado(a).localeCompare(nombreEmpleado(b), 'es'));
+    const inicio = inicioSemana(state.vacacionesFechaInicio || fechaAISO(new Date()));
+    const fechas = rangoFechas(inicio, 35);
+    const fin = fechas[fechas.length - 1];
+    const nombresDias = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+    const hoyISO = fechaAISO(new Date());
+    const vacaciones = vacacionesAprobadasAnio(anioActual);
+    const totalDisponibles = empleados.reduce((acc, e) => acc + calcularSaldoEmpleadoVacaciones(e, anioActual).disponibles, 0);
+    const totalUsados = empleados.reduce((acc, e) => acc + calcularSaldoEmpleadoVacaciones(e, anioActual).usados, 0);
+
+    const encabezadoSemanas = [0, 7, 14, 21, 28].map(offset => {
+        const fechaSemana = parsearFechaLocal(fechas[offset]);
+        const semana = Math.ceil((((fechaSemana - new Date(fechaSemana.getFullYear(), 0, 1)) / 86400000) + new Date(fechaSemana.getFullYear(), 0, 1).getDay() + 1) / 7);
+        return `<div class="text-[11px] font-bold text-indigo-700 px-2">Dd ${semana}</div>`;
+    }).join('');
+
+    const filas = empleados.map(empleado => {
+        const saldo = calcularSaldoEmpleadoVacaciones(empleado, anioActual);
+        const vacacionesEmpleado = vacaciones.filter(v => v.empleadoId === empleado.id);
+        const celdas = fechas.map(fecha => {
+            const fechaObj = parsearFechaLocal(fecha);
+            const diaSemana = fechaObj.getDay();
+            const esDomingo = diaSemana === 0;
+            const esHoy = fecha === hoyISO;
+            const ausencia = vacacionesEmpleado.find(v => String(v.fechaDesde || '') <= fecha && String(v.fechaHasta || '') >= fecha);
+            const clasesBase = esDomingo ? 'bg-slate-100 text-slate-500' : 'hover:bg-indigo-50 text-slate-700';
+            const clasesAusencia = ausencia ? 'bg-emerald-500 text-white shadow-sm shadow-emerald-100' : clasesBase;
+            const titulo = ausencia
+                ? `${nombreEmpleado(empleado)} · Vacaciones ${formatearRangoCorto(ausencia.fechaDesde, ausencia.fechaHasta)}`
+                : `${nombreEmpleado(empleado)} · ${formatearFecha(fecha)}`;
+
+            return `
+                <button title="${escaparHTML(titulo)}" onclick="window.prepararVacacionEmpleado('${empleado.id}', '${fecha}')" class="h-9 min-w-9 rounded-lg text-[11px] font-bold transition ${clasesAusencia} ${esHoy && !ausencia ? 'ring-2 ring-indigo-400' : ''}">
+                    ${ausencia ? '<span class="material-symbols-rounded" style="font-size:15px;">beach_access</span>' : fechaObj.getDate()}
+                </button>
+            `;
+        }).join('');
+
+        return `
+            <div class="grid grid-cols-[230px_repeat(35,minmax(36px,1fr))] min-w-[1540px] border-b border-slate-100 last:border-b-0">
+                <div class="sticky left-0 z-10 bg-white border-r border-slate-200 px-3 py-2 flex items-center gap-2">
+                    <div class="w-9 h-9 rounded-full bg-indigo-700 text-white flex items-center justify-center font-black text-xs shrink-0">${escaparHTML(inicialesEmpleado(empleado))}</div>
+                    <div class="min-w-0">
+                        <p class="text-xs font-black text-slate-800 truncate">${escaparHTML(nombreEmpleado(empleado))}</p>
+                        <div class="flex items-center gap-1 mt-1">
+                            <span class="bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded-md text-[10px] font-black">${saldo.disponibles}</span>
+                            <span class="text-[10px] text-slate-400 font-semibold">disp.</span>
+                            <span class="text-[10px] text-slate-300">·</span>
+                            <span class="text-[10px] text-slate-500 font-semibold">${saldo.antiguedad} años</span>
+                        </div>
+                    </div>
+                </div>
+                ${celdas}
+            </div>
+        `;
+    }).join('');
+
+    return `
+        <section class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+            <div class="bg-indigo-50/80 border-b border-indigo-100 p-3 flex flex-col xl:flex-row xl:items-center justify-between gap-3">
+                <div class="flex items-center gap-2">
+                    <button onclick="window.moverRangoVacaciones(-35)" class="w-9 h-9 bg-white hover:bg-indigo-100 border border-indigo-100 rounded-xl text-indigo-700 transition flex items-center justify-center" title="Rango anterior">
+                        <span class="material-symbols-rounded" style="font-size:18px;">chevron_left</span>
+                    </button>
+                    <div class="px-3 text-sm font-black text-indigo-900">${formatearRangoCorto(inicio, fin)}</div>
+                    <button onclick="window.moverRangoVacaciones(35)" class="w-9 h-9 bg-white hover:bg-indigo-100 border border-indigo-100 rounded-xl text-indigo-700 transition flex items-center justify-center" title="Rango siguiente">
+                        <span class="material-symbols-rounded" style="font-size:18px;">chevron_right</span>
+                    </button>
+                    <button onclick="window.irAHoyVacaciones()" class="bg-white hover:bg-indigo-100 border border-indigo-100 text-indigo-800 px-3 py-2 rounded-xl text-xs font-black transition">Hoy</button>
+                </div>
+                <div class="flex flex-wrap items-center gap-2">
+                    <span class="bg-white border border-indigo-100 text-indigo-800 px-3 py-2 rounded-xl text-xs font-black">${empleados.length} empleados</span>
+                    <span class="bg-white border border-indigo-100 text-indigo-800 px-3 py-2 rounded-xl text-xs font-black">${totalDisponibles} días disponibles</span>
+                    <span class="bg-white border border-indigo-100 text-indigo-800 px-3 py-2 rounded-xl text-xs font-black">${totalUsados} usados</span>
+                    <button onclick="document.getElementById('input-empleado-ausencia')?.focus()" class="bg-indigo-700 hover:bg-indigo-800 text-white px-3 py-2 rounded-xl text-xs font-black transition inline-flex items-center gap-1.5">
+                        <span class="material-symbols-rounded" style="font-size:16px;">add_circle</span> Crear solicitud
+                    </button>
+                </div>
+            </div>
+            <div class="overflow-auto max-h-[560px]">
+                <div class="grid grid-cols-[230px_repeat(35,minmax(36px,1fr))] min-w-[1540px] sticky top-0 z-20 bg-white border-b border-slate-200">
+                    <div class="sticky left-0 z-30 bg-white border-r border-slate-200 p-3 text-[10px] uppercase tracking-wide font-black text-slate-500">Empleado</div>
+                    ${fechas.map(fecha => {
+                        const fechaObj = parsearFechaLocal(fecha);
+                        return `
+                            <div class="p-1 text-center">
+                                <p class="text-[10px] font-black text-slate-500">${nombresDias[fechaObj.getDay()]}</p>
+                                <p class="text-[11px] font-bold text-slate-800 mt-1">${fechaObj.getDate()}</p>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+                <div class="grid grid-cols-[230px_repeat(5,252px)] min-w-[1540px] bg-white border-b border-slate-100">
+                    <div class="sticky left-0 z-10 bg-white border-r border-slate-200"></div>
+                    ${encabezadoSemanas}
+                </div>
+                ${filas || `<div class="p-8 text-center text-slate-400 text-xs italic">Cargá empleados activos en RRHH para ver el tablero.</div>`}
+            </div>
+        </section>
+    `;
+}
+
+function renderizarAjustesVacaciones(anioActual, puedeEditar) {
+    const ajusteEditando = state.ajusteVacacionesEditandoId
+        ? state.listaAjustesVacacionesFirebase.find(a => a.id === state.ajusteVacacionesEditandoId)
+        : null;
+    const ajustes = ajustesVacacionesAnio(anioActual)
+        .sort((a, b) => String(b.fecha || '').localeCompare(String(a.fecha || '')))
+        .slice(0, 8);
+
+    const filas = ajustes.map(a => {
+        const meta = tiposAjusteVacaciones[a.tipo] || tiposAjusteVacaciones.correccion;
+        return `
+            <div class="flex items-center justify-between gap-2 border-b border-slate-100 py-2 last:border-b-0">
+                <div>
+                    <p class="text-xs font-black text-slate-800">${escaparHTML(a.empleadoNombre || 'Empleado')}</p>
+                    <p class="text-[11px] text-slate-500 font-semibold">${formatearFecha(a.fecha)} · ${escaparHTML(meta.texto)}</p>
+                </div>
+                <div class="flex items-center gap-1">
+                    <span class="${colorAjuste(a.tipo)} border rounded-lg px-2 py-1 text-[11px] font-black">${Number(a.dias) > 0 ? '+' : ''}${Number(a.dias) || 0}</span>
+                    ${puedeEditar ? `<button onclick="window.eliminarAjusteVacacionesFirebase('${a.id}')" class="text-slate-400 hover:text-red-600 p-1 rounded-lg transition" title="Eliminar ajuste"><span class="material-symbols-rounded" style="font-size:16px;">delete</span></button>` : ''}
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    return `
+        <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
+            <h4 class="text-sm font-black text-slate-800 mb-4">${ajusteEditando ? 'Editar ajuste' : 'Ajustar días de vacaciones'}</h4>
+            <div class="space-y-3">
+                <input type="hidden" id="input-id-ajuste-vacaciones" value="${escaparHTML(ajusteEditando?.id || '')}">
+                <select id="input-empleado-ajuste-vacaciones" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    ${opcionesEmpleados(ajusteEditando?.empleadoId || '')}
+                </select>
+                <div class="grid grid-cols-2 gap-3">
+                    <input type="number" step="0.5" id="input-dias-ajuste-vacaciones" value="${escaparHTML(ajusteEditando?.dias || '')}" placeholder="Días" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    <input type="number" min="2020" max="2100" id="input-anio-ajuste-vacaciones" value="${escaparHTML(ajusteEditando?.anio || anioActual)}" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                </div>
+                <select id="input-tipo-ajuste-vacaciones" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    ${opcionesAjustes(ajusteEditando?.tipo || 'carga_manual')}
+                </select>
+                <input type="date" id="input-fecha-ajuste-vacaciones" value="${escaparHTML(ajusteEditando?.fecha || fechaAISO(new Date()))}" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                <textarea id="input-notas-ajuste-vacaciones" rows="2" placeholder="Motivo o detalle..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none">${escaparHTML(ajusteEditando?.notas || '')}</textarea>
+                <button id="btn-guardar-ajuste-vacaciones" onclick="window.guardarAjusteVacacionesFirebase()" class="w-full bg-indigo-700 hover:bg-indigo-800 text-white font-black text-xs py-3 rounded-xl transition inline-flex items-center justify-center gap-1.5" ${puedeEditar ? '' : 'disabled'}>
+                    <span class="material-symbols-rounded" style="font-size:16px;">add_task</span> Guardar ajuste
+                </button>
+            </div>
+            <div class="mt-5">
+                <h5 class="text-[10px] uppercase tracking-wide font-black text-slate-400 mb-2">Últimos ajustes</h5>
+                ${filas || `<p class="text-xs text-slate-400 italic">Sin ajustes cargados para ${anioActual}.</p>`}
+            </div>
+        </div>
+    `;
 }
 
 export function renderizarAusencias() {
@@ -308,7 +605,9 @@ export function renderizarAusencias() {
                 </div>
             </section>
 
-            <section class="grid grid-cols-1 xl:grid-cols-[420px_1fr] gap-5 items-start">
+            ${renderizarTableroVacaciones(anioActual)}
+
+            <section class="grid grid-cols-1 xl:grid-cols-[420px_420px_1fr] gap-5 items-start">
                 <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
                     <div class="flex items-center justify-between gap-3 mb-4">
                         <h4 class="text-sm font-black text-slate-800">${ausenciaEditando ? 'Editar ausencia' : 'Cargar ausencia'}</h4>
@@ -366,6 +665,8 @@ export function renderizarAusencias() {
                         </button>
                     </div>
                 </div>
+
+                ${renderizarAjustesVacaciones(anioActual, puedeEditar)}
 
                 <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
                     <div class="p-4 bg-slate-50 border-b border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-3">

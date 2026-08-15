@@ -37,7 +37,7 @@ import { alternarFiltroSaldadas, procesarArchivoCSV, cancelarCargaCSV, seleccion
 import { seleccionarMaterialDidactico } from './components/procedimientos.js';
 import { guardiasMesSiguiente, guardiasMesAnterior } from './components/guardias.js';
 import { alternarArchivadosRRHH, actualizarSubareasRRHH, filtrarEmpleadosRRHH } from './components/rrhh.js';
-import { cambiarAnioAusencias, filtrarAusencias, recalcularDiasAusenciaPreview, sincronizarDescuentoAusencia } from './components/ausencias.js';
+import { cambiarAnioAusencias, filtrarAusencias, irAHoyVacaciones, moverRangoVacaciones, prepararVacacionEmpleado, recalcularDiasAusenciaPreview, sincronizarDescuentoAusencia } from './components/ausencias.js';
 
 // Importamos manejadores asincrónicos de base de datos
 import {
@@ -66,6 +66,8 @@ import {
     editarAusenciaFirebase,
     cancelarEdicionAusenciaFirebase,
     eliminarAusenciaFirebase,
+    guardarAjusteVacacionesFirebase,
+    eliminarAjusteVacacionesFirebase,
     otorgarPermisoFirebase,
     revocarPermisoFirebase,
     actualizarCampoFirebase,
@@ -122,6 +124,9 @@ window.filtrarAusencias = filtrarAusencias;
 window.cambiarAnioAusencias = cambiarAnioAusencias;
 window.recalcularDiasAusenciaPreview = recalcularDiasAusenciaPreview;
 window.sincronizarDescuentoAusencia = sincronizarDescuentoAusencia;
+window.moverRangoVacaciones = moverRangoVacaciones;
+window.irAHoyVacaciones = irAHoyVacaciones;
+window.prepararVacacionEmpleado = prepararVacacionEmpleado;
 
 window.guardarNuevoDocumentoFirebase = guardarNuevoDocumentoFirebase;
 window.procesarEdicionDocFirebase = procesarEdicionDocFirebase;
@@ -146,6 +151,8 @@ window.guardarAusenciaFirebase = guardarAusenciaFirebase;
 window.editarAusenciaFirebase = editarAusenciaFirebase;
 window.cancelarEdicionAusenciaFirebase = cancelarEdicionAusenciaFirebase;
 window.eliminarAusenciaFirebase = eliminarAusenciaFirebase;
+window.guardarAjusteVacacionesFirebase = guardarAjusteVacacionesFirebase;
+window.eliminarAjusteVacacionesFirebase = eliminarAjusteVacacionesFirebase;
 window.otorgarPermisoFirebase = otorgarPermisoFirebase;
 window.revocarPermisoFirebase = revocarPermisoFirebase;
 window.actualizarCampoFirebase = actualizarCampoFirebase;
@@ -173,12 +180,14 @@ const usuariosRef = collection(db, "usuarios");
 const guardiasRef = collection(db, "guardias");
 const empleadosRRHHRef = collection(db, "empleados_rrhh");
 const ausenciasRef = collection(db, "ausencias");
+const ajustesVacacionesRef = collection(db, "vacaciones_ajustes");
 
 let unsubscribePermisos = null;
 let unsubscribeSaldos = null;
 let unsubscribeUsuarios = null;
 let unsubscribeEmpleadosRRHH = null;
 let unsubscribeAusencias = null;
+let unsubscribeAjustesVacaciones = null;
 
 function normalizarEmail(email) {
     return (email || '').toLowerCase().trim();
@@ -390,7 +399,12 @@ function escucharAusenciasAdmin() {
             unsubscribeAusencias();
             unsubscribeAusencias = null;
         }
+        if (unsubscribeAjustesVacaciones) {
+            unsubscribeAjustesVacaciones();
+            unsubscribeAjustesVacaciones = null;
+        }
         state.listaAusenciasFirebase = [];
+        state.listaAjustesVacacionesFirebase = [];
         return;
     }
 
@@ -408,6 +422,21 @@ function escucharAusenciasAdmin() {
     }, (error) => {
         console.error("Error al escuchar ausencias:", error);
     });
+
+    if (!unsubscribeAjustesVacaciones) {
+        unsubscribeAjustesVacaciones = onSnapshot(query(ajustesVacacionesRef), (snapshot) => {
+            state.listaAjustesVacacionesFirebase = [];
+            snapshot.forEach((docSnap) => {
+                state.listaAjustesVacacionesFirebase.push({ id: docSnap.id, ...docSnap.data() });
+            });
+
+            if (state.seccionActual === 'ausencias' && !state.viendoDocumento) {
+                cambiarVista('ausencias');
+            }
+        }, (error) => {
+            console.error("Error al escuchar ajustes de vacaciones:", error);
+        });
+    }
 }
 
 function escucharPermisosUsuario(email) {
@@ -567,8 +596,10 @@ onAuthStateChanged(auth, async (user) => {
         state.listaSaldosFirebase = [];
         state.listaEmpleadosRRHHFirebase = [];
         state.listaAusenciasFirebase = [];
+        state.listaAjustesVacacionesFirebase = [];
         state.empleadoRRHHEditandoId = null;
         state.ausenciaEditandoId = null;
+        state.ajusteVacacionesEditandoId = null;
         if (unsubscribePermisos) {
             unsubscribePermisos();
             unsubscribePermisos = null;
@@ -588,6 +619,10 @@ onAuthStateChanged(auth, async (user) => {
         if (unsubscribeAusencias) {
             unsubscribeAusencias();
             unsubscribeAusencias = null;
+        }
+        if (unsubscribeAjustesVacaciones) {
+            unsubscribeAjustesVacaciones();
+            unsubscribeAjustesVacaciones = null;
         }
         pantallaLogin.classList.remove('hidden');
         appPrincipal.classList.add('hidden');

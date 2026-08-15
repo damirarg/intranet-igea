@@ -91,5 +91,9 @@ service cloud.firestore {
     match /ausencias/{ausenciaId} {
       allow read, create, update, delete: if isAdmin();
     }
+
+    match /vacaciones_ajustes/{ajusteId} {
+      allow read, create, update, delete: if isAdmin();
+    }
   }
 }

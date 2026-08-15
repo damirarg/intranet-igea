@@ -39,6 +39,7 @@ const permisosRef = collection(db, "permisos");
 const empleadosRRHHRef = collection(db, "empleados_rrhh");
 const guardiasRef = collection(db, "guardias");
 const ausenciasRef = collection(db, "ausencias");
+const ajustesVacacionesRef = collection(db, "vacaciones_ajustes");
 const crearUsuarioIntranetFn = httpsCallable(functions, "crearUsuarioIntranet");
 const enviarResetClaveUsuarioFn = httpsCallable(functions, "enviarResetClaveUsuario");
 const cambiarEmailUsuarioIntranetFn = httpsCallable(functions, "cambiarEmailUsuarioIntranet");
@@ -432,6 +433,80 @@ export async function eliminarAusenciaFirebase(id) {
         alert("Ausencia eliminada correctamente.");
     } catch (error) {
         alert("Error al eliminar ausencia: " + (error.message || "No se pudo completar la operación."));
+    }
+}
+
+// GUARDAR AJUSTE DE VACACIONES
+export async function guardarAjusteVacacionesFirebase() {
+    if (bloquearCambiosEnModoVerComo()) return;
+    if (!state.esAdminMaster) return alert("Por ahora los saldos de vacaciones sólo puede editarlos el Administrador Principal.");
+
+    const ajusteId = valorInput('input-id-ajuste-vacaciones');
+    const empleadoId = valorInput('input-empleado-ajuste-vacaciones');
+    const dias = Number(valorInput('input-dias-ajuste-vacaciones'));
+    const anio = Number(valorInput('input-anio-ajuste-vacaciones'));
+    const tipo = valorInput('input-tipo-ajuste-vacaciones') || 'carga_manual';
+    const fecha = valorInput('input-fecha-ajuste-vacaciones');
+    const notas = valorInput('input-notas-ajuste-vacaciones');
+
+    if (!empleadoId) return alert("Seleccioná un empleado.");
+    if (!Number.isFinite(dias) || dias === 0) return alert("Ingresá la cantidad de días. Puede ser positiva o negativa.");
+    if (!Number.isInteger(anio) || anio < 2020 || anio > 2100) return alert("Ingresá un año válido.");
+    if (!fecha) return alert("Ingresá la fecha del ajuste.");
+
+    const empleado = state.listaEmpleadosRRHHFirebase.find(e => e.id === empleadoId);
+    if (!empleado) return alert("No se encontró la ficha del empleado.");
+
+    const btnGuardar = document.getElementById('btn-guardar-ajuste-vacaciones');
+    const htmlOriginal = activarBotonCarga(btnGuardar, "Guardando...");
+    const data = {
+        empleadoId,
+        empleadoNombre: nombreEmpleadoRRHH(empleado),
+        empleadoEmail: empleado.emailIntranet || '',
+        empleadoArea: empleado.area || '',
+        empleadoSubarea: empleado.subarea || '',
+        dias,
+        anio,
+        tipo,
+        fecha,
+        notas,
+        fechaActualizacion: new Date(),
+        actualizadoPor: state.usuarioAutenticadoEmail || state.usuarioActualEmail
+    };
+
+    try {
+        if (ajusteId) {
+            await updateDoc(doc(db, "vacaciones_ajustes", ajusteId), data);
+            state.ajusteVacacionesEditandoId = null;
+            alert("Ajuste actualizado correctamente.");
+        } else {
+            await addDoc(ajustesVacacionesRef, {
+                ...data,
+                fechaAlta: new Date(),
+                creadoPor: state.usuarioAutenticadoEmail || state.usuarioActualEmail
+            });
+            alert("Ajuste cargado correctamente.");
+        }
+
+        cambiarVista('ausencias');
+    } catch (error) {
+        alert("Error al guardar ajuste: " + (error.message || "No se pudo completar la operación."));
+    } finally {
+        restaurarBotonCarga(btnGuardar, htmlOriginal);
+    }
+}
+
+export async function eliminarAjusteVacacionesFirebase(id) {
+    if (bloquearCambiosEnModoVerComo()) return;
+    if (!state.esAdminMaster) return alert("Por ahora los saldos de vacaciones sólo puede editarlos el Administrador Principal.");
+    if (!confirm("¿Confirmás eliminar este ajuste de vacaciones?")) return;
+
+    try {
+        await deleteDoc(doc(db, "vacaciones_ajustes", id));
+        if (state.ajusteVacacionesEditandoId === id) state.ajusteVacacionesEditandoId = null;
+        alert("Ajuste eliminado correctamente.");
+    } catch (error) {
+        alert("Error al eliminar ajuste: " + (error.message || "No se pudo completar la operación."));
     }
 }
 
