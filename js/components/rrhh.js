@@ -39,6 +39,31 @@ function formatearFecha(fechaISO = '') {
     return `${dia}/${mes}/${anio}`;
 }
 
+function calcularAntiguedad(fechaIngreso = '', fechaCorte = '') {
+    if (!fechaIngreso) return '-';
+
+    const inicio = new Date(`${fechaIngreso}T00:00:00`);
+    const fin = fechaCorte ? new Date(`${fechaCorte}T00:00:00`) : new Date();
+
+    if (Number.isNaN(inicio.getTime()) || Number.isNaN(fin.getTime()) || fin < inicio) return '-';
+
+    let anios = fin.getFullYear() - inicio.getFullYear();
+    let meses = fin.getMonth() - inicio.getMonth();
+
+    if (fin.getDate() < inicio.getDate()) meses--;
+
+    if (meses < 0) {
+        anios--;
+        meses += 12;
+    }
+
+    const partes = [];
+    if (anios > 0) partes.push(`${anios} ${anios === 1 ? 'año' : 'años'}`);
+    if (meses > 0) partes.push(`${meses} ${meses === 1 ? 'mes' : 'meses'}`);
+
+    return partes.length ? partes.join(' y ') : 'Menos de 1 mes';
+}
+
 function normalizarBusqueda(valor = '') {
     return String(valor).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 }
@@ -86,6 +111,7 @@ export function renderizarRRHH() {
             e.telefono,
             e.contactoEmergenciaNombre
         ].filter(Boolean).join(' ');
+        const antiguedad = calcularAntiguedad(e.fechaIngreso, e.archivado ? e.fechaSalida : '');
 
         return `
             <article data-empleado-rrhh data-busqueda="${escaparHTML(busqueda)}" class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm hover:border-cyan-200 transition">
@@ -96,6 +122,7 @@ export function renderizarRRHH() {
                         <div class="flex flex-wrap gap-1.5 mt-2">
                             <span class="bg-cyan-50 text-cyan-700 border border-cyan-100 px-2 py-0.5 rounded-lg text-[10px] font-black">${escaparHTML(etiquetaArea(e.area))}</span>
                             <span class="bg-slate-50 text-slate-600 border border-slate-100 px-2 py-0.5 rounded-lg text-[10px] font-black">Ingreso ${escaparHTML(formatearFecha(e.fechaIngreso))}</span>
+                            <span class="bg-emerald-50 text-emerald-700 border border-emerald-100 px-2 py-0.5 rounded-lg text-[10px] font-black">Antigüedad ${escaparHTML(antiguedad)}</span>
                             ${e.archivado ? `<span class="bg-rose-50 text-rose-700 border border-rose-100 px-2 py-0.5 rounded-lg text-[10px] font-black">Archivada</span>` : ''}
                         </div>
                     </div>
