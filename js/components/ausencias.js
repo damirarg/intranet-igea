@@ -281,7 +281,10 @@ function ausenciasFiltradas() {
 function resumenAusencias(lista) {
     const hoyISO = fechaAISO(new Date());
     const vacacionesDeducidas = lista
-        .filter(a => a.tipo === 'vacaciones' && a.estado !== 'rechazado' && a.estado !== 'cancelado')
+        .filter(a => a.tipo === 'vacaciones' && a.estado === 'aprobado')
+        .reduce((acc, a) => acc + (Number(a.diasADescontar) || 0), 0);
+    const solicitudesPendientes = lista
+        .filter(a => a.tipo === 'vacaciones' && a.estado === 'solicitado')
         .reduce((acc, a) => acc + (Number(a.diasADescontar) || 0), 0);
     const enCurso = lista.filter(a =>
         a.estado === 'aprobado'
@@ -293,7 +296,7 @@ function resumenAusencias(lista) {
         && String(a.fechaDesde || '') > hoyISO
     ).length;
 
-    return { vacacionesDeducidas, enCurso, proximas };
+    return { vacacionesDeducidas, solicitudesPendientes, enCurso, proximas };
 }
 
 function ajustesVacacionesAnio(anio) {
@@ -315,17 +318,28 @@ function calcularSaldoEmpleadoVacaciones(empleado, anio) {
     const ajustes = ajustesVacacionesAnio(anio)
         .filter(a => a.empleadoId === empleado.id)
         .reduce((acc, a) => acc + (Number(a.dias) || 0), 0);
-    const usados = vacacionesAprobadasAnio(anio)
-        .filter(a => a.empleadoId === empleado.id)
+    const vacacionesEmpleado = vacacionesAprobadasAnio(anio).filter(a => a.empleadoId === empleado.id);
+    const usados = vacacionesEmpleado
+        .filter(a => a.estado === 'aprobado')
+        .reduce((acc, a) => acc + (Number(a.diasADescontar) || 0), 0);
+    const pendientes = vacacionesEmpleado
+        .filter(a => a.estado === 'solicitado')
         .reduce((acc, a) => acc + (Number(a.diasADescontar) || 0), 0);
 
     return {
         diasBase,
         ajustes,
         usados,
-        disponibles: diasBase + ajustes - usados,
+        pendientes,
+        disponibles: diasBase + ajustes - usados - pendientes,
         antiguedad: calcularAntiguedadAl31(empleado.fechaIngreso, anio)
     };
+}
+
+function solicitudesPendientesVacaciones() {
+    return state.listaAusenciasFirebase
+        .filter(a => a.tipo === 'vacaciones' && a.estado === 'solicitado')
+        .sort((a, b) => String(a.fechaDesde || '').localeCompare(String(b.fechaDesde || '')));
 }
 
 export function filtrarAusencias() {
@@ -364,7 +378,7 @@ export function prepararVacacionEmpleado(empleadoId, fecha) {
 
     if (empleadoSelect) empleadoSelect.value = empleadoId;
     if (tipoSelect) tipoSelect.value = 'vacaciones';
-    if (estadoSelect) estadoSelect.value = 'aprobado';
+    if (estadoSelect) estadoSelect.value = 'solicitado';
     if (desdeInput) desdeInput.value = fecha;
     if (hastaInput) hastaInput.value = fecha;
     if (descuentaCheck) descuentaCheck.checked = true;
@@ -420,6 +434,7 @@ function renderizarTableroVacaciones(anioActual) {
     const vacaciones = vacacionesAprobadasAnio(anioActual);
     const totalDisponibles = empleados.reduce((acc, e) => acc + calcularSaldoEmpleadoVacaciones(e, anioActual).disponibles, 0);
     const totalUsados = empleados.reduce((acc, e) => acc + calcularSaldoEmpleadoVacaciones(e, anioActual).usados, 0);
+    const totalPendientes = empleados.reduce((acc, e) => acc + calcularSaldoEmpleadoVacaciones(e, anioActual).pendientes, 0);
 
     const encabezadoSemanas = [0, 7, 14, 21, 28].map(offset => {
         const fechaSemana = parsearFechaLocal(fechas[offset]);
@@ -442,16 +457,20 @@ function renderizarTableroVacaciones(anioActual) {
                 : esDomingo
                     ? 'bg-slate-100 text-slate-500'
                     : 'hover:bg-indigo-50 text-slate-700';
-            const clasesAusencia = ausencia ? 'bg-emerald-500 text-white shadow-sm shadow-emerald-100' : clasesBase;
+            const clasesAusencia = ausencia
+                ? ausencia.estado === 'solicitado'
+                    ? 'bg-amber-400 text-amber-950 shadow-sm shadow-amber-100'
+                    : 'bg-emerald-500 text-white shadow-sm shadow-emerald-100'
+                : clasesBase;
             const titulo = ausencia
-                ? `${nombreEmpleado(empleado)} · Vacaciones ${formatearRangoCorto(ausencia.fechaDesde, ausencia.fechaHasta)}`
+                ? `${nombreEmpleado(empleado)} · ${estadosAusencia[ausencia.estado] || 'Vacaciones'} · ${formatearRangoCorto(ausencia.fechaDesde, ausencia.fechaHasta)}`
                 : feriado
                     ? `${nombreEmpleado(empleado)} · ${formatearFecha(fecha)} · ${feriado.name}`
                     : `${nombreEmpleado(empleado)} · ${formatearFecha(fecha)}`;
 
             return `
                 <button title="${escaparHTML(titulo)}" onclick="window.prepararVacacionEmpleado('${empleado.id}', '${fecha}')" class="h-9 min-w-9 rounded-lg text-[11px] font-bold transition ${clasesAusencia} ${esHoy && !ausencia ? 'ring-2 ring-indigo-400' : ''}">
-                    ${ausencia ? '<span class="material-symbols-rounded" style="font-size:15px;">beach_access</span>' : feriado ? '<span class="material-symbols-rounded" style="font-size:14px;">flag</span>' : fechaObj.getDate()}
+                    ${ausencia ? `<span class="material-symbols-rounded" style="font-size:15px;">${ausencia.estado === 'solicitado' ? 'pending_actions' : 'beach_access'}</span>` : feriado ? '<span class="material-symbols-rounded" style="font-size:14px;">flag</span>' : fechaObj.getDate()}
                 </button>
             `;
         }).join('');
@@ -492,6 +511,7 @@ function renderizarTableroVacaciones(anioActual) {
                     <span class="bg-white border border-indigo-100 text-indigo-800 px-3 py-2 rounded-xl text-xs font-black">${empleados.length} empleados</span>
                     <span class="bg-white border border-indigo-100 text-indigo-800 px-3 py-2 rounded-xl text-xs font-black">${totalDisponibles} días disponibles</span>
                     <span class="bg-white border border-indigo-100 text-indigo-800 px-3 py-2 rounded-xl text-xs font-black">${totalUsados} usados</span>
+                    <span class="bg-white border border-amber-100 text-amber-700 px-3 py-2 rounded-xl text-xs font-black">${totalPendientes} pendientes</span>
                     <span class="bg-white border border-rose-100 text-rose-700 px-3 py-2 rounded-xl text-xs font-black">${aniosEnRango(inicio, fin).flatMap(anio => obtenerFechasFeriadasArgentina(anio)).filter(f => f >= inicio && f <= fin).length} feriados</span>
                     <button onclick="document.getElementById('input-empleado-ausencia')?.focus()" class="bg-indigo-700 hover:bg-indigo-800 text-white px-3 py-2 rounded-xl text-xs font-black transition inline-flex items-center gap-1.5">
                         <span class="material-symbols-rounded" style="font-size:16px;">add_circle</span> Crear solicitud
@@ -575,6 +595,49 @@ function renderizarAjustesVacaciones(anioActual, puedeEditar) {
     `;
 }
 
+function renderizarSolicitudesPendientes(puedeEditar) {
+    const solicitudes = solicitudesPendientesVacaciones();
+    if (solicitudes.length === 0) return '';
+
+    return `
+        <section class="bg-amber-50 border border-amber-100 rounded-2xl shadow-sm overflow-hidden">
+            <div class="p-4 border-b border-amber-100 flex items-center justify-between gap-3">
+                <div>
+                    <h4 class="text-sm font-black text-amber-900">Solicitudes pendientes</h4>
+                    <p class="text-xs text-amber-700 font-semibold mt-0.5">${solicitudes.length} solicitud${solicitudes.length === 1 ? '' : 'es'} esperando definición.</p>
+                </div>
+                <span class="bg-white border border-amber-100 text-amber-800 rounded-xl px-3 py-2 text-xs font-black">
+                    ${solicitudes.reduce((acc, s) => acc + (Number(s.diasADescontar) || 0), 0)} días reservados
+                </span>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 p-4">
+                ${solicitudes.map(s => `
+                    <article class="bg-white border border-amber-100 rounded-xl p-3">
+                        <div class="flex items-start justify-between gap-2">
+                            <div>
+                                <p class="text-xs font-black text-slate-800">${escaparHTML(s.empleadoNombre || 'Empleado')}</p>
+                                <p class="text-[11px] text-slate-500 font-semibold mt-0.5">${formatearRangoCorto(s.fechaDesde, s.fechaHasta)}</p>
+                            </div>
+                            <span class="bg-amber-100 text-amber-800 rounded-lg px-2 py-1 text-[11px] font-black">${Number(s.diasADescontar) || 0} días</span>
+                        </div>
+                        ${s.notas ? `<p class="text-[11px] text-slate-500 mt-2">${escaparHTML(s.notas)}</p>` : ''}
+                        ${puedeEditar ? `
+                            <div class="flex justify-end gap-1 mt-3">
+                                <button onclick="window.editarAusenciaFirebase('${s.id}')" class="bg-amber-100 hover:bg-amber-200 text-amber-800 px-2.5 py-1.5 rounded-lg text-[11px] font-black transition inline-flex items-center gap-1">
+                                    <span class="material-symbols-rounded" style="font-size:14px;">edit</span> Revisar
+                                </button>
+                                <button onclick="window.eliminarAusenciaFirebase('${s.id}')" class="bg-white hover:bg-red-50 border border-red-100 text-red-600 px-2.5 py-1.5 rounded-lg text-[11px] font-black transition inline-flex items-center gap-1">
+                                    <span class="material-symbols-rounded" style="font-size:14px;">delete</span>
+                                </button>
+                            </div>
+                        ` : ''}
+                    </article>
+                `).join('')}
+            </div>
+        </section>
+    `;
+}
+
 function renderizarFichaEmpleadoVacaciones(anioActual) {
     const empleado = state.empleadoVacacionesSeleccionadoId
         ? obtenerEmpleado(state.empleadoVacacionesSeleccionadoId)
@@ -608,10 +671,12 @@ function renderizarFichaEmpleadoVacaciones(anioActual) {
         }),
         ...vacaciones.map(v => ({
             orden: v.fechaDesde || `${anioActual}-12-31`,
-            tipo: 'Vacaciones tomadas',
+            tipo: v.estado === 'solicitado' ? 'Solicitud pendiente' : 'Vacaciones tomadas',
             detalle: formatearRangoCorto(v.fechaDesde, v.fechaHasta),
             dias: -(Number(v.diasADescontar) || 0),
-            clases: 'bg-emerald-50 text-emerald-700 border-emerald-100'
+            clases: v.estado === 'solicitado'
+                ? 'bg-amber-50 text-amber-700 border-amber-100'
+                : 'bg-emerald-50 text-emerald-700 border-emerald-100'
         }))
     ].sort((a, b) => String(a.orden).localeCompare(String(b.orden)));
 
@@ -651,7 +716,7 @@ function renderizarFichaEmpleadoVacaciones(anioActual) {
                     <span class="material-symbols-rounded" style="font-size:16px;">close</span> Cerrar ficha
                 </button>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-3 p-4 border-b border-slate-100">
+            <div class="grid grid-cols-1 md:grid-cols-5 gap-3 p-4 border-b border-slate-100">
                 <div class="bg-slate-50 border border-slate-200 rounded-xl p-3">
                     <p class="text-[10px] uppercase font-black text-slate-400">Base automática</p>
                     <p class="text-2xl font-black text-slate-800 mt-1">${saldo.diasBase}</p>
@@ -663,6 +728,10 @@ function renderizarFichaEmpleadoVacaciones(anioActual) {
                 <div class="bg-emerald-50 border border-emerald-100 rounded-xl p-3">
                     <p class="text-[10px] uppercase font-black text-emerald-600">Usados</p>
                     <p class="text-2xl font-black text-emerald-800 mt-1">${saldo.usados}</p>
+                </div>
+                <div class="bg-amber-50 border border-amber-100 rounded-xl p-3">
+                    <p class="text-[10px] uppercase font-black text-amber-600">Pendientes</p>
+                    <p class="text-2xl font-black text-amber-800 mt-1">${saldo.pendientes}</p>
                 </div>
                 <div class="bg-indigo-50 border border-indigo-100 rounded-xl p-3">
                     <p class="text-[10px] uppercase font-black text-indigo-600">Saldo disponible</p>
@@ -786,21 +855,22 @@ export function renderizarAusencias() {
                         <p class="text-2xl font-black text-slate-800 mt-1">${lista.length}</p>
                     </div>
                     <div class="bg-teal-50 border border-teal-100 rounded-2xl p-4">
-                        <p class="text-[10px] uppercase tracking-wide font-black text-teal-600">Vacaciones descontadas</p>
+                        <p class="text-[10px] uppercase tracking-wide font-black text-teal-600">Vacaciones aprobadas</p>
                         <p class="text-2xl font-black text-teal-800 mt-1">${resumen.vacacionesDeducidas}</p>
+                    </div>
+                    <div class="bg-amber-50 border border-amber-100 rounded-2xl p-4">
+                        <p class="text-[10px] uppercase tracking-wide font-black text-amber-600">Pendientes</p>
+                        <p class="text-2xl font-black text-amber-800 mt-1">${resumen.solicitudesPendientes}</p>
                     </div>
                     <div class="bg-emerald-50 border border-emerald-100 rounded-2xl p-4">
                         <p class="text-[10px] uppercase tracking-wide font-black text-emerald-600">En curso</p>
                         <p class="text-2xl font-black text-emerald-800 mt-1">${resumen.enCurso}</p>
                     </div>
-                    <div class="bg-blue-50 border border-blue-100 rounded-2xl p-4">
-                        <p class="text-[10px] uppercase tracking-wide font-black text-blue-600">Próximas</p>
-                        <p class="text-2xl font-black text-blue-800 mt-1">${resumen.proximas}</p>
-                    </div>
                 </div>
             </section>
 
             ${renderizarTableroVacaciones(anioActual)}
+            ${renderizarSolicitudesPendientes(puedeEditar)}
             ${renderizarFichaEmpleadoVacaciones(anioActual)}
 
             <section class="grid grid-cols-1 xl:grid-cols-[420px_420px_1fr] gap-5 items-start">
