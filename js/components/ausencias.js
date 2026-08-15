@@ -341,49 +341,43 @@ function fechaDisponibilidadVacaciones(anio) {
     return `${anio}-10-01`;
 }
 
-function aniosBaseDisponiblesEmpleado(empleado = {}, fechaCorte = fechaAISO(new Date())) {
-    const ingreso = parsearFechaLocal(empleado.fechaIngreso || '');
-    if (!ingreso) return [];
+function periodoVacacionalParaFecha(fechaISO = fechaAISO(new Date())) {
+    const fecha = parsearFechaLocal(fechaISO) || new Date();
+    const anio = fecha.getFullYear();
+    const mes = fecha.getMonth() + 1;
 
-    const anioIngreso = ingreso.getFullYear();
-    const anioCorte = parseInt(String(fechaCorte).slice(0, 4), 10);
-    const anios = [];
-
-    for (let anio = anioIngreso; anio <= anioCorte; anio++) {
-        if (fechaDisponibilidadVacaciones(anio) <= fechaCorte) {
-            anios.push(anio);
-        }
-    }
-
-    return anios;
+    return mes <= 4 ? anio - 1 : anio;
 }
 
-function ajustesVacacionesHasta(empleadoId, fechaCorte = fechaAISO(new Date())) {
+function ajustesVacacionesPeriodo(empleadoId, periodoVacacional, fechaCorte = fechaAISO(new Date())) {
     return state.listaAjustesVacacionesFirebase.filter(a => {
         if (a.empleadoId !== empleadoId) return false;
         const anio = Number(a.anio);
-        const fechaEfectiva = a.fecha || (anio ? `${anio}-12-31` : '');
-        return fechaEfectiva && fechaEfectiva <= fechaCorte;
+        if (anio !== Number(periodoVacacional)) return false;
+
+        const fechaEfectiva = a.fecha || fechaDisponibilidadVacaciones(periodoVacacional);
+        return fechaEfectiva <= fechaCorte;
     });
 }
 
-function vacacionesEmpleadoHasta(empleadoId, fechaCorte = fechaAISO(new Date())) {
+function vacacionesEmpleadoPeriodoHasta(empleadoId, periodoVacacional, fechaCorte = fechaAISO(new Date())) {
     return state.listaAusenciasFirebase.filter(a =>
         a.empleadoId === empleadoId
         && a.tipo === 'vacaciones'
         && a.descuentaVacaciones === true
         && a.estado !== 'rechazado'
         && a.estado !== 'cancelado'
+        && periodoVacacionalParaFecha(a.fechaDesde) === Number(periodoVacacional)
         && String(a.fechaDesde || '') <= fechaCorte
     );
 }
 
 function calcularSaldoEmpleadoVacaciones(empleado, anio, fechaCorte = `${anio}-12-31`) {
-    const aniosBase = aniosBaseDisponiblesEmpleado(empleado, fechaCorte);
-    const diasBase = aniosBase.reduce((acc, anioBase) => acc + calcularDiasBaseVacaciones(empleado.fechaIngreso, anioBase), 0);
-    const ajustesLista = ajustesVacacionesHasta(empleado.id, fechaCorte);
+    const periodoVacacional = periodoVacacionalParaFecha(fechaCorte);
+    const diasBase = calcularDiasBaseVacaciones(empleado.fechaIngreso, periodoVacacional);
+    const ajustesLista = ajustesVacacionesPeriodo(empleado.id, periodoVacacional, fechaCorte);
     const ajustes = ajustesLista.reduce((acc, a) => acc + (Number(a.dias) || 0), 0);
-    const vacacionesEmpleado = vacacionesEmpleadoHasta(empleado.id, fechaCorte);
+    const vacacionesEmpleado = vacacionesEmpleadoPeriodoHasta(empleado.id, periodoVacacional, fechaCorte);
     const usados = vacacionesEmpleado
         .filter(a => a.estado === 'aprobado')
         .reduce((acc, a) => acc + (Number(a.diasADescontar) || 0), 0);
@@ -397,8 +391,8 @@ function calcularSaldoEmpleadoVacaciones(empleado, anio, fechaCorte = `${anio}-1
         usados,
         pendientes,
         disponibles: diasBase + ajustes - usados - pendientes,
-        antiguedad: calcularAntiguedadAl31(empleado.fechaIngreso, anio),
-        aniosBase
+        antiguedad: calcularAntiguedadAl31(empleado.fechaIngreso, periodoVacacional),
+        periodoVacacional
     };
 }
 
@@ -714,19 +708,23 @@ function renderizarFichaEmpleadoVacaciones(anioActual, fechaCorte = `${anioActua
     if (!empleado) return '';
 
     const saldo = calcularSaldoEmpleadoVacaciones(empleado, anioActual, fechaCorte);
-    const ajustes = ajustesVacacionesHasta(empleado.id, fechaCorte);
-    const vacaciones = vacacionesEmpleadoHasta(empleado.id, fechaCorte);
+    const ajustes = ajustesVacacionesPeriodo(empleado.id, saldo.periodoVacacional, fechaCorte);
+    const vacaciones = vacacionesEmpleadoPeriodoHasta(empleado.id, saldo.periodoVacacional, fechaCorte);
     const ausencias = state.listaAusenciasFirebase
-        .filter(a => a.empleadoId === empleado.id && String(a.fechaDesde || '') <= fechaCorte)
+        .filter(a =>
+            a.empleadoId === empleado.id
+            && String(a.fechaDesde || '') <= fechaCorte
+            && (a.tipo !== 'vacaciones' || periodoVacacionalParaFecha(a.fechaDesde) === saldo.periodoVacacional)
+        )
         .sort((a, b) => String(b.fechaDesde || '').localeCompare(String(a.fechaDesde || '')));
     const movimientos = [
-        ...saldo.aniosBase.map(anioBase => ({
-            orden: fechaDisponibilidadVacaciones(anioBase),
+        {
+            orden: fechaDisponibilidadVacaciones(saldo.periodoVacacional),
             tipo: 'Base legal',
-            detalle: `Vacaciones ${anioBase} · disponibles desde ${formatearFecha(fechaDisponibilidadVacaciones(anioBase))}`,
-            dias: calcularDiasBaseVacaciones(empleado.fechaIngreso, anioBase),
+            detalle: `Vacaciones ${saldo.periodoVacacional} · disponibles desde ${formatearFecha(fechaDisponibilidadVacaciones(saldo.periodoVacacional))}`,
+            dias: saldo.diasBase,
             clases: 'bg-indigo-50 text-indigo-700 border-indigo-100'
-        })),
+        },
         ...ajustes.map(a => {
             const meta = tiposAjusteVacaciones[a.tipo] || tiposAjusteVacaciones.correccion;
             return {
