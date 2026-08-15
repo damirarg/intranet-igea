@@ -79,11 +79,6 @@ export function renderizarRRHH() {
                         </div>
                     </div>
                     <div class="flex items-center gap-1">
-                        ${e.emailIntranet ? '' : `
-                            <button onclick="window.prepararUsuarioDesdeEmpleadoRRHH('${e.id}')" class="text-slate-400 hover:text-purple-600 p-1 rounded-lg transition" title="Preparar usuario de intranet">
-                                <span class="material-symbols-rounded" style="font-size:18px;">person_add</span>
-                            </button>
-                        `}
                         <button onclick="window.editarEmpleadoRRHH('${e.id}')" class="text-slate-400 hover:text-cyan-700 p-1 rounded-lg transition" title="Editar ficha">
                             <span class="material-symbols-rounded" style="font-size:18px;">edit</span>
                         </button>
@@ -96,7 +91,13 @@ export function renderizarRRHH() {
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4 text-xs">
                     <div class="bg-purple-50 border border-purple-100 rounded-xl p-3 md:col-span-2">
                         <p class="text-[10px] uppercase font-black text-purple-500 tracking-wide">Usuario de intranet asociado</p>
-                        <p class="font-bold text-purple-800 mt-1">${escaparHTML(e.emailIntranet || 'Sin usuario asociado')}</p>
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mt-1">
+                            <p class="font-bold text-purple-800">${escaparHTML(e.emailIntranet || 'Sin usuario asociado')}</p>
+                            <button onclick="window.prepararUsuarioDesdeEmpleadoRRHH('${e.id}')" class="bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-xl text-[11px] font-black transition inline-flex items-center justify-center gap-1.5">
+                                <span class="material-symbols-rounded" style="font-size:16px;">${e.emailIntranet ? 'link' : 'person_add'}</span>
+                                ${e.emailIntranet ? 'Cambiar asociación' : 'Crear/asociar usuario'}
+                            </button>
+                        </div>
                     </div>
                     <div class="bg-slate-50 rounded-xl p-3">
                         <p class="text-[10px] uppercase font-black text-slate-400 tracking-wide">Obra social</p>
