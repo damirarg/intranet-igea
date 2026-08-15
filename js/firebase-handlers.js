@@ -38,6 +38,7 @@ const saldosRef = collection(db, "saldos");
 const permisosRef = collection(db, "permisos");
 const empleadosRRHHRef = collection(db, "empleados_rrhh");
 const guardiasRef = collection(db, "guardias");
+const ausenciasRef = collection(db, "ausencias");
 const crearUsuarioIntranetFn = httpsCallable(functions, "crearUsuarioIntranet");
 const enviarResetClaveUsuarioFn = httpsCallable(functions, "enviarResetClaveUsuario");
 const cambiarEmailUsuarioIntranetFn = httpsCallable(functions, "cambiarEmailUsuarioIntranet");
@@ -282,6 +283,156 @@ export function evaluarPermisosUsuario(email) {
 function valorInput(id) {
     const input = document.getElementById(id);
     return input ? input.value.trim() : '';
+}
+
+function parsearListaFeriados(texto = '') {
+    return String(texto)
+        .split(/\s+/)
+        .map(fecha => fecha.trim())
+        .filter(fecha => /^\d{4}-\d{2}-\d{2}$/.test(fecha));
+}
+
+function parsearFechaLocal(fechaISO = '') {
+    if (!fechaISO) return null;
+    const [anio, mes, dia] = String(fechaISO).split('-').map(Number);
+    if (!anio || !mes || !dia) return null;
+    return new Date(anio, mes - 1, dia);
+}
+
+function fechaAISO(fecha) {
+    const anio = fecha.getFullYear();
+    const mes = String(fecha.getMonth() + 1).padStart(2, '0');
+    const dia = String(fecha.getDate()).padStart(2, '0');
+    return `${anio}-${mes}-${dia}`;
+}
+
+function calcularDiasAusenciaCCT108(fechaDesde = '', fechaHasta = '', feriados = []) {
+    const desde = parsearFechaLocal(fechaDesde);
+    const hasta = parsearFechaLocal(fechaHasta);
+    if (!desde || !hasta || hasta < desde) return 0;
+
+    const feriadosSet = new Set((feriados || []).map(f => String(f).trim()).filter(Boolean));
+    let total = 0;
+    const cursor = new Date(desde);
+
+    while (cursor <= hasta) {
+        const iso = fechaAISO(cursor);
+        const esDomingo = cursor.getDay() === 0;
+        if (!esDomingo && !feriadosSet.has(iso)) total++;
+        cursor.setDate(cursor.getDate() + 1);
+    }
+
+    return total;
+}
+
+function contarDiasCalendario(fechaDesde = '', fechaHasta = '') {
+    const desde = parsearFechaLocal(fechaDesde);
+    const hasta = parsearFechaLocal(fechaHasta);
+    if (!desde || !hasta || hasta < desde) return 0;
+    const msPorDia = 24 * 60 * 60 * 1000;
+    return Math.round((hasta - desde) / msPorDia) + 1;
+}
+
+function nombreEmpleadoRRHH(empleado = {}) {
+    const apellidos = String(empleado.apellidos || '').trim();
+    const nombres = String(empleado.nombres || '').trim();
+    if (apellidos && nombres) return `${apellidos}, ${nombres}`;
+    return empleado.nombreCompleto || apellidos || nombres || '';
+}
+
+// GUARDAR AUSENCIA
+export async function guardarAusenciaFirebase() {
+    if (bloquearCambiosEnModoVerComo()) return;
+    if (!state.esAdminMaster) return alert("Por ahora el módulo de Ausencias sólo puede editarlo el Administrador Principal.");
+
+    const ausenciaId = valorInput('input-id-ausencia');
+    const empleadoId = valorInput('input-empleado-ausencia');
+    const tipo = valorInput('input-tipo-ausencia');
+    const estado = valorInput('input-estado-ausencia') || 'aprobado';
+    const fechaDesde = valorInput('input-fecha-desde-ausencia');
+    const fechaHasta = valorInput('input-fecha-hasta-ausencia');
+    const feriados = parsearListaFeriados(valorInput('input-feriados-ausencia'));
+    const notas = valorInput('input-notas-ausencia');
+    const descuentaVacaciones = document.getElementById('input-descuenta-vacaciones-ausencia')?.checked === true;
+
+    if (!empleadoId) return alert("Seleccioná un empleado.");
+    if (!tipo) return alert("Seleccioná el tipo de ausencia.");
+    if (!fechaDesde || !fechaHasta) return alert("Completá fecha desde y fecha hasta.");
+    if (fechaHasta < fechaDesde) return alert("La fecha hasta no puede ser anterior a la fecha desde.");
+
+    const empleado = state.listaEmpleadosRRHHFirebase.find(e => e.id === empleadoId);
+    if (!empleado) return alert("No se encontró la ficha del empleado.");
+
+    const diasComputables = calcularDiasAusenciaCCT108(fechaDesde, fechaHasta, feriados);
+    const diasCalendario = contarDiasCalendario(fechaDesde, fechaHasta);
+    const diasADescontar = descuentaVacaciones ? diasComputables : 0;
+    const btnGuardar = document.getElementById('btn-guardar-ausencia');
+    const htmlOriginal = activarBotonCarga(btnGuardar, "Guardando...");
+
+    const data = {
+        empleadoId,
+        empleadoNombre: nombreEmpleadoRRHH(empleado),
+        empleadoEmail: empleado.emailIntranet || '',
+        empleadoArea: empleado.area || '',
+        empleadoSubarea: empleado.subarea || '',
+        tipo,
+        estado,
+        fechaDesde,
+        fechaHasta,
+        feriados,
+        descuentaVacaciones,
+        diasComputables,
+        diasCalendario,
+        diasADescontar,
+        notas,
+        fechaActualizacion: new Date(),
+        actualizadoPor: state.usuarioAutenticadoEmail || state.usuarioActualEmail
+    };
+
+    try {
+        if (ausenciaId) {
+            await updateDoc(doc(db, "ausencias", ausenciaId), data);
+            state.ausenciaEditandoId = null;
+            alert("Ausencia actualizada correctamente.");
+        } else {
+            await addDoc(ausenciasRef, {
+                ...data,
+                fechaAlta: new Date(),
+                creadoPor: state.usuarioAutenticadoEmail || state.usuarioActualEmail
+            });
+            alert("Ausencia cargada correctamente.");
+        }
+
+        cambiarVista('ausencias');
+    } catch (error) {
+        alert("Error al guardar ausencia: " + (error.message || "No se pudo completar la operación."));
+    } finally {
+        restaurarBotonCarga(btnGuardar, htmlOriginal);
+    }
+}
+
+export function editarAusenciaFirebase(id) {
+    state.ausenciaEditandoId = id;
+    cambiarVista('ausencias');
+}
+
+export function cancelarEdicionAusenciaFirebase() {
+    state.ausenciaEditandoId = null;
+    cambiarVista('ausencias');
+}
+
+export async function eliminarAusenciaFirebase(id) {
+    if (bloquearCambiosEnModoVerComo()) return;
+    if (!state.esAdminMaster) return alert("Por ahora el módulo de Ausencias sólo puede editarlo el Administrador Principal.");
+    if (!confirm("¿Confirmás eliminar esta ausencia?")) return;
+
+    try {
+        await deleteDoc(doc(db, "ausencias", id));
+        if (state.ausenciaEditandoId === id) state.ausenciaEditandoId = null;
+        alert("Ausencia eliminada correctamente.");
+    } catch (error) {
+        alert("Error al eliminar ausencia: " + (error.message || "No se pudo completar la operación."));
+    }
 }
 
 // GUARDAR FICHA DE RRHH

@@ -37,6 +37,7 @@ import { alternarFiltroSaldadas, procesarArchivoCSV, cancelarCargaCSV, seleccion
 import { seleccionarMaterialDidactico } from './components/procedimientos.js';
 import { guardiasMesSiguiente, guardiasMesAnterior } from './components/guardias.js';
 import { alternarArchivadosRRHH, actualizarSubareasRRHH, filtrarEmpleadosRRHH } from './components/rrhh.js';
+import { cambiarAnioAusencias, filtrarAusencias, recalcularDiasAusenciaPreview, sincronizarDescuentoAusencia } from './components/ausencias.js';
 
 // Importamos manejadores asincrónicos de base de datos
 import {
@@ -61,6 +62,10 @@ import {
     editarEmpleadoRRHH,
     cancelarEdicionEmpleadoRRHH,
     eliminarEmpleadoRRHHFirebase,
+    guardarAusenciaFirebase,
+    editarAusenciaFirebase,
+    cancelarEdicionAusenciaFirebase,
+    eliminarAusenciaFirebase,
     otorgarPermisoFirebase,
     revocarPermisoFirebase,
     actualizarCampoFirebase,
@@ -113,6 +118,10 @@ window.guardiasMesAnterior = guardiasMesAnterior;
 window.filtrarEmpleadosRRHH = filtrarEmpleadosRRHH;
 window.alternarArchivadosRRHH = alternarArchivadosRRHH;
 window.actualizarSubareasRRHH = actualizarSubareasRRHH;
+window.filtrarAusencias = filtrarAusencias;
+window.cambiarAnioAusencias = cambiarAnioAusencias;
+window.recalcularDiasAusenciaPreview = recalcularDiasAusenciaPreview;
+window.sincronizarDescuentoAusencia = sincronizarDescuentoAusencia;
 
 window.guardarNuevoDocumentoFirebase = guardarNuevoDocumentoFirebase;
 window.procesarEdicionDocFirebase = procesarEdicionDocFirebase;
@@ -133,6 +142,10 @@ window.prepararUsuarioDesdeEmpleadoRRHH = prepararUsuarioDesdeEmpleadoRRHH;
 window.editarEmpleadoRRHH = editarEmpleadoRRHH;
 window.cancelarEdicionEmpleadoRRHH = cancelarEdicionEmpleadoRRHH;
 window.eliminarEmpleadoRRHHFirebase = eliminarEmpleadoRRHHFirebase;
+window.guardarAusenciaFirebase = guardarAusenciaFirebase;
+window.editarAusenciaFirebase = editarAusenciaFirebase;
+window.cancelarEdicionAusenciaFirebase = cancelarEdicionAusenciaFirebase;
+window.eliminarAusenciaFirebase = eliminarAusenciaFirebase;
 window.otorgarPermisoFirebase = otorgarPermisoFirebase;
 window.revocarPermisoFirebase = revocarPermisoFirebase;
 window.actualizarCampoFirebase = actualizarCampoFirebase;
@@ -159,11 +172,13 @@ const permisosRef = collection(db, "permisos");
 const usuariosRef = collection(db, "usuarios");
 const guardiasRef = collection(db, "guardias");
 const empleadosRRHHRef = collection(db, "empleados_rrhh");
+const ausenciasRef = collection(db, "ausencias");
 
 let unsubscribePermisos = null;
 let unsubscribeSaldos = null;
 let unsubscribeUsuarios = null;
 let unsubscribeEmpleadosRRHH = null;
+let unsubscribeAusencias = null;
 
 function normalizarEmail(email) {
     return (email || '').toLowerCase().trim();
@@ -230,6 +245,7 @@ function aplicarVistaEfectiva(email) {
     evaluarPermisosUsuario(email);
     escucharSaldosSiCorresponde();
     escucharEmpleadosRRHHSiCorresponde();
+    escucharAusenciasAdmin();
     actualizarNombreHeader();
     actualizarSelectorVerComo();
 
@@ -237,7 +253,7 @@ function aplicarVistaEfectiva(email) {
     else if (state.seccionActual === 'saldos' && !state.tienePermisoSaldos && !state.esAdminMaster) cambiarVista('inicio');
     else if (state.seccionActual === 'guardias' && !state.tienePermisoGuardias && !state.esAdminMaster) cambiarVista('inicio');
     else if (state.seccionActual === 'rrhh' && !state.tienePermisoRRHH && !state.esAdminMaster) cambiarVista('inicio');
-    else if (state.seccionActual === 'vacaciones' && !state.esAdminMaster) cambiarVista('inicio');
+    else if ((state.seccionActual === 'ausencias' || state.seccionActual === 'vacaciones') && !state.esAdminMaster) cambiarVista('inicio');
     else cambiarVista(state.seccionActual || 'inicio');
 }
 
@@ -294,6 +310,7 @@ function refrescarVistasPorPermisos() {
 
     escucharSaldosSiCorresponde();
     escucharEmpleadosRRHHSiCorresponde();
+    escucharAusenciasAdmin();
     actualizarSelectorVerComo();
     actualizarNombreHeader();
 
@@ -305,7 +322,8 @@ function refrescarVistasPorPermisos() {
     if (state.seccionActual === 'saldos' && !state.tienePermisoSaldos && !state.esAdminMaster) cambiarVista('inicio');
     if (state.seccionActual === 'rrhh' && !state.tienePermisoRRHH && !state.esAdminMaster) cambiarVista('inicio');
     else if (state.seccionActual === 'rrhh') cambiarVista('rrhh');
-    if (state.seccionActual === 'vacaciones' && !state.esAdminMaster) cambiarVista('inicio');
+    if ((state.seccionActual === 'ausencias' || state.seccionActual === 'vacaciones') && !state.esAdminMaster) cambiarVista('inicio');
+    else if (state.seccionActual === 'ausencias') cambiarVista('ausencias');
 }
 
 function escucharSaldosSiCorresponde() {
@@ -363,6 +381,32 @@ function escucharEmpleadosRRHHSiCorresponde() {
         }
     }, (error) => {
         console.error("Error al escuchar empleados de RRHH:", error);
+    });
+}
+
+function escucharAusenciasAdmin() {
+    if (!state.esAdminAutenticado) {
+        if (unsubscribeAusencias) {
+            unsubscribeAusencias();
+            unsubscribeAusencias = null;
+        }
+        state.listaAusenciasFirebase = [];
+        return;
+    }
+
+    if (unsubscribeAusencias) return;
+
+    unsubscribeAusencias = onSnapshot(query(ausenciasRef), (snapshot) => {
+        state.listaAusenciasFirebase = [];
+        snapshot.forEach((docSnap) => {
+            state.listaAusenciasFirebase.push({ id: docSnap.id, ...docSnap.data() });
+        });
+
+        if (state.seccionActual === 'ausencias' && !state.viendoDocumento) {
+            cambiarVista('ausencias');
+        }
+    }, (error) => {
+        console.error("Error al escuchar ausencias:", error);
     });
 }
 
@@ -486,6 +530,7 @@ onAuthStateChanged(auth, async (user) => {
             escucharUsuariosAdmin();
             escucharSaldosSiCorresponde();
             escucharEmpleadosRRHHSiCorresponde();
+            escucharAusenciasAdmin();
         } catch (error) {
             console.error("Error al verificar permisos:", error);
             actualizarEstadoLogin("No se pudieron verificar los permisos. Cerrá sesión y volvé a intentar.");
@@ -521,7 +566,9 @@ onAuthStateChanged(auth, async (user) => {
         state.listaUsuariosFirebase = [];
         state.listaSaldosFirebase = [];
         state.listaEmpleadosRRHHFirebase = [];
+        state.listaAusenciasFirebase = [];
         state.empleadoRRHHEditandoId = null;
+        state.ausenciaEditandoId = null;
         if (unsubscribePermisos) {
             unsubscribePermisos();
             unsubscribePermisos = null;
@@ -537,6 +584,10 @@ onAuthStateChanged(auth, async (user) => {
         if (unsubscribeEmpleadosRRHH) {
             unsubscribeEmpleadosRRHH();
             unsubscribeEmpleadosRRHH = null;
+        }
+        if (unsubscribeAusencias) {
+            unsubscribeAusencias();
+            unsubscribeAusencias = null;
         }
         pantallaLogin.classList.remove('hidden');
         appPrincipal.classList.add('hidden');

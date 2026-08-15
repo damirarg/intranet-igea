@@ -17,8 +17,8 @@ const etiquetasModulos = {
         clases: 'bg-cyan-50 text-cyan-700 border-cyan-200'
     },
     vacaciones: {
-        icono: 'beach_access',
-        texto: 'Vacaciones',
+        icono: 'event_busy',
+        texto: 'Ausencias',
         clases: 'bg-teal-50 text-teal-700 border-teal-200'
     }
 };

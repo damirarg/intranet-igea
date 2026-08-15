@@ -87,5 +87,9 @@ service cloud.firestore {
       allow read: if isAdmin() || hasModule("rrhh");
       allow create, update, delete: if isAdmin() || canEditModule("rrhh");
     }
+
+    match /ausencias/{ausenciaId} {
+      allow read, create, update, delete: if isAdmin();
+    }
   }
 }
