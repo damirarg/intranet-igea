@@ -42,6 +42,37 @@ function etiquetaArea(area = '') {
     return areas[area] || '-';
 }
 
+const subareasPorArea = {
+    administracion: [
+        { valor: 'admision', texto: 'Admisión' },
+        { valor: 'coordinacion', texto: 'Coordinación' },
+        { valor: 'atencion_telefonica', texto: 'Atención Telefónica' },
+        { valor: 'tesoreria_facturacion', texto: 'Tesorería y Facturación' }
+    ],
+    asistencial: [
+        { valor: 'coordinacion', texto: 'Coordinación' },
+        { valor: 'coordinacion_asistentes_endoscopia', texto: 'Coordinación de Asistentes de Endoscopía' },
+        { valor: 'asistentes_endoscopia', texto: 'Asistentes de Endoscopía' }
+    ]
+};
+
+function etiquetaSubarea(area = '', subarea = '') {
+    const opciones = subareasPorArea[area] || [];
+    const encontrada = opciones.find(opcion => opcion.valor === subarea);
+    return encontrada ? encontrada.texto : '-';
+}
+
+function renderizarOpcionesSubarea(area = '', subareaSeleccionada = '') {
+    const opciones = subareasPorArea[area] || [];
+
+    return `
+        <option value="">Seleccionar subárea</option>
+        ${opciones.map(opcion => `
+            <option value="${opcion.valor}" ${opcion.valor === subareaSeleccionada ? 'selected' : ''}>${opcion.texto}</option>
+        `).join('')}
+    `;
+}
+
 function etiquetaMotivoSalida(motivo = '') {
     const motivos = {
         renuncia: 'Renuncia',
@@ -103,6 +134,14 @@ export function alternarArchivadosRRHH() {
     window.cambiarVista('rrhh');
 }
 
+export function actualizarSubareasRRHH() {
+    const selectArea = document.getElementById('input-area-empleado-rrhh');
+    const selectSubarea = document.getElementById('input-subarea-empleado-rrhh');
+    if (!selectArea || !selectSubarea) return;
+
+    selectSubarea.innerHTML = renderizarOpcionesSubarea(selectArea.value, selectSubarea.value);
+}
+
 export function renderizarRRHH() {
     const empleadoEditando = state.empleadoRRHHEditandoId
         ? state.listaEmpleadosRRHHFirebase.find(e => e.id === state.empleadoRRHHEditandoId)
@@ -127,6 +166,7 @@ export function renderizarRRHH() {
             e.dni,
             e.cuil,
             e.area,
+            e.subarea,
             e.fechaIngreso,
             e.fechaSalida,
             e.motivoSalida,
@@ -145,6 +185,7 @@ export function renderizarRRHH() {
                         <p class="text-[11px] text-slate-500 font-semibold mt-0.5">DNI ${escaparHTML(e.dni || '-')} · CUIL ${escaparHTML(e.cuil || '-')}</p>
                         <div class="flex flex-wrap gap-1.5 mt-2">
                             <span class="bg-cyan-50 text-cyan-700 border border-cyan-100 px-2 py-0.5 rounded-lg text-[10px] font-black">${escaparHTML(etiquetaArea(e.area))}</span>
+                            <span class="bg-blue-50 text-blue-700 border border-blue-100 px-2 py-0.5 rounded-lg text-[10px] font-black">${escaparHTML(etiquetaSubarea(e.area, e.subarea))}</span>
                             <span class="bg-slate-50 text-slate-600 border border-slate-100 px-2 py-0.5 rounded-lg text-[10px] font-black">Ingreso ${escaparHTML(formatearFecha(e.fechaIngreso))}</span>
                             <span class="bg-emerald-50 text-emerald-700 border border-emerald-100 px-2 py-0.5 rounded-lg text-[10px] font-black">Antigüedad ${escaparHTML(antiguedad)}</span>
                             ${e.archivado ? `<span class="bg-rose-50 text-rose-700 border border-rose-100 px-2 py-0.5 rounded-lg text-[10px] font-black">Archivada</span>` : ''}
@@ -244,10 +285,16 @@ export function renderizarRRHH() {
                     </div>
                     <div>
                         <label class="block text-[10px] font-black uppercase text-slate-500 mb-1">Área</label>
-                        <select id="input-area-empleado-rrhh" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+                        <select id="input-area-empleado-rrhh" onchange="window.actualizarSubareasRRHH()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs focus:ring-2 focus:ring-cyan-500 focus:outline-none">
                             <option value="">Seleccionar área</option>
                             <option value="administracion" ${empleadoEditando && empleadoEditando.area === 'administracion' ? 'selected' : ''}>Administración</option>
                             <option value="asistencial" ${empleadoEditando && empleadoEditando.area === 'asistencial' ? 'selected' : ''}>Asistencial</option>
+                        </select>
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label class="block text-[10px] font-black uppercase text-slate-500 mb-1">Subárea</label>
+                        <select id="input-subarea-empleado-rrhh" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+                            ${renderizarOpcionesSubarea(empleadoEditando && empleadoEditando.area, empleadoEditando && empleadoEditando.subarea)}
                         </select>
                     </div>
                     <div>

@@ -304,6 +304,7 @@ export async function guardarEmpleadoRRHHFirebase() {
         nombreCompleto,
         fechaIngreso: valorInput('input-fecha-ingreso-empleado-rrhh'),
         area: valorInput('input-area-empleado-rrhh'),
+        subarea: valorInput('input-subarea-empleado-rrhh'),
         dni: valorInput('input-dni-empleado-rrhh'),
         cuil: valorInput('input-cuil-empleado-rrhh'),
         obraSocial: valorInput('input-obra-social-empleado-rrhh'),
