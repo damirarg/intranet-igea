@@ -13,6 +13,26 @@ function valorEmpleado(empleado, campo) {
     return escaparHTML(empleado && empleado[campo] ? empleado[campo] : '');
 }
 
+function nombreEmpleado(empleado = {}) {
+    const apellidos = String(empleado.apellidos || '').trim();
+    const nombres = String(empleado.nombres || '').trim();
+
+    if (apellidos && nombres) return `${apellidos}, ${nombres}`;
+    if (apellidos) return apellidos;
+    if (nombres) return nombres;
+    return empleado.nombreCompleto || '';
+}
+
+function valorApellidosEmpleado(empleado = null) {
+    if (!empleado) return '';
+    return escaparHTML(empleado.apellidos || '');
+}
+
+function valorNombresEmpleado(empleado = null) {
+    if (!empleado) return '';
+    return escaparHTML(empleado.nombres || '');
+}
+
 function etiquetaArea(area = '') {
     const areas = {
         administracion: 'Administración',
@@ -93,13 +113,16 @@ export function renderizarRRHH() {
     const totalArchivados = state.listaEmpleadosRRHHFirebase.filter(e => e.archivado).length;
     const empleadosVisibles = state.listaEmpleadosRRHHFirebase.filter(e => state.verEmpleadosArchivadosRRHH ? e.archivado : !e.archivado);
     const empleadosOrdenados = [...empleadosVisibles].sort((a, b) => {
-        const nombreA = (a.nombreCompleto || '').toLowerCase();
-        const nombreB = (b.nombreCompleto || '').toLowerCase();
+        const nombreA = nombreEmpleado(a).toLowerCase();
+        const nombreB = nombreEmpleado(b).toLowerCase();
         return nombreA.localeCompare(nombreB, 'es');
     });
 
     const filas = empleadosOrdenados.length ? empleadosOrdenados.map(e => {
+        const nombreVisible = nombreEmpleado(e);
         const busqueda = [
+            e.apellidos,
+            e.nombres,
             e.nombreCompleto,
             e.dni,
             e.cuil,
@@ -118,7 +141,7 @@ export function renderizarRRHH() {
             <article data-empleado-rrhh data-busqueda="${escaparHTML(busqueda)}" class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm hover:border-cyan-200 transition">
                 <div class="flex items-start justify-between gap-3">
                     <div>
-                        <h4 class="text-sm font-black text-slate-800">${escaparHTML(e.nombreCompleto || 'Sin nombre')}</h4>
+                        <h4 class="text-sm font-black text-slate-800">${escaparHTML(nombreVisible || 'Sin nombre')}</h4>
                         <p class="text-[11px] text-slate-500 font-semibold mt-0.5">DNI ${escaparHTML(e.dni || '-')} · CUIL ${escaparHTML(e.cuil || '-')}</p>
                         <div class="flex flex-wrap gap-1.5 mt-2">
                             <span class="bg-cyan-50 text-cyan-700 border border-cyan-100 px-2 py-0.5 rounded-lg text-[10px] font-black">${escaparHTML(etiquetaArea(e.area))}</span>
@@ -207,9 +230,13 @@ export function renderizarRRHH() {
                 </datalist>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div class="sm:col-span-2">
-                        <label class="block text-[10px] font-black uppercase text-slate-500 mb-1">Nombre completo</label>
-                        <input id="input-nombre-empleado-rrhh" value="${valorEmpleado(empleadoEditando, 'nombreCompleto')}" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+                    <div>
+                        <label class="block text-[10px] font-black uppercase text-slate-500 mb-1">Apellido/s</label>
+                        <input id="input-apellidos-empleado-rrhh" value="${valorApellidosEmpleado(empleadoEditando)}" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-black uppercase text-slate-500 mb-1">Nombre/s</label>
+                        <input id="input-nombres-empleado-rrhh" value="${valorNombresEmpleado(empleadoEditando)}" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs focus:ring-2 focus:ring-cyan-500 focus:outline-none">
                     </div>
                     <div>
                         <label class="block text-[10px] font-black uppercase text-slate-500 mb-1">Fecha de ingreso</label>

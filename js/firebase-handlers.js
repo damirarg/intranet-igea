@@ -290,13 +290,17 @@ export async function guardarEmpleadoRRHHFirebase() {
     if (!state.puedeEditarRRHH) return alert("No tenes permisos para editar RRHH.");
 
     const empleadoId = valorInput('input-id-empleado-rrhh');
-    const nombreCompleto = valorInput('input-nombre-empleado-rrhh');
+    const apellidos = valorInput('input-apellidos-empleado-rrhh');
+    const nombres = valorInput('input-nombres-empleado-rrhh');
+    const nombreCompleto = [apellidos, nombres].filter(Boolean).join(', ');
     const fechaSalida = valorInput('input-fecha-salida-empleado-rrhh');
     const motivoSalida = valorInput('input-motivo-salida-empleado-rrhh');
 
-    if (!nombreCompleto) return alert("Ingresá el nombre completo del empleado.");
+    if (!apellidos || !nombres) return alert("Ingresá apellido/s y nombre/s del empleado.");
 
     const data = {
+        apellidos,
+        nombres,
         nombreCompleto,
         fechaIngreso: valorInput('input-fecha-ingreso-empleado-rrhh'),
         area: valorInput('input-area-empleado-rrhh'),
