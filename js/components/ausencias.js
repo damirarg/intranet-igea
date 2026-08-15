@@ -278,6 +278,19 @@ function ausenciasFiltradas() {
         .sort((a, b) => String(b.fechaDesde || '').localeCompare(String(a.fechaDesde || '')));
 }
 
+function aniosConAusencias() {
+    const anios = new Set([new Date().getFullYear(), state.filtroAnioAusencias]);
+    state.listaAusenciasFirebase.forEach(a => {
+        const anio = parseInt(String(a.fechaDesde || '').slice(0, 4), 10);
+        if (!Number.isNaN(anio)) anios.add(anio);
+    });
+    state.listaAjustesVacacionesFirebase.forEach(a => {
+        const anio = Number(a.anio);
+        if (!Number.isNaN(anio)) anios.add(anio);
+    });
+    return Array.from(anios).filter(Boolean).sort((a, b) => b - a);
+}
+
 function resumenAusencias(lista) {
     const hoyISO = fechaAISO(new Date());
     const vacacionesDeducidas = lista
@@ -355,6 +368,8 @@ export function filtrarAusencias() {
 export function cambiarAnioAusencias(valor) {
     const anio = parseInt(valor, 10);
     state.filtroAnioAusencias = Number.isNaN(anio) ? new Date().getFullYear() : anio;
+    state.vacacionesFechaInicio = `${state.filtroAnioAusencias}-01-01`;
+    state.empleadoVacacionesSeleccionadoId = null;
     window.cambiarVista('ausencias');
 }
 
@@ -779,6 +794,7 @@ export function renderizarAusencias() {
     const descuentaSeleccionado = ausenciaEditando
         ? ausenciaEditando.descuentaVacaciones === true
         : tiposAusencia[tipoSeleccionado].descuenta;
+    const aniosDisponibles = aniosConAusencias();
 
     const filas = lista.length ? lista.map(a => {
         const empleado = obtenerEmpleado(a.empleadoId);
@@ -843,15 +859,29 @@ export function renderizarAusencias() {
                         <h3 class="text-xl md:text-2xl font-black text-slate-800 mt-1">Ausencias</h3>
                         <p class="text-sm text-slate-500 mt-1 max-w-3xl">Registro interno de vacaciones, enfermedad y licencias. Las vacaciones se computan con criterio CCT 108/75: días hábiles y sábados, sin domingos ni feriados.</p>
                     </div>
-                    <div class="flex items-center gap-2">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <label class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 inline-flex items-center gap-2 text-xs font-black text-slate-700">
+                            Año
+                            <select onchange="window.cambiarAnioAusencias(this.value)" class="bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs font-black focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                                ${aniosDisponibles.map(anio => `<option value="${anio}" ${Number(anio) === Number(anioActual) ? 'selected' : ''}>${anio}</option>`).join('')}
+                            </select>
+                        </label>
                         <button onclick="window.cambiarVista('inicio')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs px-3 py-2 rounded-xl transition inline-flex items-center gap-1.5">
                             <span class="material-symbols-rounded" style="font-size:16px;">arrow_back</span> Inicio
                         </button>
                     </div>
                 </div>
+                ${aniosDisponibles.length > 1 ? `
+                    <div class="flex flex-wrap items-center gap-2 mt-4">
+                        <span class="text-[10px] uppercase tracking-wide font-black text-slate-400">Años con movimientos</span>
+                        ${aniosDisponibles.map(anio => `
+                            <button onclick="window.cambiarAnioAusencias('${anio}')" class="${Number(anio) === Number(anioActual) ? 'bg-teal-600 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'} rounded-lg px-2.5 py-1 text-[11px] font-black transition">${anio}</button>
+                        `).join('')}
+                    </div>
+                ` : ''}
                 <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 mt-5">
                     <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4">
-                        <p class="text-[10px] uppercase tracking-wide font-black text-slate-400">Registros ${anioActual}</p>
+                        <p class="text-[10px] uppercase tracking-wide font-black text-slate-400">Registros visibles ${anioActual}</p>
                         <p class="text-2xl font-black text-slate-800 mt-1">${lista.length}</p>
                     </div>
                     <div class="bg-teal-50 border border-teal-100 rounded-2xl p-4">

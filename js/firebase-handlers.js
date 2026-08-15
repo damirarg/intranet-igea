@@ -451,6 +451,11 @@ export async function guardarAusenciaFirebase() {
             alert("Ausencia cargada correctamente.");
         }
 
+        const anioCarga = parseInt(String(fechaDesde).slice(0, 4), 10);
+        if (!Number.isNaN(anioCarga)) state.filtroAnioAusencias = anioCarga;
+        state.vacacionesFechaInicio = fechaDesde;
+        state.empleadoVacacionesSeleccionadoId = empleadoId;
+
         cambiarVista('ausencias');
     } catch (error) {
         alert("Error al guardar ausencia: " + (error.message || "No se pudo completar la operación."));
