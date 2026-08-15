@@ -326,12 +326,64 @@ function vacacionesAprobadasAnio(anio) {
     );
 }
 
-function calcularSaldoEmpleadoVacaciones(empleado, anio) {
-    const diasBase = calcularDiasBaseVacaciones(empleado.fechaIngreso, anio);
-    const ajustes = ajustesVacacionesAnio(anio)
-        .filter(a => a.empleadoId === empleado.id)
-        .reduce((acc, a) => acc + (Number(a.dias) || 0), 0);
-    const vacacionesEmpleado = vacacionesAprobadasAnio(anio).filter(a => a.empleadoId === empleado.id);
+function vacacionesEnRango(fechaDesde = '', fechaHasta = '') {
+    return state.listaAusenciasFirebase.filter(a =>
+        a.tipo === 'vacaciones'
+        && a.descuentaVacaciones === true
+        && a.estado !== 'rechazado'
+        && a.estado !== 'cancelado'
+        && String(a.fechaDesde || '') <= fechaHasta
+        && String(a.fechaHasta || '') >= fechaDesde
+    );
+}
+
+function fechaDisponibilidadVacaciones(anio) {
+    return `${anio}-10-01`;
+}
+
+function aniosBaseDisponiblesEmpleado(empleado = {}, fechaCorte = fechaAISO(new Date())) {
+    const ingreso = parsearFechaLocal(empleado.fechaIngreso || '');
+    if (!ingreso) return [];
+
+    const anioIngreso = ingreso.getFullYear();
+    const anioCorte = parseInt(String(fechaCorte).slice(0, 4), 10);
+    const anios = [];
+
+    for (let anio = anioIngreso; anio <= anioCorte; anio++) {
+        if (fechaDisponibilidadVacaciones(anio) <= fechaCorte) {
+            anios.push(anio);
+        }
+    }
+
+    return anios;
+}
+
+function ajustesVacacionesHasta(empleadoId, fechaCorte = fechaAISO(new Date())) {
+    return state.listaAjustesVacacionesFirebase.filter(a => {
+        if (a.empleadoId !== empleadoId) return false;
+        const anio = Number(a.anio);
+        const fechaEfectiva = a.fecha || (anio ? `${anio}-12-31` : '');
+        return fechaEfectiva && fechaEfectiva <= fechaCorte;
+    });
+}
+
+function vacacionesEmpleadoHasta(empleadoId, fechaCorte = fechaAISO(new Date())) {
+    return state.listaAusenciasFirebase.filter(a =>
+        a.empleadoId === empleadoId
+        && a.tipo === 'vacaciones'
+        && a.descuentaVacaciones === true
+        && a.estado !== 'rechazado'
+        && a.estado !== 'cancelado'
+        && String(a.fechaDesde || '') <= fechaCorte
+    );
+}
+
+function calcularSaldoEmpleadoVacaciones(empleado, anio, fechaCorte = `${anio}-12-31`) {
+    const aniosBase = aniosBaseDisponiblesEmpleado(empleado, fechaCorte);
+    const diasBase = aniosBase.reduce((acc, anioBase) => acc + calcularDiasBaseVacaciones(empleado.fechaIngreso, anioBase), 0);
+    const ajustesLista = ajustesVacacionesHasta(empleado.id, fechaCorte);
+    const ajustes = ajustesLista.reduce((acc, a) => acc + (Number(a.dias) || 0), 0);
+    const vacacionesEmpleado = vacacionesEmpleadoHasta(empleado.id, fechaCorte);
     const usados = vacacionesEmpleado
         .filter(a => a.estado === 'aprobado')
         .reduce((acc, a) => acc + (Number(a.diasADescontar) || 0), 0);
@@ -345,7 +397,8 @@ function calcularSaldoEmpleadoVacaciones(empleado, anio) {
         usados,
         pendientes,
         disponibles: diasBase + ajustes - usados - pendientes,
-        antiguedad: calcularAntiguedadAl31(empleado.fechaIngreso, anio)
+        antiguedad: calcularAntiguedadAl31(empleado.fechaIngreso, anio),
+        aniosBase
     };
 }
 
@@ -446,10 +499,10 @@ function renderizarTableroVacaciones(anioActual) {
     aniosEnRango(inicio, fin).forEach(anio => cargarFeriadosArgentina(anio));
     const nombresDias = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
     const hoyISO = fechaAISO(new Date());
-    const vacaciones = vacacionesAprobadasAnio(anioActual);
-    const totalDisponibles = empleados.reduce((acc, e) => acc + calcularSaldoEmpleadoVacaciones(e, anioActual).disponibles, 0);
-    const totalUsados = empleados.reduce((acc, e) => acc + calcularSaldoEmpleadoVacaciones(e, anioActual).usados, 0);
-    const totalPendientes = empleados.reduce((acc, e) => acc + calcularSaldoEmpleadoVacaciones(e, anioActual).pendientes, 0);
+    const vacaciones = vacacionesEnRango(inicio, fin);
+    const totalDisponibles = empleados.reduce((acc, e) => acc + calcularSaldoEmpleadoVacaciones(e, anioActual, fin).disponibles, 0);
+    const totalUsados = empleados.reduce((acc, e) => acc + calcularSaldoEmpleadoVacaciones(e, anioActual, fin).usados, 0);
+    const totalPendientes = empleados.reduce((acc, e) => acc + calcularSaldoEmpleadoVacaciones(e, anioActual, fin).pendientes, 0);
 
     const encabezadoSemanas = [0, 7, 14, 21, 28].map(offset => {
         const fechaSemana = parsearFechaLocal(fechas[offset]);
@@ -458,7 +511,7 @@ function renderizarTableroVacaciones(anioActual) {
     }).join('');
 
     const filas = empleados.map(empleado => {
-        const saldo = calcularSaldoEmpleadoVacaciones(empleado, anioActual);
+        const saldo = calcularSaldoEmpleadoVacaciones(empleado, anioActual, fin);
         const vacacionesEmpleado = vacaciones.filter(v => v.empleadoId === empleado.id);
         const celdas = fechas.map(fecha => {
             const fechaObj = parsearFechaLocal(fecha);
@@ -524,7 +577,7 @@ function renderizarTableroVacaciones(anioActual) {
                 </div>
                 <div class="flex flex-wrap items-center gap-2">
                     <span class="bg-white border border-indigo-100 text-indigo-800 px-3 py-2 rounded-xl text-xs font-black">${empleados.length} empleados</span>
-                    <span class="bg-white border border-indigo-100 text-indigo-800 px-3 py-2 rounded-xl text-xs font-black">${totalDisponibles} días disponibles</span>
+                    <span class="bg-white border border-indigo-100 text-indigo-800 px-3 py-2 rounded-xl text-xs font-black">${totalDisponibles} disponibles al ${formatearFecha(fin)}</span>
                     <span class="bg-white border border-indigo-100 text-indigo-800 px-3 py-2 rounded-xl text-xs font-black">${totalUsados} usados</span>
                     <span class="bg-white border border-amber-100 text-amber-700 px-3 py-2 rounded-xl text-xs font-black">${totalPendientes} pendientes</span>
                     <span class="bg-white border border-rose-100 text-rose-700 px-3 py-2 rounded-xl text-xs font-black">${aniosEnRango(inicio, fin).flatMap(anio => obtenerFechasFeriadasArgentina(anio)).filter(f => f >= inicio && f <= fin).length} feriados</span>
@@ -653,27 +706,27 @@ function renderizarSolicitudesPendientes(puedeEditar) {
     `;
 }
 
-function renderizarFichaEmpleadoVacaciones(anioActual) {
+function renderizarFichaEmpleadoVacaciones(anioActual, fechaCorte = `${anioActual}-12-31`) {
     const empleado = state.empleadoVacacionesSeleccionadoId
         ? obtenerEmpleado(state.empleadoVacacionesSeleccionadoId)
         : null;
 
     if (!empleado) return '';
 
-    const saldo = calcularSaldoEmpleadoVacaciones(empleado, anioActual);
-    const ajustes = ajustesVacacionesAnio(anioActual).filter(a => a.empleadoId === empleado.id);
-    const vacaciones = vacacionesAprobadasAnio(anioActual).filter(a => a.empleadoId === empleado.id);
+    const saldo = calcularSaldoEmpleadoVacaciones(empleado, anioActual, fechaCorte);
+    const ajustes = ajustesVacacionesHasta(empleado.id, fechaCorte);
+    const vacaciones = vacacionesEmpleadoHasta(empleado.id, fechaCorte);
     const ausencias = state.listaAusenciasFirebase
-        .filter(a => a.empleadoId === empleado.id && String(a.fechaDesde || '').startsWith(String(anioActual)))
+        .filter(a => a.empleadoId === empleado.id && String(a.fechaDesde || '') <= fechaCorte)
         .sort((a, b) => String(b.fechaDesde || '').localeCompare(String(a.fechaDesde || '')));
     const movimientos = [
-        {
-            orden: `${anioActual}-01-01`,
+        ...saldo.aniosBase.map(anioBase => ({
+            orden: fechaDisponibilidadVacaciones(anioBase),
             tipo: 'Base legal',
-            detalle: `Antigüedad al 31/12/${anioActual}: ${saldo.antiguedad} años`,
-            dias: saldo.diasBase,
+            detalle: `Vacaciones ${anioBase} · disponibles desde ${formatearFecha(fechaDisponibilidadVacaciones(anioBase))}`,
+            dias: calcularDiasBaseVacaciones(empleado.fechaIngreso, anioBase),
             clases: 'bg-indigo-50 text-indigo-700 border-indigo-100'
-        },
+        })),
         ...ajustes.map(a => {
             const meta = tiposAjusteVacaciones[a.tipo] || tiposAjusteVacaciones.correccion;
             return {
@@ -724,7 +777,7 @@ function renderizarFichaEmpleadoVacaciones(anioActual) {
                     <div class="w-12 h-12 rounded-full bg-indigo-700 text-white flex items-center justify-center font-black">${escaparHTML(inicialesEmpleado(empleado))}</div>
                     <div>
                         <h4 class="text-base font-black text-slate-800">${escaparHTML(nombreEmpleado(empleado))}</h4>
-                        <p class="text-xs text-indigo-700 font-bold">${escaparHTML(etiquetaArea(empleado.area))} · Vacaciones ${anioActual}</p>
+                        <p class="text-xs text-indigo-700 font-bold">${escaparHTML(etiquetaArea(empleado.area))} · Saldo al ${formatearFecha(fechaCorte)}</p>
                     </div>
                 </div>
                 <button onclick="window.seleccionarEmpleadoVacaciones('${empleado.id}')" class="bg-white hover:bg-indigo-100 border border-indigo-100 text-indigo-800 px-3 py-2 rounded-xl text-xs font-black transition inline-flex items-center gap-1.5">
@@ -733,7 +786,7 @@ function renderizarFichaEmpleadoVacaciones(anioActual) {
             </div>
             <div class="grid grid-cols-1 md:grid-cols-5 gap-3 p-4 border-b border-slate-100">
                 <div class="bg-slate-50 border border-slate-200 rounded-xl p-3">
-                    <p class="text-[10px] uppercase font-black text-slate-400">Base automática</p>
+                    <p class="text-[10px] uppercase font-black text-slate-400">Base acumulada</p>
                     <p class="text-2xl font-black text-slate-800 mt-1">${saldo.diasBase}</p>
                 </div>
                 <div class="bg-blue-50 border border-blue-100 rounded-xl p-3">
@@ -795,6 +848,8 @@ export function renderizarAusencias() {
         ? ausenciaEditando.descuentaVacaciones === true
         : tiposAusencia[tipoSeleccionado].descuenta;
     const aniosDisponibles = aniosConAusencias();
+    const inicioTablero = inicioSemana(state.vacacionesFechaInicio || fechaAISO(new Date()));
+    const fechaCorteTablero = sumarDias(inicioTablero, 34);
 
     const filas = lista.length ? lista.map(a => {
         const empleado = obtenerEmpleado(a.empleadoId);
@@ -901,7 +956,7 @@ export function renderizarAusencias() {
 
             ${renderizarTableroVacaciones(anioActual)}
             ${renderizarSolicitudesPendientes(puedeEditar)}
-            ${renderizarFichaEmpleadoVacaciones(anioActual)}
+            ${renderizarFichaEmpleadoVacaciones(anioActual, fechaCorteTablero)}
 
             <section class="grid grid-cols-1 xl:grid-cols-[420px_420px_1fr] gap-5 items-start">
                 <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
