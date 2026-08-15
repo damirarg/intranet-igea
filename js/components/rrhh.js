@@ -118,6 +118,24 @@ function calcularAntiguedad(fechaIngreso = '', fechaCorte = '') {
     return partes.length ? partes.join(' y ') : 'Menos de 1 mes';
 }
 
+function calcularEdad(fechaNacimiento = '') {
+    if (!fechaNacimiento) return '-';
+
+    const nacimiento = new Date(`${fechaNacimiento}T00:00:00`);
+    const hoy = new Date();
+
+    if (Number.isNaN(nacimiento.getTime()) || hoy < nacimiento) return '-';
+
+    let edad = hoy.getFullYear() - nacimiento.getFullYear();
+    const mes = hoy.getMonth() - nacimiento.getMonth();
+
+    if (mes < 0 || (mes === 0 && hoy.getDate() < nacimiento.getDate())) {
+        edad--;
+    }
+
+    return edad >= 0 ? `${edad} ${edad === 1 ? 'año' : 'años'}` : '-';
+}
+
 function normalizarBusqueda(valor = '') {
     return String(valor).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 }
@@ -168,6 +186,7 @@ export function renderizarRRHH() {
             e.nombreCompleto,
             e.dni,
             e.cuil,
+            e.fechaNacimiento,
             e.area,
             e.subarea,
             e.fechaIngreso,
@@ -179,6 +198,7 @@ export function renderizarRRHH() {
             e.contactoEmergenciaNombre
         ].filter(Boolean).join(' ');
         const antiguedad = calcularAntiguedad(e.fechaIngreso, e.archivado ? e.fechaSalida : '');
+        const edad = calcularEdad(e.fechaNacimiento);
 
         return `
             <article data-empleado-rrhh data-busqueda="${escaparHTML(busqueda)}" class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm hover:border-cyan-200 transition">
@@ -189,6 +209,8 @@ export function renderizarRRHH() {
                         <div class="flex flex-wrap gap-1.5 mt-2">
                             <span class="bg-cyan-50 text-cyan-700 border border-cyan-100 px-2 py-0.5 rounded-lg text-[10px] font-black">${escaparHTML(etiquetaArea(e.area))}</span>
                             <span class="bg-blue-50 text-blue-700 border border-blue-100 px-2 py-0.5 rounded-lg text-[10px] font-black">${escaparHTML(etiquetaSubarea(e.area, e.subarea))}</span>
+                            <span class="bg-violet-50 text-violet-700 border border-violet-100 px-2 py-0.5 rounded-lg text-[10px] font-black">Nacimiento ${escaparHTML(formatearFecha(e.fechaNacimiento))}</span>
+                            <span class="bg-indigo-50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded-lg text-[10px] font-black">Edad ${escaparHTML(edad)}</span>
                             <span class="bg-slate-50 text-slate-600 border border-slate-100 px-2 py-0.5 rounded-lg text-[10px] font-black">Ingreso ${escaparHTML(formatearFecha(e.fechaIngreso))}</span>
                             <span class="bg-emerald-50 text-emerald-700 border border-emerald-100 px-2 py-0.5 rounded-lg text-[10px] font-black">Antigüedad ${escaparHTML(antiguedad)}</span>
                             ${e.archivado ? `<span class="bg-rose-50 text-rose-700 border border-rose-100 px-2 py-0.5 rounded-lg text-[10px] font-black">Archivada</span>` : ''}
@@ -307,6 +329,10 @@ export function renderizarRRHH() {
                     <div>
                         <label class="block text-[10px] font-black uppercase text-slate-500 mb-1">CUIL</label>
                         <input id="input-cuil-empleado-rrhh" value="${valorEmpleado(empleadoEditando, 'cuil')}" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label class="block text-[10px] font-black uppercase text-slate-500 mb-1">Fecha de nacimiento</label>
+                        <input type="date" id="input-fecha-nacimiento-empleado-rrhh" value="${valorEmpleado(empleadoEditando, 'fechaNacimiento')}" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs focus:ring-2 focus:ring-cyan-500 focus:outline-none">
                     </div>
                     <div class="sm:col-span-2">
                         <label class="block text-[10px] font-black uppercase text-slate-500 mb-1">Obra social</label>
