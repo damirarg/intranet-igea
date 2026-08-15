@@ -15,8 +15,15 @@ const etiquetasModulos = {
         icono: 'groups',
         texto: 'RRHH',
         clases: 'bg-cyan-50 text-cyan-700 border-cyan-200'
+    },
+    vacaciones: {
+        icono: 'beach_access',
+        texto: 'Vacaciones',
+        clases: 'bg-teal-50 text-teal-700 border-teal-200'
     }
 };
+
+const modulosGestionables = ['saldos', 'guardias', 'rrhh', 'vacaciones'];
 
 function renderizarBadgesModulos(modulos = []) {
     if (!Array.isArray(modulos) || modulos.length === 0) return '<span class="text-slate-400 italic">Sin módulos</span>';
@@ -43,6 +50,36 @@ function escaparHTML(valor = '') {
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#039;');
+}
+
+function obtenerNivelModulo(usuario, modulo) {
+    const permisosPorModulo = usuario.permisosPorModulo || {};
+    const nivel = permisosPorModulo[modulo];
+
+    if (nivel === 'ver' || nivel === 'editar') return nivel;
+
+    return Array.isArray(usuario.modulos) && usuario.modulos.includes(modulo) ? 'editar' : 'none';
+}
+
+function renderizarControlPermisos(email, usuario) {
+    return modulosGestionables.map(modulo => {
+        const meta = etiquetasModulos[modulo];
+        const nivel = obtenerNivelModulo(usuario, modulo);
+
+        return `
+            <label class="flex items-center justify-between gap-2 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2">
+                <span class="inline-flex items-center gap-1.5 font-black text-slate-600">
+                    <span class="material-symbols-rounded" style="font-size:15px;">${meta.icono}</span>
+                    ${meta.texto}
+                </span>
+                <select onchange="window.guardarNivelPermisoModuloFirebase('${email}', '${modulo}', this.value)" class="bg-white border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    <option value="none" ${nivel === 'none' ? 'selected' : ''}>Sin acceso</option>
+                    <option value="ver" ${nivel === 'ver' ? 'selected' : ''}>Sólo ver</option>
+                    <option value="editar" ${nivel === 'editar' ? 'selected' : ''}>Editar</option>
+                </select>
+            </label>
+        `;
+    }).join('');
 }
 
 export function renderizarPermisos() {
@@ -106,7 +143,9 @@ export function renderizarPermisos() {
                 </span>
             </td>
             <td class="p-3.5 text-xs text-slate-600 font-medium">
-                ${renderizarBadgesModulos(modulos)}
+                <div class="grid grid-cols-1 xl:grid-cols-2 gap-2 min-w-[420px]">
+                    ${renderizarControlPermisos(emailUsuario, u)}
+                </div>
             </td>
             <td class="p-3.5 text-right">
                 <button onclick="window.generarResetClaveUsuarioFirebase('${emailUsuario}')" class="text-slate-400 hover:text-blue-600 transition p-1" title="Generar link de recuperación">
@@ -294,6 +333,7 @@ export function renderizarPermisos() {
                             <option value="saldos" selected>Gestión de Saldos / Cobranzas</option>
                             <option value="guardias">Gestión de Guardias Pasivas</option>
                             <option value="rrhh">Recursos Humanos</option>
+                            <option value="vacaciones">Vacaciones y Licencias</option>
                         </select>
                     </div>
                 </div>
@@ -312,7 +352,7 @@ export function renderizarPermisos() {
                         <thead>
                             <tr class="border-b border-slate-200 text-slate-500 text-[10px] uppercase tracking-wider bg-slate-50/50">
                                 <th class="p-3.5">Usuario / Correo</th>
-                                <th class="p-3.5">Módulo Habilitado</th>
+                                <th class="p-3.5">Permisos por módulo</th>
                                 <th class="p-3.5 text-right">Acciones</th>
                             </tr>
                         </thead>

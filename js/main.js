@@ -55,6 +55,7 @@ import {
     actualizarNombreUsuarioFirebase,
     cambiarEstadoUsuarioFirebase,
     sincronizarUsuariosDesdePermisosFirebase,
+    guardarNivelPermisoModuloFirebase,
     guardarEmpleadoRRHHFirebase,
     prepararUsuarioDesdeEmpleadoRRHH,
     editarEmpleadoRRHH,
@@ -125,6 +126,7 @@ window.cambiarEmailUsuarioFirebase = cambiarEmailUsuarioFirebase;
 window.actualizarNombreUsuarioFirebase = actualizarNombreUsuarioFirebase;
 window.cambiarEstadoUsuarioFirebase = cambiarEstadoUsuarioFirebase;
 window.sincronizarUsuariosDesdePermisosFirebase = sincronizarUsuariosDesdePermisosFirebase;
+window.guardarNivelPermisoModuloFirebase = guardarNivelPermisoModuloFirebase;
 window.guardarEmpleadoRRHHFirebase = guardarEmpleadoRRHHFirebase;
 window.prepararUsuarioDesdeEmpleadoRRHH = prepararUsuarioDesdeEmpleadoRRHH;
 window.editarEmpleadoRRHH = editarEmpleadoRRHH;
@@ -232,7 +234,9 @@ function aplicarVistaEfectiva(email) {
 
     if (state.seccionActual === 'permisos' && !state.esAdminMaster) cambiarVista('inicio');
     else if (state.seccionActual === 'saldos' && !state.tienePermisoSaldos && !state.esAdminMaster) cambiarVista('inicio');
+    else if (state.seccionActual === 'guardias' && !state.tienePermisoGuardias && !state.esAdminMaster) cambiarVista('inicio');
     else if (state.seccionActual === 'rrhh' && !state.tienePermisoRRHH && !state.esAdminMaster) cambiarVista('inicio');
+    else if (state.seccionActual === 'vacaciones' && !state.esAdminMaster) cambiarVista('inicio');
     else cambiarVista(state.seccionActual || 'inicio');
 }
 
@@ -296,9 +300,11 @@ function refrescarVistasPorPermisos() {
     else if (state.seccionActual === 'permisos') cambiarVista('permisos');
     if (state.seccionActual === 'inicio') cambiarVista('inicio');
     if (state.seccionActual === 'guardias') cambiarVista('guardias');
+    if (state.seccionActual === 'guardias' && !state.tienePermisoGuardias && !state.esAdminMaster) cambiarVista('inicio');
     if (state.seccionActual === 'saldos' && !state.tienePermisoSaldos && !state.esAdminMaster) cambiarVista('inicio');
     if (state.seccionActual === 'rrhh' && !state.tienePermisoRRHH && !state.esAdminMaster) cambiarVista('inicio');
     else if (state.seccionActual === 'rrhh') cambiarVista('rrhh');
+    if (state.seccionActual === 'vacaciones' && !state.esAdminMaster) cambiarVista('inicio');
 }
 
 function escucharSaldosSiCorresponde() {
@@ -505,6 +511,11 @@ onAuthStateChanged(auth, async (user) => {
         state.tienePermisoSaldos = false;
         state.tienePermisoGuardias = false;
         state.tienePermisoRRHH = false;
+        state.tienePermisoVacaciones = false;
+        state.puedeEditarSaldos = false;
+        state.puedeEditarGuardias = false;
+        state.puedeEditarRRHH = false;
+        state.puedeEditarVacaciones = false;
         state.listaPermisosFirebase = [];
         state.listaUsuariosFirebase = [];
         state.listaSaldosFirebase = [];

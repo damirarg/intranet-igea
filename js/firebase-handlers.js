@@ -44,9 +44,21 @@ const cambiarEmailUsuarioIntranetFn = httpsCallable(functions, "cambiarEmailUsua
 const actualizarNombreUsuarioIntranetFn = httpsCallable(functions, "actualizarNombreUsuarioIntranet");
 const cambiarEstadoUsuarioIntranetFn = httpsCallable(functions, "cambiarEstadoUsuarioIntranet");
 const sincronizarUsuariosDesdePermisosFn = httpsCallable(functions, "sincronizarUsuariosDesdePermisos");
+const MODULOS_GESTIONABLES = ["saldos", "guardias", "rrhh", "vacaciones"];
 
 function normalizarEmailPermiso(email) {
     return email.trim().toLowerCase();
+}
+
+function obtenerNivelPermiso(permiso, modulo) {
+    if (!permiso) return 'none';
+
+    const permisosPorModulo = permiso.permisosPorModulo || {};
+    const nivel = permisosPorModulo[modulo];
+
+    if (nivel === 'ver' || nivel === 'editar') return nivel;
+
+    return Array.isArray(permiso.modulos) && permiso.modulos.includes(modulo) ? 'editar' : 'none';
 }
 
 function activarBotonCarga(btn, texto) {
@@ -251,13 +263,20 @@ export function evaluarPermisosUsuario(email) {
     state.esAdminMaster = (mailClean === "damirodriguez81@gmail.com");
 
     const permisoEncontrado = state.listaPermisosFirebase.find(p => p.email && normalizarEmailPermiso(p.email) === mailClean);
+    const nivelSaldos = state.esAdminMaster ? 'editar' : obtenerNivelPermiso(permisoEncontrado, 'saldos');
+    const nivelGuardias = state.esAdminMaster ? 'editar' : obtenerNivelPermiso(permisoEncontrado, 'guardias');
+    const nivelRRHH = state.esAdminMaster ? 'editar' : obtenerNivelPermiso(permisoEncontrado, 'rrhh');
+    const nivelVacaciones = state.esAdminMaster ? 'editar' : obtenerNivelPermiso(permisoEncontrado, 'vacaciones');
 
-    state.tienePermisoSaldos = state.esAdminMaster ||
-        (permisoEncontrado && permisoEncontrado.modulos && permisoEncontrado.modulos.includes('saldos'));
-    state.tienePermisoGuardias = state.esAdminMaster ||
-        (permisoEncontrado && permisoEncontrado.modulos && permisoEncontrado.modulos.includes('guardias'));
-    state.tienePermisoRRHH = state.esAdminMaster ||
-        (permisoEncontrado && permisoEncontrado.modulos && permisoEncontrado.modulos.includes('rrhh'));
+    state.tienePermisoSaldos = nivelSaldos !== 'none';
+    state.tienePermisoGuardias = nivelGuardias !== 'none';
+    state.tienePermisoRRHH = nivelRRHH !== 'none';
+    state.tienePermisoVacaciones = nivelVacaciones !== 'none';
+
+    state.puedeEditarSaldos = nivelSaldos === 'editar';
+    state.puedeEditarGuardias = nivelGuardias === 'editar';
+    state.puedeEditarRRHH = nivelRRHH === 'editar';
+    state.puedeEditarVacaciones = nivelVacaciones === 'editar';
 }
 
 function valorInput(id) {
@@ -268,7 +287,7 @@ function valorInput(id) {
 // GUARDAR FICHA DE RRHH
 export async function guardarEmpleadoRRHHFirebase() {
     if (bloquearCambiosEnModoVerComo()) return;
-    if (!state.esAdminMaster && !state.tienePermisoRRHH) return alert("No tenes permisos para gestionar RRHH.");
+    if (!state.puedeEditarRRHH) return alert("No tenes permisos para editar RRHH.");
 
     const empleadoId = valorInput('input-id-empleado-rrhh');
     const nombreCompleto = valorInput('input-nombre-empleado-rrhh');
@@ -369,7 +388,7 @@ export function cancelarEdicionEmpleadoRRHH() {
 
 export async function eliminarEmpleadoRRHHFirebase(id) {
     if (bloquearCambiosEnModoVerComo()) return;
-    if (!state.esAdminMaster && !state.tienePermisoRRHH) return alert("No tenes permisos para gestionar RRHH.");
+    if (!state.puedeEditarRRHH) return alert("No tenes permisos para editar RRHH.");
     if (!confirm("¿Confirmás eliminar esta ficha de RRHH?")) return;
 
     try {
@@ -514,11 +533,14 @@ export async function otorgarPermisoFirebase() {
 
     const permisoExistente = state.listaPermisosFirebase.find(p => p.email && normalizarEmailPermiso(p.email) === emailInput);
     const modulosActuales = permisoExistente && Array.isArray(permisoExistente.modulos) ? [...permisoExistente.modulos] : [];
+    const permisosPorModulo = { ...((permisoExistente && permisoExistente.permisosPorModulo) || {}) };
     const yaTeniaModulo = modulosActuales.includes(moduloSelected);
 
     if (!yaTeniaModulo) {
         modulosActuales.push(moduloSelected);
     }
+
+    permisosPorModulo[moduloSelected] = 'editar';
 
     try {
         const permisoCanonicoRef = doc(db, "permisos", emailInput);
@@ -526,6 +548,7 @@ export async function otorgarPermisoFirebase() {
         await setDoc(permisoCanonicoRef, {
             email: emailInput,
             modulos: modulosActuales,
+            permisosPorModulo,
             fechaAlta: permisoExistente && permisoExistente.fechaAlta ? permisoExistente.fechaAlta : new Date(),
             fechaActualizacion: new Date()
         }, { merge: true });
@@ -545,6 +568,39 @@ export async function otorgarPermisoFirebase() {
         alert("Error: " + e.message);
     } finally {
         restaurarBotonCarga(btnOtorgar, htmlOriginal);
+    }
+}
+
+// CAMBIAR NIVEL DE ACCESO POR MODULO
+export async function guardarNivelPermisoModuloFirebase(email, modulo, nivel) {
+    if (bloquearCambiosEnModoVerComo()) return;
+    if (!state.esAdminMaster) return alert("Solo el Administrador Principal puede modificar permisos.");
+
+    const emailInput = normalizarEmailPermiso(email || '');
+    const moduloInput = String(modulo || '').trim();
+    const nivelInput = String(nivel || 'none').trim();
+
+    if (!emailInput || !MODULOS_GESTIONABLES.includes(moduloInput)) return alert("No se pudo identificar el permiso.");
+    if (!['none', 'ver', 'editar'].includes(nivelInput)) return alert("Nivel de permiso inválido.");
+
+    const permisoExistente = state.listaPermisosFirebase.find(p => p.email && normalizarEmailPermiso(p.email) === emailInput) || {};
+    const permisosPorModulo = { ...(permisoExistente.permisosPorModulo || {}) };
+
+    if (nivelInput === 'none') delete permisosPorModulo[moduloInput];
+    else permisosPorModulo[moduloInput] = nivelInput;
+
+        const modulos = MODULOS_GESTIONABLES.filter(m => permisosPorModulo[m] === 'ver' || permisosPorModulo[m] === 'editar');
+
+    try {
+        await setDoc(doc(db, "permisos", emailInput), {
+            email: emailInput,
+            modulos,
+            permisosPorModulo,
+            fechaAlta: permisoExistente.fechaAlta || new Date(),
+            fechaActualizacion: new Date()
+        }, { merge: true });
+    } catch (error) {
+        alert("Error al actualizar permiso: " + (error.message || "No se pudo completar la operación."));
     }
 }
 
@@ -1043,7 +1099,7 @@ export async function cambiarClaveFirebase() {
 // GUARDAR GUARDIA PASIVA
 export async function guardarGuardiaFirebase() {
     if (bloquearCambiosEnModoVerComo()) return;
-    if (!state.esAdminMaster && !state.tienePermisoGuardias) return alert("No tenes permisos para gestionar guardias.");
+    if (!state.puedeEditarGuardias) return alert("No tenes permisos para editar guardias.");
     if (!state.guardiaDiaSeleccionado) return;
 
     const emailColab = document.getElementById('select-colaborador-guardia').value;
@@ -1095,7 +1151,7 @@ export async function guardarGuardiaFirebase() {
 // ELIMINAR GUARDIA PASIVA
 export async function eliminarGuardiaFirebase() {
     if (bloquearCambiosEnModoVerComo()) return;
-    if (!state.esAdminMaster && !state.tienePermisoGuardias) return alert("No tenes permisos para gestionar guardias.");
+    if (!state.puedeEditarGuardias) return alert("No tenes permisos para editar guardias.");
     if (!state.guardiaDiaSeleccionado) return;
 
     if (confirm("Estas seguro de que queres eliminar la asignacion de este dia?")) {

@@ -87,6 +87,7 @@ export function renderizarRRHH() {
     const empleadoEditando = state.empleadoRRHHEditandoId
         ? state.listaEmpleadosRRHHFirebase.find(e => e.id === state.empleadoRRHHEditandoId)
         : null;
+    const puedeEditar = state.puedeEditarRRHH;
 
     const totalActivos = state.listaEmpleadosRRHHFirebase.filter(e => !e.archivado).length;
     const totalArchivados = state.listaEmpleadosRRHHFirebase.filter(e => e.archivado).length;
@@ -126,14 +127,14 @@ export function renderizarRRHH() {
                             ${e.archivado ? `<span class="bg-rose-50 text-rose-700 border border-rose-100 px-2 py-0.5 rounded-lg text-[10px] font-black">Archivada</span>` : ''}
                         </div>
                     </div>
-                    <div class="flex items-center gap-1">
+                    ${puedeEditar ? `<div class="flex items-center gap-1">
                         <button onclick="window.editarEmpleadoRRHH('${e.id}')" class="text-slate-400 hover:text-cyan-700 p-1 rounded-lg transition" title="Editar ficha">
                             <span class="material-symbols-rounded" style="font-size:18px;">edit</span>
                         </button>
                         <button onclick="window.eliminarEmpleadoRRHHFirebase('${e.id}')" class="text-slate-400 hover:text-red-600 p-1 rounded-lg transition" title="Eliminar ficha">
                             <span class="material-symbols-rounded" style="font-size:18px;">delete</span>
                         </button>
-                    </div>
+                    </div>` : ''}
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4 text-xs">
@@ -141,10 +142,10 @@ export function renderizarRRHH() {
                         <p class="text-[10px] uppercase font-black text-purple-500 tracking-wide">Usuario de intranet asociado</p>
                         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mt-1">
                             <p class="font-bold text-purple-800">${escaparHTML(e.emailIntranet || 'Sin usuario asociado')}</p>
-                            <button onclick="window.prepararUsuarioDesdeEmpleadoRRHH('${e.id}')" class="bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-xl text-[11px] font-black transition inline-flex items-center justify-center gap-1.5">
+                            ${puedeEditar ? `<button onclick="window.prepararUsuarioDesdeEmpleadoRRHH('${e.id}')" class="bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-xl text-[11px] font-black transition inline-flex items-center justify-center gap-1.5">
                                 <span class="material-symbols-rounded" style="font-size:16px;">${e.emailIntranet ? 'link' : 'person_add'}</span>
                                 ${e.emailIntranet ? 'Cambiar asociación' : 'Crear/asociar usuario'}
-                            </button>
+                            </button>` : ''}
                         </div>
                     </div>
                     ${e.archivado ? `
@@ -185,8 +186,8 @@ export function renderizarRRHH() {
     `;
 
     return `
-        <div class="grid grid-cols-1 xl:grid-cols-[420px_1fr] gap-5 pb-8">
-            <section class="bg-white border border-slate-200 rounded-2xl shadow-sm p-5 h-fit">
+        <div class="grid grid-cols-1 ${puedeEditar ? 'xl:grid-cols-[420px_1fr]' : ''} gap-5 pb-8">
+            ${puedeEditar ? `<section class="bg-white border border-slate-200 rounded-2xl shadow-sm p-5 h-fit">
                 <div class="flex items-center justify-between gap-3 mb-4">
                     <div>
                         <h3 class="text-base font-black text-slate-800">${empleadoEditando ? 'Editar ficha' : 'Nueva ficha'}</h3>
@@ -276,7 +277,7 @@ export function renderizarRRHH() {
                 <button onclick="window.guardarEmpleadoRRHHFirebase()" class="mt-4 w-full bg-cyan-700 hover:bg-cyan-800 text-white font-bold text-xs py-2.5 rounded-xl transition shadow-md shadow-cyan-100 flex items-center justify-center gap-1.5">
                     <span class="material-symbols-rounded" style="font-size:16px;">save</span> ${empleadoEditando ? 'Guardar cambios' : 'Guardar ficha'}
                 </button>
-            </section>
+            </section>` : ''}
 
             <section class="min-w-0">
                 <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-4 mb-4">

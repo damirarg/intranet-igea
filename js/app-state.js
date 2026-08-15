@@ -61,6 +61,11 @@ export const state = {
     tienePermisoSaldos: false,
     tienePermisoGuardias: false,
     tienePermisoRRHH: false,
+    tienePermisoVacaciones: false,
+    puedeEditarSaldos: false,
+    puedeEditarGuardias: false,
+    puedeEditarRRHH: false,
+    puedeEditarVacaciones: false,
     
     colorPostitSeleccionado: "yellow",
     listaSugerencias: [],

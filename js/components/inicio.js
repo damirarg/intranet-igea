@@ -38,6 +38,26 @@ export function renderizarInicio() {
         </div>
     ` : '';
 
+    let tarjetaGuardiasHTML = (state.tienePermisoGuardias || state.esAdminMaster) ? `
+        <div class="bg-white p-5 md:p-6 rounded-3xl border-t-4 border-t-sky-500 border-x border-b border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col justify-center" onclick="cambiarVista('guardias')">
+            <div class="w-10 h-10 md:w-12 md:h-12 bg-sky-50 text-sky-600 rounded-2xl flex items-center justify-center mb-3 md:mb-4 group-hover:bg-sky-600 group-hover:text-white transition-colors">
+                <span class="material-symbols-rounded icon-large">calendar_month</span>
+            </div>
+            <h4 class="font-bold text-base md:text-lg text-slate-800 mb-1 leading-tight">Guardias Pasivas</h4>
+            <p class="text-slate-500 leading-relaxed text-xs">Calendario y asignación de turnos.</p>
+        </div>
+    ` : '';
+
+    let tarjetaVacacionesHTML = state.esAdminMaster ? `
+        <div class="bg-white p-5 md:p-6 rounded-3xl border-t-4 border-t-teal-500 border-x border-b border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col justify-center" onclick="cambiarVista('vacaciones')">
+            <div class="w-10 h-10 md:w-12 md:h-12 bg-teal-50 text-teal-700 rounded-2xl flex items-center justify-center mb-3 md:mb-4 group-hover:bg-teal-700 group-hover:text-white transition-colors">
+                <span class="material-symbols-rounded icon-large">event_available</span>
+            </div>
+            <h4 class="font-bold text-base md:text-lg text-slate-800 mb-1 leading-tight">Vacaciones</h4>
+            <p class="text-slate-500 leading-relaxed text-xs">Módulo interno en preparación.</p>
+        </div>
+    ` : '';
+
     return `
         <div class="relative w-full h-36 md:h-56 rounded-3xl overflow-hidden mb-6 md:mb-8 shadow-sm flex items-center px-6 md:px-10 border border-slate-200 shrink-0">
             <video autoplay loop muted playsinline class="absolute inset-0 w-full h-full object-cover opacity-20">
@@ -83,14 +103,6 @@ export function renderizarInicio() {
                 <p class="text-slate-500 leading-relaxed text-xs">Mural de ideas y propuestas.</p>
             </div>
 
-            <div class="bg-white p-5 md:p-6 rounded-3xl border-t-4 border-t-sky-500 border-x border-b border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col justify-center" onclick="cambiarVista('guardias')">
-                <div class="w-10 h-10 md:w-12 md:h-12 bg-sky-50 text-sky-600 rounded-2xl flex items-center justify-center mb-3 md:mb-4 group-hover:bg-sky-600 group-hover:text-white transition-colors">
-                    <span class="material-symbols-rounded icon-large">calendar_month</span>
-                </div>
-                <h4 class="font-bold text-base md:text-lg text-slate-800 mb-1 leading-tight">Guardias Pasivas</h4>
-                <p class="text-slate-500 leading-relaxed text-xs">Calendario y asignación de turnos.</p>
-            </div>
-
             <a href="https://app.absentify.com" target="_blank" class="bg-white p-5 md:p-6 rounded-3xl border-t-4 border-t-teal-500 border-x border-b border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col justify-center">
                 <div class="w-10 h-10 md:w-12 md:h-12 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center mb-3 md:mb-4 group-hover:bg-teal-600 group-hover:text-white transition-colors">
                     <span class="material-symbols-rounded icon-large">beach_access</span>
@@ -100,7 +112,9 @@ export function renderizarInicio() {
             </a>
 
             ${tarjetaSaldosHTML}
+            ${tarjetaGuardiasHTML}
             ${tarjetaRRHHHTML}
+            ${tarjetaVacacionesHTML}
             ${tarjetaPermisosHTML}
         </div>
     `;

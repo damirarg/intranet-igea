@@ -18,7 +18,7 @@ function escaparHTML(valor) {
 }
 
 function puedeGestionarGuardias() {
-    return state.esAdminMaster || state.tienePermisoGuardias;
+    return state.puedeEditarGuardias;
 }
 
 function obtenerGuardia(fecha) {

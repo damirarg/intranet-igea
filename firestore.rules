@@ -15,9 +15,23 @@ service cloud.firestore {
     }
 
     function hasModule(moduleName) {
+      let permiso = get(/databases/$(database)/documents/permisos/$(userEmail())).data;
       return signedIn()
         && exists(/databases/$(database)/documents/permisos/$(userEmail()))
-        && moduleName in get(/databases/$(database)/documents/permisos/$(userEmail())).data.modulos;
+        && (
+          ("modulos" in permiso && moduleName in permiso.modulos)
+          || ("permisosPorModulo" in permiso && permiso.permisosPorModulo[moduleName] in ["ver", "editar"])
+        );
+    }
+
+    function canEditModule(moduleName) {
+      let permiso = get(/databases/$(database)/documents/permisos/$(userEmail())).data;
+      return signedIn()
+        && exists(/databases/$(database)/documents/permisos/$(userEmail()))
+        && (
+          ("modulos" in permiso && moduleName in permiso.modulos)
+          || ("permisosPorModulo" in permiso && permiso.permisosPorModulo[moduleName] == "editar")
+        );
     }
 
     match /documentos_dpp_proc/{documentoId} {
@@ -53,7 +67,7 @@ service cloud.firestore {
       allow create, delete: if isAdmin();
       allow update: if isAdmin()
         || (
-          hasModule("saldos")
+          canEditModule("saldos")
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
             "gestiones",
             "saldada",
@@ -65,12 +79,13 @@ service cloud.firestore {
     }
 
     match /guardias/{fecha} {
-      allow read: if signedIn();
-      allow create, update, delete: if isAdmin() || hasModule("guardias");
+      allow read: if isAdmin() || hasModule("guardias");
+      allow create, update, delete: if isAdmin() || canEditModule("guardias");
     }
 
     match /empleados_rrhh/{empleadoId} {
-      allow read, create, update, delete: if isAdmin() || hasModule("rrhh");
+      allow read: if isAdmin() || hasModule("rrhh");
+      allow create, update, delete: if isAdmin() || canEditModule("rrhh");
     }
   }
 }
