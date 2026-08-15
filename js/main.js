@@ -37,7 +37,7 @@ import { alternarFiltroSaldadas, procesarArchivoCSV, cancelarCargaCSV, seleccion
 import { seleccionarMaterialDidactico } from './components/procedimientos.js';
 import { guardiasMesSiguiente, guardiasMesAnterior } from './components/guardias.js';
 import { alternarArchivadosRRHH, actualizarSubareasRRHH, filtrarEmpleadosRRHH } from './components/rrhh.js';
-import { cambiarAnioAusencias, filtrarAusencias, irAHoyVacaciones, moverRangoVacaciones, prepararVacacionEmpleado, recalcularDiasAusenciaPreview, seleccionarEmpleadoVacaciones, sincronizarDescuentoAusencia } from './components/ausencias.js';
+import { cambiarAnioAusencias, cancelarEdicionReglaVacaciones, editarReglaVacaciones, filtrarAusencias, irAHoyVacaciones, moverRangoVacaciones, prepararAjusteVacacionesEmpleado, prepararVacacionEmpleado, recalcularDiasAusenciaPreview, seleccionarEmpleadoVacaciones, sincronizarDescuentoAusencia } from './components/ausencias.js';
 
 // Importamos manejadores asincrónicos de base de datos
 import {
@@ -68,6 +68,8 @@ import {
     eliminarAusenciaFirebase,
     guardarAjusteVacacionesFirebase,
     eliminarAjusteVacacionesFirebase,
+    guardarReglaVacacionesFirebase,
+    eliminarReglaVacacionesFirebase,
     otorgarPermisoFirebase,
     revocarPermisoFirebase,
     actualizarCampoFirebase,
@@ -128,6 +130,9 @@ window.moverRangoVacaciones = moverRangoVacaciones;
 window.irAHoyVacaciones = irAHoyVacaciones;
 window.prepararVacacionEmpleado = prepararVacacionEmpleado;
 window.seleccionarEmpleadoVacaciones = seleccionarEmpleadoVacaciones;
+window.editarReglaVacaciones = editarReglaVacaciones;
+window.cancelarEdicionReglaVacaciones = cancelarEdicionReglaVacaciones;
+window.prepararAjusteVacacionesEmpleado = prepararAjusteVacacionesEmpleado;
 
 window.guardarNuevoDocumentoFirebase = guardarNuevoDocumentoFirebase;
 window.procesarEdicionDocFirebase = procesarEdicionDocFirebase;
@@ -154,6 +159,8 @@ window.cancelarEdicionAusenciaFirebase = cancelarEdicionAusenciaFirebase;
 window.eliminarAusenciaFirebase = eliminarAusenciaFirebase;
 window.guardarAjusteVacacionesFirebase = guardarAjusteVacacionesFirebase;
 window.eliminarAjusteVacacionesFirebase = eliminarAjusteVacacionesFirebase;
+window.guardarReglaVacacionesFirebase = guardarReglaVacacionesFirebase;
+window.eliminarReglaVacacionesFirebase = eliminarReglaVacacionesFirebase;
 window.otorgarPermisoFirebase = otorgarPermisoFirebase;
 window.revocarPermisoFirebase = revocarPermisoFirebase;
 window.actualizarCampoFirebase = actualizarCampoFirebase;
@@ -182,6 +189,7 @@ const guardiasRef = collection(db, "guardias");
 const empleadosRRHHRef = collection(db, "empleados_rrhh");
 const ausenciasRef = collection(db, "ausencias");
 const ajustesVacacionesRef = collection(db, "vacaciones_ajustes");
+const reglasVacacionesRef = collection(db, "vacaciones_reglas");
 
 let unsubscribePermisos = null;
 let unsubscribeSaldos = null;
@@ -189,6 +197,7 @@ let unsubscribeUsuarios = null;
 let unsubscribeEmpleadosRRHH = null;
 let unsubscribeAusencias = null;
 let unsubscribeAjustesVacaciones = null;
+let unsubscribeReglasVacaciones = null;
 
 function normalizarEmail(email) {
     return (email || '').toLowerCase().trim();
@@ -404,8 +413,13 @@ function escucharAusenciasAdmin() {
             unsubscribeAjustesVacaciones();
             unsubscribeAjustesVacaciones = null;
         }
+        if (unsubscribeReglasVacaciones) {
+            unsubscribeReglasVacaciones();
+            unsubscribeReglasVacaciones = null;
+        }
         state.listaAusenciasFirebase = [];
         state.listaAjustesVacacionesFirebase = [];
+        state.listaReglasVacacionesFirebase = [];
         return;
     }
 
@@ -436,6 +450,21 @@ function escucharAusenciasAdmin() {
             }
         }, (error) => {
             console.error("Error al escuchar ajustes de vacaciones:", error);
+        });
+    }
+
+    if (!unsubscribeReglasVacaciones) {
+        unsubscribeReglasVacaciones = onSnapshot(query(reglasVacacionesRef), (snapshot) => {
+            state.listaReglasVacacionesFirebase = [];
+            snapshot.forEach((docSnap) => {
+                state.listaReglasVacacionesFirebase.push({ id: docSnap.id, ...docSnap.data() });
+            });
+
+            if (state.seccionActual === 'ausencias' && !state.viendoDocumento) {
+                cambiarVista('ausencias');
+            }
+        }, (error) => {
+            console.error("Error al escuchar reglas de vacaciones:", error);
         });
     }
 }
@@ -598,9 +627,11 @@ onAuthStateChanged(auth, async (user) => {
         state.listaEmpleadosRRHHFirebase = [];
         state.listaAusenciasFirebase = [];
         state.listaAjustesVacacionesFirebase = [];
+        state.listaReglasVacacionesFirebase = [];
         state.empleadoRRHHEditandoId = null;
         state.ausenciaEditandoId = null;
         state.ajusteVacacionesEditandoId = null;
+        state.reglaVacacionesEditandoId = null;
         state.empleadoVacacionesSeleccionadoId = null;
         if (unsubscribePermisos) {
             unsubscribePermisos();
@@ -625,6 +656,10 @@ onAuthStateChanged(auth, async (user) => {
         if (unsubscribeAjustesVacaciones) {
             unsubscribeAjustesVacaciones();
             unsubscribeAjustesVacaciones = null;
+        }
+        if (unsubscribeReglasVacaciones) {
+            unsubscribeReglasVacaciones();
+            unsubscribeReglasVacaciones = null;
         }
         pantallaLogin.classList.remove('hidden');
         appPrincipal.classList.add('hidden');

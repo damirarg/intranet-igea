@@ -95,5 +95,9 @@ service cloud.firestore {
     match /vacaciones_ajustes/{ajusteId} {
       allow read, create, update, delete: if isAdmin();
     }
+
+    match /vacaciones_reglas/{reglaId} {
+      allow read, create, update, delete: if isAdmin();
+    }
   }
 }

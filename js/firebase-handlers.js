@@ -40,6 +40,7 @@ const empleadosRRHHRef = collection(db, "empleados_rrhh");
 const guardiasRef = collection(db, "guardias");
 const ausenciasRef = collection(db, "ausencias");
 const ajustesVacacionesRef = collection(db, "vacaciones_ajustes");
+const reglasVacacionesRef = collection(db, "vacaciones_reglas");
 const crearUsuarioIntranetFn = httpsCallable(functions, "crearUsuarioIntranet");
 const enviarResetClaveUsuarioFn = httpsCallable(functions, "enviarResetClaveUsuario");
 const cambiarEmailUsuarioIntranetFn = httpsCallable(functions, "cambiarEmailUsuarioIntranet");
@@ -575,6 +576,91 @@ export async function eliminarAjusteVacacionesFirebase(id) {
         alert("Ajuste eliminado correctamente.");
     } catch (error) {
         alert("Error al eliminar ajuste: " + (error.message || "No se pudo completar la operación."));
+    }
+}
+
+// GUARDAR REGLA ESPECIAL DE VACACIONES
+export async function guardarReglaVacacionesFirebase() {
+    if (bloquearCambiosEnModoVerComo()) return;
+    if (!state.esAdminMaster) return alert("Por ahora las reglas de vacaciones sólo puede editarlas el Administrador Principal.");
+
+    const reglaId = valorInput('input-id-regla-vacaciones');
+    const nombre = valorInput('input-nombre-regla-vacaciones');
+    const dias = Number(valorInput('input-dias-regla-vacaciones'));
+    const anioDesde = Number(valorInput('input-anio-desde-regla-vacaciones'));
+    const anioHastaValor = valorInput('input-anio-hasta-regla-vacaciones');
+    const anioHasta = anioHastaValor ? Number(anioHastaValor) : null;
+    const tipo = valorInput('input-tipo-regla-vacaciones') || 'acuerdo_especial';
+    const notas = valorInput('input-notas-regla-vacaciones');
+    const empleadosSelect = document.getElementById('input-empleados-regla-vacaciones');
+    const empleadosIds = empleadosSelect
+        ? Array.from(empleadosSelect.selectedOptions).map(op => op.value).filter(Boolean)
+        : [];
+
+    if (!nombre) return alert("Ingresá un nombre para la regla.");
+    if (!Number.isFinite(dias) || dias === 0) return alert("Ingresá la cantidad de días anuales. Puede ser positiva o negativa.");
+    if (!Number.isInteger(anioDesde) || anioDesde < 2020 || anioDesde > 2100) return alert("Ingresá un año de inicio válido.");
+    if (anioHasta !== null && (!Number.isInteger(anioHasta) || anioHasta < anioDesde || anioHasta > 2100)) return alert("El año hasta debe ser válido y no puede ser anterior al año desde.");
+    if (empleadosIds.length === 0) return alert("Seleccioná al menos un empleado para aplicar esta regla.");
+
+    const empleadosAsignados = empleadosIds.map(id => {
+        const empleado = state.listaEmpleadosRRHHFirebase.find(e => e.id === id);
+        return {
+            id,
+            nombre: nombreEmpleadoRRHH(empleado || {}),
+            email: empleado?.emailIntranet || ''
+        };
+    });
+
+    const btnGuardar = document.getElementById('btn-guardar-regla-vacaciones');
+    const htmlOriginal = activarBotonCarga(btnGuardar, "Guardando...");
+    const data = {
+        nombre,
+        dias,
+        anioDesde,
+        anioHasta,
+        tipo,
+        notas,
+        empleadosIds,
+        empleadosAsignados,
+        activa: true,
+        fechaActualizacion: new Date(),
+        actualizadoPor: state.usuarioAutenticadoEmail || state.usuarioActualEmail
+    };
+
+    try {
+        if (reglaId) {
+            await updateDoc(doc(db, "vacaciones_reglas", reglaId), data);
+            state.reglaVacacionesEditandoId = null;
+            alert("Regla actualizada correctamente.");
+        } else {
+            await addDoc(reglasVacacionesRef, {
+                ...data,
+                fechaAlta: new Date(),
+                creadoPor: state.usuarioAutenticadoEmail || state.usuarioActualEmail
+            });
+            alert("Regla cargada correctamente.");
+        }
+
+        cambiarVista('ausencias');
+    } catch (error) {
+        alert("Error al guardar regla: " + (error.message || "No se pudo completar la operación."));
+    } finally {
+        restaurarBotonCarga(btnGuardar, htmlOriginal);
+    }
+}
+
+export async function eliminarReglaVacacionesFirebase(id) {
+    if (bloquearCambiosEnModoVerComo()) return;
+    if (!state.esAdminMaster) return alert("Por ahora las reglas de vacaciones sólo puede editarlas el Administrador Principal.");
+    if (!confirm("¿Confirmás eliminar esta regla de vacaciones?")) return;
+
+    try {
+        await deleteDoc(doc(db, "vacaciones_reglas", id));
+        if (state.reglaVacacionesEditandoId === id) state.reglaVacacionesEditandoId = null;
+        alert("Regla eliminada correctamente.");
+    } catch (error) {
+        alert("Error al eliminar regla: " + (error.message || "No se pudo completar la operación."));
     }
 }
 

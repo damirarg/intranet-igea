@@ -298,6 +298,19 @@ function opcionesAjustes(tipoSeleccionado = 'carga_manual') {
     `).join('');
 }
 
+function opcionesEmpleadosMultiples(empleadosSeleccionados = []) {
+    const seleccionados = new Set(empleadosSeleccionados || []);
+    const empleados = [...state.listaEmpleadosRRHHFirebase]
+        .filter(e => !e.archivado)
+        .sort((a, b) => nombreEmpleado(a).localeCompare(nombreEmpleado(b), 'es'));
+
+    return empleados.map(e => `
+        <option value="${escaparHTML(e.id)}" ${seleccionados.has(e.id) ? 'selected' : ''}>
+            ${escaparHTML(nombreEmpleado(e))}
+        </option>
+    `).join('');
+}
+
 function ausenciasFiltradas() {
     return state.listaAusenciasFirebase
         .filter(a => !state.filtroAnioAusencias || String(a.fechaDesde || '').startsWith(String(state.filtroAnioAusencias)))
@@ -313,6 +326,12 @@ function aniosConAusencias() {
     state.listaAjustesVacacionesFirebase.forEach(a => {
         const anio = Number(a.anio);
         if (!Number.isNaN(anio)) anios.add(anio);
+    });
+    state.listaReglasVacacionesFirebase.forEach(r => {
+        const desde = Number(r.anioDesde);
+        const hasta = Number(r.anioHasta || r.anioDesde);
+        if (!Number.isNaN(desde)) anios.add(desde);
+        if (!Number.isNaN(hasta)) anios.add(hasta);
     });
     return Array.from(anios).filter(Boolean).sort((a, b) => b - a);
 }
@@ -390,6 +409,20 @@ function ajustesVacacionesPeriodo(empleadoId, periodoVacacional, fechaCorte = fe
     });
 }
 
+function reglasVacacionesPeriodo(empleadoId, periodoVacacional, fechaCorte = fechaAISO(new Date())) {
+    return state.listaReglasVacacionesFirebase.filter(r => {
+        if (r.activa === false) return false;
+        if (!Array.isArray(r.empleadosIds) || !r.empleadosIds.includes(empleadoId)) return false;
+
+        const desde = Number(r.anioDesde);
+        const hasta = r.anioHasta ? Number(r.anioHasta) : Infinity;
+        if (!Number.isFinite(desde) || Number(periodoVacacional) < desde || Number(periodoVacacional) > hasta) return false;
+
+        const fechaEfectiva = r.fechaVigencia || `${periodoVacacional}-01-01`;
+        return fechaEfectiva <= fechaCorte;
+    });
+}
+
 function vacacionesEmpleadoPeriodoHasta(empleadoId, periodoVacacional, fechaCorte = fechaAISO(new Date())) {
     return state.listaAusenciasFirebase.filter(a =>
         a.empleadoId === empleadoId
@@ -418,7 +451,10 @@ function calcularSaldoEmpleadoVacaciones(empleado, anio, fechaCorte = `${anio}-1
     const periodoVacacional = periodoVacacionalParaFecha(fechaCorte);
     const diasBase = calcularDiasBaseVacaciones(empleado.fechaIngreso, periodoVacacional);
     const ajustesLista = ajustesVacacionesPeriodo(empleado.id, periodoVacacional, fechaCorte);
-    const ajustes = ajustesLista.reduce((acc, a) => acc + (Number(a.dias) || 0), 0);
+    const reglasLista = reglasVacacionesPeriodo(empleado.id, periodoVacacional, fechaCorte);
+    const ajustesManuales = ajustesLista.reduce((acc, a) => acc + (Number(a.dias) || 0), 0);
+    const reglas = reglasLista.reduce((acc, r) => acc + (Number(r.dias) || 0), 0);
+    const ajustes = ajustesManuales + reglas;
     const vacacionesEmpleado = vacacionesEmpleadoPeriodoHasta(empleado.id, periodoVacacional, fechaCorte);
     const usados = vacacionesEmpleado
         .filter(a => a.estado === 'aprobado')
@@ -433,6 +469,8 @@ function calcularSaldoEmpleadoVacaciones(empleado, anio, fechaCorte = `${anio}-1
     return {
         diasBase,
         ajustes,
+        ajustesManuales,
+        reglas,
         usados,
         pendientes,
         vencido,
@@ -502,6 +540,26 @@ export function prepararVacacionEmpleado(empleadoId, fecha) {
 export function seleccionarEmpleadoVacaciones(empleadoId) {
     state.empleadoVacacionesSeleccionadoId = state.empleadoVacacionesSeleccionadoId === empleadoId ? null : empleadoId;
     window.cambiarVista('ausencias');
+}
+
+export function editarReglaVacaciones(id) {
+    state.reglaVacacionesEditandoId = id;
+    window.cambiarVista('ausencias');
+}
+
+export function cancelarEdicionReglaVacaciones() {
+    state.reglaVacacionesEditandoId = null;
+    window.cambiarVista('ausencias');
+}
+
+export function prepararAjusteVacacionesEmpleado(empleadoId) {
+    const empleadoSelect = document.getElementById('input-empleado-ajuste-vacaciones');
+    const anioInput = document.getElementById('input-anio-ajuste-vacaciones');
+    const ajustePanel = document.getElementById('panel-ajustes-vacaciones');
+
+    if (empleadoSelect) empleadoSelect.value = empleadoId;
+    if (anioInput) anioInput.value = state.filtroAnioAusencias || new Date().getFullYear();
+    ajustePanel?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 export function recalcularDiasAusenciaPreview() {
@@ -679,7 +737,7 @@ function renderizarAjustesVacaciones(anioActual, puedeEditar) {
     }).join('');
 
     return `
-        <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
+        <div id="panel-ajustes-vacaciones" class="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
             <h4 class="text-sm font-black text-slate-800 mb-4">${ajusteEditando ? 'Editar ajuste' : 'Ajustar días de vacaciones'}</h4>
             <div class="space-y-3">
                 <input type="hidden" id="input-id-ajuste-vacaciones" value="${escaparHTML(ajusteEditando?.id || '')}">
@@ -704,6 +762,88 @@ function renderizarAjustesVacaciones(anioActual, puedeEditar) {
                 ${filas || `<p class="text-xs text-slate-400 italic">Sin ajustes cargados para ${anioActual}.</p>`}
             </div>
         </div>
+    `;
+}
+
+function renderizarReglasVacaciones(anioActual, puedeEditar) {
+    const reglaEditando = state.reglaVacacionesEditandoId
+        ? state.listaReglasVacacionesFirebase.find(r => r.id === state.reglaVacacionesEditandoId)
+        : null;
+    const reglas = [...state.listaReglasVacacionesFirebase]
+        .sort((a, b) => String(a.nombre || '').localeCompare(String(b.nombre || ''), 'es'));
+
+    const filas = reglas.map(r => {
+        const meta = tiposAjusteVacaciones[r.tipo] || tiposAjusteVacaciones.acuerdo_especial;
+        const cantidadAsignados = Array.isArray(r.empleadosIds) ? r.empleadosIds.length : 0;
+        const vigencia = r.anioHasta ? `${r.anioDesde} a ${r.anioHasta}` : `desde ${r.anioDesde}`;
+        return `
+            <div class="grid grid-cols-1 xl:grid-cols-[1fr_150px_130px_180px] gap-3 items-center border-b border-slate-100 py-3 last:border-b-0">
+                <div>
+                    <p class="text-xs font-black text-slate-800">${escaparHTML(r.nombre || meta.texto)}</p>
+                    <p class="text-[11px] text-slate-500 font-semibold mt-0.5">${Number(r.dias) > 0 ? '+' : ''}${Number(r.dias) || 0} días anuales · ${escaparHTML(meta.texto)} · ${escaparHTML(vigencia)}</p>
+                    ${r.notas ? `<p class="text-[11px] text-slate-400 mt-0.5">${escaparHTML(r.notas)}</p>` : ''}
+                </div>
+                <span class="${colorAjuste(r.tipo)} border rounded-lg px-2.5 py-1 text-xs font-black justify-self-start">${Number(r.dias) > 0 ? '+' : ''}${Number(r.dias) || 0} días</span>
+                <span class="bg-slate-50 border border-slate-200 text-slate-600 rounded-lg px-2.5 py-1 text-xs font-black justify-self-start">${cantidadAsignados} asignado${cantidadAsignados === 1 ? '' : 's'}</span>
+                <div class="flex items-center justify-start xl:justify-end gap-1">
+                    ${puedeEditar ? `
+                        <button onclick="window.editarReglaVacaciones('${r.id}')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1.5 rounded-lg text-[11px] font-black transition inline-flex items-center gap-1" title="Editar regla">
+                            <span class="material-symbols-rounded" style="font-size:14px;">edit</span> Editar
+                        </button>
+                        <button onclick="window.eliminarReglaVacacionesFirebase('${r.id}')" class="bg-white hover:bg-red-50 border border-red-100 text-red-600 px-2.5 py-1.5 rounded-lg text-[11px] font-black transition inline-flex items-center gap-1" title="Eliminar regla">
+                            <span class="material-symbols-rounded" style="font-size:14px;">delete</span>
+                        </button>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    return `
+        <section class="grid grid-cols-1 xl:grid-cols-[420px_1fr] gap-5 items-start">
+            <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
+                <div class="flex items-center justify-between gap-3 mb-4">
+                    <div>
+                        <h4 class="text-sm font-black text-slate-800">${reglaEditando ? 'Editar regla especial' : 'Crear regla especial'}</h4>
+                        <p class="text-[11px] text-slate-500 font-semibold mt-0.5">Para acuerdos o beneficios que se repiten automáticamente cada año.</p>
+                    </div>
+                    ${reglaEditando ? `<button onclick="window.cancelarEdicionReglaVacaciones()" class="text-slate-400 hover:text-slate-700 p-1 rounded-lg transition" title="Cancelar edición"><span class="material-symbols-rounded" style="font-size:18px;">close</span></button>` : ''}
+                </div>
+                <div class="space-y-3">
+                    <input type="hidden" id="input-id-regla-vacaciones" value="${escaparHTML(reglaEditando?.id || '')}">
+                    <input id="input-nombre-regla-vacaciones" value="${escaparHTML(reglaEditando?.nombre || '')}" placeholder="Ej.: Acuerdo especial Violeta" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold focus:ring-2 focus:ring-violet-500 focus:outline-none">
+                    <div class="grid grid-cols-2 gap-3">
+                        <input type="number" step="0.5" id="input-dias-regla-vacaciones" value="${escaparHTML(reglaEditando?.dias || '')}" placeholder="Días anuales" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold focus:ring-2 focus:ring-violet-500 focus:outline-none">
+                        <select id="input-tipo-regla-vacaciones" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold focus:ring-2 focus:ring-violet-500 focus:outline-none">
+                            ${opcionesAjustes(reglaEditando?.tipo || 'acuerdo_especial')}
+                        </select>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <input type="number" min="2020" max="2100" id="input-anio-desde-regla-vacaciones" value="${escaparHTML(reglaEditando?.anioDesde || anioActual)}" placeholder="Desde año" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold focus:ring-2 focus:ring-violet-500 focus:outline-none">
+                        <input type="number" min="2020" max="2100" id="input-anio-hasta-regla-vacaciones" value="${escaparHTML(reglaEditando?.anioHasta || '')}" placeholder="Hasta año opcional" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold focus:ring-2 focus:ring-violet-500 focus:outline-none">
+                    </div>
+                    <select id="input-empleados-regla-vacaciones" multiple size="6" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold focus:ring-2 focus:ring-violet-500 focus:outline-none">
+                        ${opcionesEmpleadosMultiples(reglaEditando?.empleadosIds || [])}
+                    </select>
+                    <textarea id="input-notas-regla-vacaciones" rows="2" placeholder="Detalle interno de la regla..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs focus:ring-2 focus:ring-violet-500 focus:outline-none">${escaparHTML(reglaEditando?.notas || '')}</textarea>
+                    <button id="btn-guardar-regla-vacaciones" onclick="window.guardarReglaVacacionesFirebase()" class="w-full bg-violet-700 hover:bg-violet-800 text-white font-black text-xs py-3 rounded-xl transition inline-flex items-center justify-center gap-1.5" ${puedeEditar ? '' : 'disabled'}>
+                        <span class="material-symbols-rounded" style="font-size:16px;">rule</span> ${reglaEditando ? 'Guardar regla' : 'Crear regla'}
+                    </button>
+                </div>
+            </div>
+            <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+                <div class="p-4 bg-violet-50 border-b border-violet-100 flex items-center justify-between gap-3">
+                    <div>
+                        <h4 class="font-black text-slate-800 text-sm">Reglas especiales activas</h4>
+                        <p class="text-xs text-violet-700 font-semibold mt-0.5">${reglas.length} regla${reglas.length === 1 ? '' : 's'} configurada${reglas.length === 1 ? '' : 's'}.</p>
+                    </div>
+                    <span class="material-symbols-rounded text-violet-700" style="font-size:22px;">fact_check</span>
+                </div>
+                <div class="p-4">
+                    ${filas || `<p class="text-xs text-slate-400 italic text-center py-6">Todavía no hay reglas especiales cargadas.</p>`}
+                </div>
+            </div>
+        </section>
     `;
 }
 
@@ -759,6 +899,7 @@ function renderizarFichaEmpleadoVacaciones(anioActual, fechaCorte = `${anioActua
 
     const saldo = calcularSaldoEmpleadoVacaciones(empleado, anioActual, fechaCorte);
     const ajustes = ajustesVacacionesPeriodo(empleado.id, saldo.periodoVacacional, fechaCorte);
+    const reglas = reglasVacacionesPeriodo(empleado.id, saldo.periodoVacacional, fechaCorte);
     const vacaciones = vacacionesEmpleadoPeriodoHasta(empleado.id, saldo.periodoVacacional, fechaCorte);
     const ausencias = state.listaAusenciasFirebase
         .filter(a =>
@@ -770,15 +911,28 @@ function renderizarFichaEmpleadoVacaciones(anioActual, fechaCorte = `${anioActua
     const movimientos = [
         {
             orden: fechaDisponibilidadVacaciones(saldo.periodoVacacional),
-            tipo: 'Base legal',
+            fecha: fechaDisponibilidadVacaciones(saldo.periodoVacacional),
+            tipo: 'Acumulación',
             detalle: `Período ${saldo.periodoVacacional} · ${saldo.antiguedad} años de antigüedad · goce hasta ${formatearFecha(saldo.fechaVencimiento)}`,
             dias: saldo.diasBase,
             clases: 'bg-indigo-50 text-indigo-700 border-indigo-100'
         },
+        ...reglas.map(r => {
+            const meta = tiposAjusteVacaciones[r.tipo] || tiposAjusteVacaciones.acuerdo_especial;
+            return {
+                orden: r.fechaVigencia || `${saldo.periodoVacacional}-01-01`,
+                fecha: r.fechaVigencia || `${saldo.periodoVacacional}-01-01`,
+                tipo: 'Regla especial',
+                detalle: `${r.nombre || meta.texto} · ${r.notas || 'Aplicación automática'}`,
+                dias: Number(r.dias) || 0,
+                clases: colorAjuste(r.tipo)
+            };
+        }),
         ...ajustes.map(a => {
             const meta = tiposAjusteVacaciones[a.tipo] || tiposAjusteVacaciones.correccion;
             return {
                 orden: a.fecha || `${anioActual}-01-01`,
+                fecha: a.fecha || `${anioActual}-01-01`,
                 tipo: meta.texto,
                 detalle: a.notas || 'Ajuste manual',
                 dias: Number(a.dias) || 0,
@@ -787,6 +941,7 @@ function renderizarFichaEmpleadoVacaciones(anioActual, fechaCorte = `${anioActua
         }),
         ...vacaciones.map(v => ({
             orden: v.fechaDesde || `${anioActual}-12-31`,
+            fecha: v.fechaDesde || `${anioActual}-12-31`,
             tipo: v.estado === 'solicitado' ? 'Solicitud pendiente' : 'Vacaciones tomadas',
             detalle: formatearRangoCorto(v.fechaDesde, v.fechaHasta),
             dias: -(Number(v.diasADescontar) || 0),
@@ -794,11 +949,12 @@ function renderizarFichaEmpleadoVacaciones(anioActual, fechaCorte = `${anioActua
                 ? 'bg-amber-50 text-amber-700 border-amber-100'
                 : 'bg-emerald-50 text-emerald-700 border-emerald-100'
         }))
-    ].sort((a, b) => String(a.orden).localeCompare(String(b.orden)));
+    ];
 
     if (saldo.vencido > 0) {
         movimientos.push({
             orden: saldo.fechaVencimiento,
+            fecha: saldo.fechaVencimiento,
             tipo: 'Saldo vencido',
             detalle: `Días no utilizados del período ${saldo.periodoVacacional}`,
             dias: -saldo.vencido,
@@ -806,15 +962,25 @@ function renderizarFichaEmpleadoVacaciones(anioActual, fechaCorte = `${anioActua
         });
     }
 
-    const filasMovimientos = movimientos.map(m => `
-        <div class="flex items-center justify-between gap-3 border-b border-slate-100 py-2 last:border-b-0">
-            <div>
-                <p class="text-xs font-black text-slate-800">${escaparHTML(m.tipo)}</p>
-                <p class="text-[11px] text-slate-500 font-semibold">${escaparHTML(m.detalle)}</p>
-            </div>
-            <span class="${m.clases} border rounded-lg px-2.5 py-1 text-xs font-black">${m.dias > 0 ? '+' : ''}${m.dias}</span>
-        </div>
-    `).join('');
+    let saldoParcial = 0;
+    const filasMovimientos = movimientos
+        .sort((a, b) => String(a.orden).localeCompare(String(b.orden)))
+        .map(m => {
+            saldoParcial += Number(m.dias) || 0;
+            return `
+                <tr class="border-b border-slate-100 last:border-b-0">
+                    <td class="p-3 text-xs font-bold text-slate-500 whitespace-nowrap">${formatearFecha(m.fecha)}</td>
+                    <td class="p-3">
+                        <p class="text-xs font-black text-slate-800">${escaparHTML(m.tipo)}</p>
+                        <p class="text-[11px] text-slate-500 font-semibold mt-0.5">${escaparHTML(m.detalle)}</p>
+                    </td>
+                    <td class="p-3 text-right">
+                        <span class="${m.clases} border rounded-lg px-2.5 py-1 text-xs font-black">${m.dias > 0 ? '+' : ''}${m.dias}</span>
+                    </td>
+                    <td class="p-3 text-right text-xs font-black text-slate-800 whitespace-nowrap">${saldoParcial} días</td>
+                </tr>
+            `;
+        }).join('');
 
     const filasAusencias = ausencias.map(a => {
         const meta = tiposAusencia[a.tipo] || tiposAusencia.otro;
@@ -838,9 +1004,14 @@ function renderizarFichaEmpleadoVacaciones(anioActual, fechaCorte = `${anioActua
                         <p class="text-xs text-indigo-700 font-bold">${escaparHTML(etiquetaArea(empleado.area))} · Saldo al ${formatearFecha(fechaCorte)}</p>
                     </div>
                 </div>
-                <button onclick="window.seleccionarEmpleadoVacaciones('${empleado.id}')" class="bg-white hover:bg-indigo-100 border border-indigo-100 text-indigo-800 px-3 py-2 rounded-xl text-xs font-black transition inline-flex items-center gap-1.5">
-                    <span class="material-symbols-rounded" style="font-size:16px;">close</span> Cerrar ficha
-                </button>
+                <div class="flex flex-wrap items-center gap-2">
+                    <button onclick="window.prepararAjusteVacacionesEmpleado('${empleado.id}')" class="bg-indigo-700 hover:bg-indigo-800 text-white px-3 py-2 rounded-xl text-xs font-black transition inline-flex items-center gap-1.5">
+                        <span class="material-symbols-rounded" style="font-size:16px;">add</span> Agregar ajuste
+                    </button>
+                    <button onclick="window.seleccionarEmpleadoVacaciones('${empleado.id}')" class="bg-white hover:bg-indigo-100 border border-indigo-100 text-indigo-800 px-3 py-2 rounded-xl text-xs font-black transition inline-flex items-center gap-1.5">
+                        <span class="material-symbols-rounded" style="font-size:16px;">close</span> Cerrar ficha
+                    </button>
+                </div>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-5 gap-3 p-4 border-b border-slate-100">
                 <div class="bg-slate-50 border border-slate-200 rounded-xl p-3">
@@ -848,7 +1019,7 @@ function renderizarFichaEmpleadoVacaciones(anioActual, fechaCorte = `${anioActua
                     <p class="text-2xl font-black text-slate-800 mt-1">${saldo.diasBase}</p>
                 </div>
                 <div class="bg-blue-50 border border-blue-100 rounded-xl p-3">
-                    <p class="text-[10px] uppercase font-black text-blue-600">Ajustes</p>
+                    <p class="text-[10px] uppercase font-black text-blue-600">Ajustes y reglas</p>
                     <p class="text-2xl font-black text-blue-800 mt-1">${saldo.ajustes > 0 ? '+' : ''}${saldo.ajustes}</p>
                 </div>
                 <div class="bg-emerald-50 border border-emerald-100 rounded-xl p-3">
@@ -871,9 +1042,19 @@ function renderizarFichaEmpleadoVacaciones(anioActual, fechaCorte = `${anioActua
                 ${saldo.solicitudesFuturas > 0 ? `<span class="bg-indigo-50 border border-indigo-100 text-indigo-700 rounded-lg px-2 py-1">${saldo.solicitudesFuturas} días cargados después de esta fecha</span>` : ''}
             </div>
             <div class="grid grid-cols-1 xl:grid-cols-2 gap-4 p-4">
-                <div>
-                    <h5 class="text-[10px] uppercase tracking-wide font-black text-slate-400 mb-2">Composición del saldo</h5>
-                    ${filasMovimientos}
+                <div class="overflow-x-auto">
+                    <h5 class="text-[10px] uppercase tracking-wide font-black text-slate-400 mb-2">Historial y ajustes</h5>
+                    <table class="w-full text-left border border-slate-200 rounded-xl overflow-hidden">
+                        <thead>
+                            <tr class="bg-slate-50 text-[10px] uppercase tracking-wide text-slate-400 border-b border-slate-200">
+                                <th class="p-3">Fecha</th>
+                                <th class="p-3">Evento</th>
+                                <th class="p-3 text-right">Monto</th>
+                                <th class="p-3 text-right">Saldo</th>
+                            </tr>
+                        </thead>
+                        <tbody>${filasMovimientos}</tbody>
+                    </table>
                 </div>
                 <div class="overflow-x-auto">
                     <h5 class="text-[10px] uppercase tracking-wide font-black text-slate-400 mb-2">Ausencias del año</h5>
@@ -1021,6 +1202,7 @@ export function renderizarAusencias() {
             ${renderizarTableroVacaciones(anioActual)}
             ${renderizarSolicitudesPendientes(puedeEditar)}
             ${renderizarFichaEmpleadoVacaciones(anioActual, fechaCorteTablero)}
+            ${renderizarReglasVacaciones(anioActual, puedeEditar)}
 
             <section class="grid grid-cols-1 xl:grid-cols-[420px_420px_1fr] gap-5 items-start">
                 <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
