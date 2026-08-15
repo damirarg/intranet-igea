@@ -589,7 +589,7 @@ export async function guardarNivelPermisoModuloFirebase(email, modulo, nivel) {
     if (nivelInput === 'none') delete permisosPorModulo[moduloInput];
     else permisosPorModulo[moduloInput] = nivelInput;
 
-        const modulos = MODULOS_GESTIONABLES.filter(m => permisosPorModulo[m] === 'ver' || permisosPorModulo[m] === 'editar');
+    const modulos = MODULOS_GESTIONABLES.filter(m => permisosPorModulo[m] === 'ver' || permisosPorModulo[m] === 'editar');
 
     try {
         await setDoc(doc(db, "permisos", emailInput), {

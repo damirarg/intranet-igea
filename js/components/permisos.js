@@ -315,35 +315,7 @@ export function renderizarPermisos() {
             </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 shrink-0 mb-8">
-            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col">
-                <h4 class="font-bold text-slate-800 text-sm mb-4 flex items-center gap-2">
-                    <span class="material-symbols-rounded text-purple-600">person_add</span> Otorgar Nuevo Acceso
-                </h4>
-                
-                <div class="space-y-4 flex-1">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1.5 uppercase">Correo del Colaborador</label>
-                        <input type="email" id="input-email-permiso" placeholder="ejemplo@hotmail.com" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-purple-500 focus:outline-none">
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1.5 uppercase">Módulo Autorizado</label>
-                        <select id="select-modulo-permiso" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-purple-500 focus:outline-none">
-                            <option value="saldos" selected>Gestión de Saldos / Cobranzas</option>
-                            <option value="guardias">Gestión de Guardias Pasivas</option>
-                            <option value="rrhh">Recursos Humanos</option>
-                            <option value="vacaciones">Vacaciones y Licencias</option>
-                        </select>
-                    </div>
-                </div>
-
-                <button id="btn-otorgar-permiso" onclick="window.otorgarPermisoFirebase()" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2.5 rounded-xl transition shadow-md shadow-purple-200 text-xs mt-6 flex items-center justify-center gap-2">
-                    <span class="material-symbols-rounded" style="font-size: 16px;">key</span> Guardar Permiso
-                </button>
-            </div>
-
-            <div class="lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col shrink-0 mb-8">
                 <div class="p-4 bg-slate-50 border-b border-slate-200">
                     <h4 class="font-bold text-slate-700 text-sm">Usuarios de la Intranet (${usuariosOrdenados.length})</h4>
                 </div>
@@ -359,7 +331,6 @@ export function renderizarPermisos() {
                         <tbody>${filasPermisos}</tbody>
                     </table>
                 </div>
-            </div>
         </div>
     `;
 }
