@@ -71,6 +71,18 @@ function rangoFechas(fechaInicio = '', cantidadDias = 35) {
     });
 }
 
+function aniosEnRango(fechaDesde = '', fechaHasta = '') {
+    const desde = parsearFechaLocal(fechaDesde);
+    const hasta = parsearFechaLocal(fechaHasta);
+    if (!desde || !hasta || hasta < desde) return [];
+
+    const anios = [];
+    for (let anio = desde.getFullYear(); anio <= hasta.getFullYear(); anio++) {
+        anios.push(anio);
+    }
+    return anios;
+}
+
 function formatearFecha(fechaISO = '') {
     if (!fechaISO) return '-';
     const [anio, mes, dia] = String(fechaISO).split('-');
@@ -80,6 +92,51 @@ function formatearFecha(fechaISO = '') {
 
 function formatearRangoCorto(fechaDesde = '', fechaHasta = '') {
     return `${formatearFecha(fechaDesde)} a ${formatearFecha(fechaHasta)}`;
+}
+
+function obtenerFeriadosArgentinaAnio(anio) {
+    return state.feriadosArgentinaPorAnio[anio] || [];
+}
+
+function obtenerFechasFeriadasArgentina(anio) {
+    return obtenerFeriadosArgentinaAnio(anio).map(f => f.date);
+}
+
+function obtenerFeriadoPorFecha(fechaISO = '') {
+    const anio = Number(String(fechaISO).slice(0, 4));
+    return obtenerFeriadosArgentinaAnio(anio).find(f => f.date === fechaISO) || null;
+}
+
+function feriadosArgentinaRango(fechaDesde = '', fechaHasta = '') {
+    return aniosEnRango(fechaDesde, fechaHasta).flatMap(anio => obtenerFechasFeriadasArgentina(anio));
+}
+
+export async function cargarFeriadosArgentina(anio) {
+    const anioNumero = Number(anio);
+    if (!Number.isInteger(anioNumero) || state.feriadosArgentinaPorAnio[anioNumero] || state.feriadosArgentinaCargando[anioNumero]) return;
+
+    state.feriadosArgentinaCargando[anioNumero] = true;
+
+    try {
+        const respuesta = await fetch(`https://date.nager.at/api/v4/Holidays/AR/${anioNumero}`);
+        if (!respuesta.ok) throw new Error("No se pudieron cargar feriados.");
+        const datos = await respuesta.json();
+        state.feriadosArgentinaPorAnio[anioNumero] = datos
+            .filter(f => f.date)
+            .map(f => ({
+                date: f.date,
+                name: f.localName || f.name || 'Feriado',
+                nationalHoliday: f.nationalHoliday !== false
+            }))
+            .sort((a, b) => a.date.localeCompare(b.date));
+
+        if (state.seccionActual === 'ausencias') window.cambiarVista('ausencias');
+    } catch (error) {
+        console.warn("No se pudieron cargar feriados de Argentina:", error);
+        state.feriadosArgentinaPorAnio[anioNumero] = [];
+    } finally {
+        state.feriadosArgentinaCargando[anioNumero] = false;
+    }
 }
 
 export function calcularDiasAusenciaCCT108(fechaDesde = '', fechaHasta = '', feriados = []) {
@@ -316,13 +373,19 @@ export function prepararVacacionEmpleado(empleadoId, fecha) {
     empleadoSelect?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
+export function seleccionarEmpleadoVacaciones(empleadoId) {
+    state.empleadoVacacionesSeleccionadoId = state.empleadoVacacionesSeleccionadoId === empleadoId ? null : empleadoId;
+    window.cambiarVista('ausencias');
+}
+
 export function recalcularDiasAusenciaPreview() {
     const desde = document.getElementById('input-fecha-desde-ausencia')?.value || '';
     const hasta = document.getElementById('input-fecha-hasta-ausencia')?.value || '';
     const feriadosTexto = document.getElementById('input-feriados-ausencia')?.value || '';
     const tipo = document.getElementById('input-tipo-ausencia')?.value || 'vacaciones';
     const descuenta = document.getElementById('input-descuenta-vacaciones-ausencia')?.checked || tipo === 'vacaciones';
-    const feriados = feriadosTexto.split(/\s+/).map(f => f.trim()).filter(Boolean);
+    const feriadosManuales = feriadosTexto.split(/\s+/).map(f => f.trim()).filter(Boolean);
+    const feriados = [...new Set([...feriadosManuales, ...feriadosArgentinaRango(desde, hasta)])];
     const diasCCT = calcularDiasAusenciaCCT108(desde, hasta, feriados);
     const diasCalendario = contarDiasCalendario(desde, hasta);
     const preview = document.getElementById('preview-dias-ausencia');
@@ -351,6 +414,7 @@ function renderizarTableroVacaciones(anioActual) {
     const inicio = inicioSemana(state.vacacionesFechaInicio || fechaAISO(new Date()));
     const fechas = rangoFechas(inicio, 35);
     const fin = fechas[fechas.length - 1];
+    aniosEnRango(inicio, fin).forEach(anio => cargarFeriadosArgentina(anio));
     const nombresDias = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
     const hoyISO = fechaAISO(new Date());
     const vacaciones = vacacionesAprobadasAnio(anioActual);
@@ -371,23 +435,30 @@ function renderizarTableroVacaciones(anioActual) {
             const diaSemana = fechaObj.getDay();
             const esDomingo = diaSemana === 0;
             const esHoy = fecha === hoyISO;
+            const feriado = obtenerFeriadoPorFecha(fecha);
             const ausencia = vacacionesEmpleado.find(v => String(v.fechaDesde || '') <= fecha && String(v.fechaHasta || '') >= fecha);
-            const clasesBase = esDomingo ? 'bg-slate-100 text-slate-500' : 'hover:bg-indigo-50 text-slate-700';
+            const clasesBase = feriado
+                ? 'bg-rose-50 text-rose-700 border border-rose-100'
+                : esDomingo
+                    ? 'bg-slate-100 text-slate-500'
+                    : 'hover:bg-indigo-50 text-slate-700';
             const clasesAusencia = ausencia ? 'bg-emerald-500 text-white shadow-sm shadow-emerald-100' : clasesBase;
             const titulo = ausencia
                 ? `${nombreEmpleado(empleado)} · Vacaciones ${formatearRangoCorto(ausencia.fechaDesde, ausencia.fechaHasta)}`
-                : `${nombreEmpleado(empleado)} · ${formatearFecha(fecha)}`;
+                : feriado
+                    ? `${nombreEmpleado(empleado)} · ${formatearFecha(fecha)} · ${feriado.name}`
+                    : `${nombreEmpleado(empleado)} · ${formatearFecha(fecha)}`;
 
             return `
                 <button title="${escaparHTML(titulo)}" onclick="window.prepararVacacionEmpleado('${empleado.id}', '${fecha}')" class="h-9 min-w-9 rounded-lg text-[11px] font-bold transition ${clasesAusencia} ${esHoy && !ausencia ? 'ring-2 ring-indigo-400' : ''}">
-                    ${ausencia ? '<span class="material-symbols-rounded" style="font-size:15px;">beach_access</span>' : fechaObj.getDate()}
+                    ${ausencia ? '<span class="material-symbols-rounded" style="font-size:15px;">beach_access</span>' : feriado ? '<span class="material-symbols-rounded" style="font-size:14px;">flag</span>' : fechaObj.getDate()}
                 </button>
             `;
         }).join('');
 
         return `
             <div class="grid grid-cols-[230px_repeat(35,minmax(36px,1fr))] min-w-[1540px] border-b border-slate-100 last:border-b-0">
-                <div class="sticky left-0 z-10 bg-white border-r border-slate-200 px-3 py-2 flex items-center gap-2">
+                <button onclick="window.seleccionarEmpleadoVacaciones('${empleado.id}')" class="sticky left-0 z-10 bg-white hover:bg-indigo-50 border-r border-slate-200 px-3 py-2 flex items-center gap-2 text-left transition">
                     <div class="w-9 h-9 rounded-full bg-indigo-700 text-white flex items-center justify-center font-black text-xs shrink-0">${escaparHTML(inicialesEmpleado(empleado))}</div>
                     <div class="min-w-0">
                         <p class="text-xs font-black text-slate-800 truncate">${escaparHTML(nombreEmpleado(empleado))}</p>
@@ -398,7 +469,7 @@ function renderizarTableroVacaciones(anioActual) {
                             <span class="text-[10px] text-slate-500 font-semibold">${saldo.antiguedad} años</span>
                         </div>
                     </div>
-                </div>
+                </button>
                 ${celdas}
             </div>
         `;
@@ -421,6 +492,7 @@ function renderizarTableroVacaciones(anioActual) {
                     <span class="bg-white border border-indigo-100 text-indigo-800 px-3 py-2 rounded-xl text-xs font-black">${empleados.length} empleados</span>
                     <span class="bg-white border border-indigo-100 text-indigo-800 px-3 py-2 rounded-xl text-xs font-black">${totalDisponibles} días disponibles</span>
                     <span class="bg-white border border-indigo-100 text-indigo-800 px-3 py-2 rounded-xl text-xs font-black">${totalUsados} usados</span>
+                    <span class="bg-white border border-rose-100 text-rose-700 px-3 py-2 rounded-xl text-xs font-black">${aniosEnRango(inicio, fin).flatMap(anio => obtenerFechasFeriadasArgentina(anio)).filter(f => f >= inicio && f <= fin).length} feriados</span>
                     <button onclick="document.getElementById('input-empleado-ausencia')?.focus()" class="bg-indigo-700 hover:bg-indigo-800 text-white px-3 py-2 rounded-xl text-xs font-black transition inline-flex items-center gap-1.5">
                         <span class="material-symbols-rounded" style="font-size:16px;">add_circle</span> Crear solicitud
                     </button>
@@ -431,10 +503,11 @@ function renderizarTableroVacaciones(anioActual) {
                     <div class="sticky left-0 z-30 bg-white border-r border-slate-200 p-3 text-[10px] uppercase tracking-wide font-black text-slate-500">Empleado</div>
                     ${fechas.map(fecha => {
                         const fechaObj = parsearFechaLocal(fecha);
+                        const feriado = obtenerFeriadoPorFecha(fecha);
                         return `
-                            <div class="p-1 text-center">
-                                <p class="text-[10px] font-black text-slate-500">${nombresDias[fechaObj.getDay()]}</p>
-                                <p class="text-[11px] font-bold text-slate-800 mt-1">${fechaObj.getDate()}</p>
+                            <div class="p-1 text-center ${feriado ? 'bg-rose-50' : ''}" title="${feriado ? escaparHTML(feriado.name) : ''}">
+                                <p class="text-[10px] font-black ${feriado ? 'text-rose-600' : 'text-slate-500'}">${nombresDias[fechaObj.getDay()]}</p>
+                                <p class="text-[11px] font-bold ${feriado ? 'text-rose-700' : 'text-slate-800'} mt-1">${fechaObj.getDate()}</p>
                             </div>
                         `;
                     }).join('')}
@@ -502,6 +575,124 @@ function renderizarAjustesVacaciones(anioActual, puedeEditar) {
     `;
 }
 
+function renderizarFichaEmpleadoVacaciones(anioActual) {
+    const empleado = state.empleadoVacacionesSeleccionadoId
+        ? obtenerEmpleado(state.empleadoVacacionesSeleccionadoId)
+        : null;
+
+    if (!empleado) return '';
+
+    const saldo = calcularSaldoEmpleadoVacaciones(empleado, anioActual);
+    const ajustes = ajustesVacacionesAnio(anioActual).filter(a => a.empleadoId === empleado.id);
+    const vacaciones = vacacionesAprobadasAnio(anioActual).filter(a => a.empleadoId === empleado.id);
+    const ausencias = state.listaAusenciasFirebase
+        .filter(a => a.empleadoId === empleado.id && String(a.fechaDesde || '').startsWith(String(anioActual)))
+        .sort((a, b) => String(b.fechaDesde || '').localeCompare(String(a.fechaDesde || '')));
+    const movimientos = [
+        {
+            orden: `${anioActual}-01-01`,
+            tipo: 'Base legal',
+            detalle: `Antigüedad al 31/12/${anioActual}: ${saldo.antiguedad} años`,
+            dias: saldo.diasBase,
+            clases: 'bg-indigo-50 text-indigo-700 border-indigo-100'
+        },
+        ...ajustes.map(a => {
+            const meta = tiposAjusteVacaciones[a.tipo] || tiposAjusteVacaciones.correccion;
+            return {
+                orden: a.fecha || `${anioActual}-01-01`,
+                tipo: meta.texto,
+                detalle: a.notas || 'Ajuste manual',
+                dias: Number(a.dias) || 0,
+                clases: colorAjuste(a.tipo)
+            };
+        }),
+        ...vacaciones.map(v => ({
+            orden: v.fechaDesde || `${anioActual}-12-31`,
+            tipo: 'Vacaciones tomadas',
+            detalle: formatearRangoCorto(v.fechaDesde, v.fechaHasta),
+            dias: -(Number(v.diasADescontar) || 0),
+            clases: 'bg-emerald-50 text-emerald-700 border-emerald-100'
+        }))
+    ].sort((a, b) => String(a.orden).localeCompare(String(b.orden)));
+
+    const filasMovimientos = movimientos.map(m => `
+        <div class="flex items-center justify-between gap-3 border-b border-slate-100 py-2 last:border-b-0">
+            <div>
+                <p class="text-xs font-black text-slate-800">${escaparHTML(m.tipo)}</p>
+                <p class="text-[11px] text-slate-500 font-semibold">${escaparHTML(m.detalle)}</p>
+            </div>
+            <span class="${m.clases} border rounded-lg px-2.5 py-1 text-xs font-black">${m.dias > 0 ? '+' : ''}${m.dias}</span>
+        </div>
+    `).join('');
+
+    const filasAusencias = ausencias.map(a => {
+        const meta = tiposAusencia[a.tipo] || tiposAusencia.otro;
+        return `
+            <tr class="border-b border-slate-100">
+                <td class="p-2 text-xs font-bold text-slate-700">${escaparHTML(meta.texto)}</td>
+                <td class="p-2 text-xs text-slate-500">${formatearRangoCorto(a.fechaDesde, a.fechaHasta)}</td>
+                <td class="p-2 text-xs font-bold text-slate-700">${Number(a.diasComputables) || 0}</td>
+                <td class="p-2 text-xs font-bold ${a.descuentaVacaciones ? 'text-teal-700' : 'text-slate-400'}">${Number(a.diasADescontar) || 0}</td>
+            </tr>
+        `;
+    }).join('');
+
+    return `
+        <section class="bg-white border border-indigo-100 rounded-2xl shadow-sm overflow-hidden">
+            <div class="bg-indigo-50 p-4 border-b border-indigo-100 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-full bg-indigo-700 text-white flex items-center justify-center font-black">${escaparHTML(inicialesEmpleado(empleado))}</div>
+                    <div>
+                        <h4 class="text-base font-black text-slate-800">${escaparHTML(nombreEmpleado(empleado))}</h4>
+                        <p class="text-xs text-indigo-700 font-bold">${escaparHTML(etiquetaArea(empleado.area))} · Vacaciones ${anioActual}</p>
+                    </div>
+                </div>
+                <button onclick="window.seleccionarEmpleadoVacaciones('${empleado.id}')" class="bg-white hover:bg-indigo-100 border border-indigo-100 text-indigo-800 px-3 py-2 rounded-xl text-xs font-black transition inline-flex items-center gap-1.5">
+                    <span class="material-symbols-rounded" style="font-size:16px;">close</span> Cerrar ficha
+                </button>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-3 p-4 border-b border-slate-100">
+                <div class="bg-slate-50 border border-slate-200 rounded-xl p-3">
+                    <p class="text-[10px] uppercase font-black text-slate-400">Base automática</p>
+                    <p class="text-2xl font-black text-slate-800 mt-1">${saldo.diasBase}</p>
+                </div>
+                <div class="bg-blue-50 border border-blue-100 rounded-xl p-3">
+                    <p class="text-[10px] uppercase font-black text-blue-600">Ajustes</p>
+                    <p class="text-2xl font-black text-blue-800 mt-1">${saldo.ajustes > 0 ? '+' : ''}${saldo.ajustes}</p>
+                </div>
+                <div class="bg-emerald-50 border border-emerald-100 rounded-xl p-3">
+                    <p class="text-[10px] uppercase font-black text-emerald-600">Usados</p>
+                    <p class="text-2xl font-black text-emerald-800 mt-1">${saldo.usados}</p>
+                </div>
+                <div class="bg-indigo-50 border border-indigo-100 rounded-xl p-3">
+                    <p class="text-[10px] uppercase font-black text-indigo-600">Saldo disponible</p>
+                    <p class="text-2xl font-black text-indigo-900 mt-1">${saldo.disponibles}</p>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 xl:grid-cols-2 gap-4 p-4">
+                <div>
+                    <h5 class="text-[10px] uppercase tracking-wide font-black text-slate-400 mb-2">Composición del saldo</h5>
+                    ${filasMovimientos}
+                </div>
+                <div class="overflow-x-auto">
+                    <h5 class="text-[10px] uppercase tracking-wide font-black text-slate-400 mb-2">Ausencias del año</h5>
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="text-[10px] uppercase text-slate-400 border-b border-slate-100">
+                                <th class="p-2">Tipo</th>
+                                <th class="p-2">Período</th>
+                                <th class="p-2">Comp.</th>
+                                <th class="p-2">Desc.</th>
+                            </tr>
+                        </thead>
+                        <tbody>${filasAusencias || `<tr><td colspan="4" class="p-4 text-xs text-slate-400 italic text-center">Sin ausencias cargadas.</td></tr>`}</tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    `;
+}
+
 export function renderizarAusencias() {
     const puedeEditar = state.esAdminMaster;
     const ausenciaEditando = state.ausenciaEditandoId
@@ -510,7 +701,11 @@ export function renderizarAusencias() {
     const lista = ausenciasFiltradas();
     const resumen = resumenAusencias(lista);
     const anioActual = state.filtroAnioAusencias || new Date().getFullYear();
-    const feriadosEditando = Array.isArray(ausenciaEditando?.feriados) ? ausenciaEditando.feriados.join('\n') : '';
+    const feriadosEditando = Array.isArray(ausenciaEditando?.feriadosManuales)
+        ? ausenciaEditando.feriadosManuales.join('\n')
+        : Array.isArray(ausenciaEditando?.feriados)
+            ? ausenciaEditando.feriados.join('\n')
+            : '';
     const tipoSeleccionado = ausenciaEditando?.tipo || 'vacaciones';
     const descuentaSeleccionado = ausenciaEditando
         ? ausenciaEditando.descuentaVacaciones === true
@@ -606,6 +801,7 @@ export function renderizarAusencias() {
             </section>
 
             ${renderizarTableroVacaciones(anioActual)}
+            ${renderizarFichaEmpleadoVacaciones(anioActual)}
 
             <section class="grid grid-cols-1 xl:grid-cols-[420px_420px_1fr] gap-5 items-start">
                 <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
@@ -650,7 +846,7 @@ export function renderizarAusencias() {
                             Descontar del saldo de vacaciones
                         </label>
                         <div class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-600" id="preview-dias-ausencia">
-                            ${calcularDiasAusenciaCCT108(ausenciaEditando?.fechaDesde || '', ausenciaEditando?.fechaHasta || '', ausenciaEditando?.feriados || [])} días computables · ${contarDiasCalendario(ausenciaEditando?.fechaDesde || '', ausenciaEditando?.fechaHasta || '')} calendario
+                            ${calcularDiasAusenciaCCT108(ausenciaEditando?.fechaDesde || '', ausenciaEditando?.fechaHasta || '', [...new Set([...(ausenciaEditando?.feriados || []), ...feriadosArgentinaRango(ausenciaEditando?.fechaDesde || '', ausenciaEditando?.fechaHasta || '')])])} días computables · ${contarDiasCalendario(ausenciaEditando?.fechaDesde || '', ausenciaEditando?.fechaHasta || '')} calendario
                         </div>
                         <div>
                             <label class="block text-[10px] uppercase font-black text-slate-500 mb-1">Feriados dentro del período</label>

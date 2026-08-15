@@ -37,7 +37,7 @@ import { alternarFiltroSaldadas, procesarArchivoCSV, cancelarCargaCSV, seleccion
 import { seleccionarMaterialDidactico } from './components/procedimientos.js';
 import { guardiasMesSiguiente, guardiasMesAnterior } from './components/guardias.js';
 import { alternarArchivadosRRHH, actualizarSubareasRRHH, filtrarEmpleadosRRHH } from './components/rrhh.js';
-import { cambiarAnioAusencias, filtrarAusencias, irAHoyVacaciones, moverRangoVacaciones, prepararVacacionEmpleado, recalcularDiasAusenciaPreview, sincronizarDescuentoAusencia } from './components/ausencias.js';
+import { cambiarAnioAusencias, filtrarAusencias, irAHoyVacaciones, moverRangoVacaciones, prepararVacacionEmpleado, recalcularDiasAusenciaPreview, seleccionarEmpleadoVacaciones, sincronizarDescuentoAusencia } from './components/ausencias.js';
 
 // Importamos manejadores asincrónicos de base de datos
 import {
@@ -127,6 +127,7 @@ window.sincronizarDescuentoAusencia = sincronizarDescuentoAusencia;
 window.moverRangoVacaciones = moverRangoVacaciones;
 window.irAHoyVacaciones = irAHoyVacaciones;
 window.prepararVacacionEmpleado = prepararVacacionEmpleado;
+window.seleccionarEmpleadoVacaciones = seleccionarEmpleadoVacaciones;
 
 window.guardarNuevoDocumentoFirebase = guardarNuevoDocumentoFirebase;
 window.procesarEdicionDocFirebase = procesarEdicionDocFirebase;
@@ -600,6 +601,7 @@ onAuthStateChanged(auth, async (user) => {
         state.empleadoRRHHEditandoId = null;
         state.ausenciaEditandoId = null;
         state.ajusteVacacionesEditandoId = null;
+        state.empleadoVacacionesSeleccionadoId = null;
         if (unsubscribePermisos) {
             unsubscribePermisos();
             unsubscribePermisos = null;

@@ -293,6 +293,49 @@ function parsearListaFeriados(texto = '') {
         .filter(fecha => /^\d{4}-\d{2}-\d{2}$/.test(fecha));
 }
 
+function aniosEnRango(fechaDesde = '', fechaHasta = '') {
+    const desde = parsearFechaLocal(fechaDesde);
+    const hasta = parsearFechaLocal(fechaHasta);
+    if (!desde || !hasta || hasta < desde) return [];
+
+    const anios = [];
+    for (let anio = desde.getFullYear(); anio <= hasta.getFullYear(); anio++) {
+        anios.push(anio);
+    }
+    return anios;
+}
+
+function feriadosArgentinaRango(fechaDesde = '', fechaHasta = '') {
+    return aniosEnRango(fechaDesde, fechaHasta)
+        .flatMap(anio => state.feriadosArgentinaPorAnio[anio] || [])
+        .map(f => f.date)
+        .filter(Boolean);
+}
+
+async function asegurarFeriadosArgentinaRango(fechaDesde = '', fechaHasta = '') {
+    const aniosPendientes = aniosEnRango(fechaDesde, fechaHasta)
+        .filter(anio => !state.feriadosArgentinaPorAnio[anio]);
+
+    await Promise.all(aniosPendientes.map(async (anio) => {
+        try {
+            const respuesta = await fetch(`https://date.nager.at/api/v4/Holidays/AR/${anio}`);
+            if (!respuesta.ok) throw new Error("No se pudieron cargar feriados.");
+            const datos = await respuesta.json();
+            state.feriadosArgentinaPorAnio[anio] = datos
+                .filter(f => f.date)
+                .map(f => ({
+                    date: f.date,
+                    name: f.localName || f.name || 'Feriado',
+                    nationalHoliday: f.nationalHoliday !== false
+                }))
+                .sort((a, b) => a.date.localeCompare(b.date));
+        } catch (error) {
+            console.warn("No se pudieron cargar feriados de Argentina:", error);
+            state.feriadosArgentinaPorAnio[anio] = [];
+        }
+    }));
+}
+
 function parsearFechaLocal(fechaISO = '') {
     if (!fechaISO) return null;
     const [anio, mes, dia] = String(fechaISO).split('-').map(Number);
@@ -352,7 +395,7 @@ export async function guardarAusenciaFirebase() {
     const estado = valorInput('input-estado-ausencia') || 'aprobado';
     const fechaDesde = valorInput('input-fecha-desde-ausencia');
     const fechaHasta = valorInput('input-fecha-hasta-ausencia');
-    const feriados = parsearListaFeriados(valorInput('input-feriados-ausencia'));
+    const feriadosManuales = parsearListaFeriados(valorInput('input-feriados-ausencia'));
     const notas = valorInput('input-notas-ausencia');
     const descuentaVacaciones = document.getElementById('input-descuenta-vacaciones-ausencia')?.checked === true;
 
@@ -364,6 +407,9 @@ export async function guardarAusenciaFirebase() {
     const empleado = state.listaEmpleadosRRHHFirebase.find(e => e.id === empleadoId);
     if (!empleado) return alert("No se encontró la ficha del empleado.");
 
+    await asegurarFeriadosArgentinaRango(fechaDesde, fechaHasta);
+
+    const feriados = [...new Set([...feriadosManuales, ...feriadosArgentinaRango(fechaDesde, fechaHasta)])];
     const diasComputables = calcularDiasAusenciaCCT108(fechaDesde, fechaHasta, feriados);
     const diasCalendario = contarDiasCalendario(fechaDesde, fechaHasta);
     const diasADescontar = descuentaVacaciones ? diasComputables : 0;
@@ -381,6 +427,7 @@ export async function guardarAusenciaFirebase() {
         fechaDesde,
         fechaHasta,
         feriados,
+        feriadosManuales,
         descuentaVacaciones,
         diasComputables,
         diasCalendario,
