@@ -7,6 +7,12 @@ export function cambiarVistaDebitos(vista) {
     window.cambiarVista('debitos');
 }
 
+export function seleccionarLoteDebitos(loteId) {
+    state.debitosLoteSeleccionadoId = loteId || '';
+    state.debitosVistaActual = 'prestaciones';
+    window.cambiarVista('debitos');
+}
+
 function renderizarPestanas() {
     const pestanas = [
         ['dashboard', 'dashboard', 'Dashboard'],
@@ -50,6 +56,23 @@ function renderizarDashboard() {
             <h4 class="font-black text-slate-800 text-sm">MVP del módulo</h4>
             <p class="text-xs text-slate-500 mt-1">La primera etapa consolida importación por lote. La gestión, refacturación y recupero real se construirán sobre estos datos.</p>
         </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+            <div class="bg-blue-50 border border-blue-100 rounded-2xl p-4">
+                <span class="material-symbols-rounded text-blue-700" style="font-size:22px;">inventory_2</span>
+                <h4 class="font-black text-blue-950 text-sm mt-2">Lote</h4>
+                <p class="text-xs text-blue-800 font-semibold mt-1">Es el archivo importado completo: financiador, período, usuario, fecha, cantidad y total debitado.</p>
+            </div>
+            <div class="bg-orange-50 border border-orange-100 rounded-2xl p-4">
+                <span class="material-symbols-rounded text-orange-700" style="font-size:22px;">table_rows</span>
+                <h4 class="font-black text-orange-950 text-sm mt-2">Prestaciones</h4>
+                <p class="text-xs text-orange-800 font-semibold mt-1">Son las filas del CSV. Cada prestación conserva el dato original de Markey y queda asociada al lote.</p>
+            </div>
+            <div class="bg-emerald-50 border border-emerald-100 rounded-2xl p-4">
+                <span class="material-symbols-rounded text-emerald-700" style="font-size:22px;">trending_up</span>
+                <h4 class="font-black text-emerald-950 text-sm mt-2">Gestión posterior</h4>
+                <p class="text-xs text-emerald-800 font-semibold mt-1">Después se analizará si corresponde refacturar y cuánto se recuperó realmente.</p>
+            </div>
+        </div>
     `;
 }
 
@@ -74,6 +97,7 @@ function renderizarLotes() {
                         <th class="text-left p-3 font-black">Archivo</th>
                         <th class="text-right p-3 font-black">Registros</th>
                         <th class="text-right p-3 font-black">Total debitado</th>
+                        <th class="text-right p-3 font-black">Acción</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -84,6 +108,11 @@ function renderizarLotes() {
                             <td class="p-3 text-slate-500">${escaparHTML(lote.archivoNombre || '-')}</td>
                             <td class="p-3 text-right font-semibold text-slate-700">${lote.cantidadRegistros || 0}</td>
                             <td class="p-3 text-right font-black text-orange-700">${formatearMonedaAR(lote.importeTotalDebitado)}</td>
+                            <td class="p-3 text-right">
+                                <button onclick="window.seleccionarLoteDebitos('${lote.id}')" class="bg-orange-50 hover:bg-orange-100 text-orange-700 border border-orange-100 px-2.5 py-1.5 rounded-lg text-[11px] font-black transition inline-flex items-center gap-1">
+                                    <span class="material-symbols-rounded" style="font-size:14px;">visibility</span> Ver prestaciones
+                                </button>
+                            </td>
                         </tr>
                     `).join('')}
                 </tbody>
@@ -93,13 +122,39 @@ function renderizarLotes() {
 }
 
 function renderizarPrestaciones() {
-    const prestaciones = state.listaDebitosPrestacionesFirebase.slice(0, 100);
+    const loteSeleccionado = state.listaDebitosLotesFirebase.find(lote => lote.id === state.debitosLoteSeleccionadoId);
+    const prestacionesFuente = state.debitosLoteSeleccionadoId
+        ? state.listaDebitosPrestacionesFirebase.filter(prestacion => prestacion.loteId === state.debitosLoteSeleccionadoId)
+        : state.listaDebitosPrestacionesFirebase;
+    const prestaciones = prestacionesFuente.slice(0, 100);
 
     if (prestaciones.length === 0) {
-        return `<div class="bg-white border border-slate-200 rounded-2xl p-8 text-center text-sm text-slate-400">Todavía no hay prestaciones importadas.</div>`;
+        return `
+            ${state.debitosLoteSeleccionadoId ? `
+                <div class="mb-3">
+                    <button onclick="window.seleccionarLoteDebitos('')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl text-xs font-black transition inline-flex items-center gap-1.5">
+                        <span class="material-symbols-rounded" style="font-size:16px;">filter_alt_off</span> Ver todas
+                    </button>
+                </div>
+            ` : ''}
+            <div class="bg-white border border-slate-200 rounded-2xl p-8 text-center text-sm text-slate-400">Todavía no hay prestaciones importadas.</div>
+        `;
     }
 
     return `
+        <div class="mb-3 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+            <div class="text-xs text-slate-500 font-semibold">
+                ${loteSeleccionado
+                    ? `Mostrando prestaciones del lote <strong class="text-slate-800">${escaparHTML(loteSeleccionado.financiador || '-')} · ${escaparHTML(loteSeleccionado.periodo || '-')}</strong>`
+                    : `Mostrando hasta 100 prestaciones importadas`
+                }
+            </div>
+            ${state.debitosLoteSeleccionadoId ? `
+                <button onclick="window.seleccionarLoteDebitos('')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl text-xs font-black transition inline-flex items-center gap-1.5">
+                    <span class="material-symbols-rounded" style="font-size:16px;">filter_alt_off</span> Ver todas
+                </button>
+            ` : ''}
+        </div>
         <div class="bg-white border border-slate-200 rounded-2xl overflow-auto shadow-sm max-h-[560px]">
             <table class="w-full text-xs">
                 <thead class="bg-slate-50 text-slate-500 sticky top-0">

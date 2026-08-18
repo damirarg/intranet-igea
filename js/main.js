@@ -38,8 +38,8 @@ import { seleccionarMaterialDidactico } from './components/procedimientos.js';
 import { guardiasMesSiguiente, guardiasMesAnterior } from './components/guardias.js';
 import { alternarArchivadosRRHH, actualizarSubareasRRHH, filtrarEmpleadosRRHH } from './components/rrhh.js';
 import { cambiarAnioAusencias, cancelarEdicionReglaVacaciones, editarReglaVacaciones, filtrarAusencias, irAHoyVacaciones, moverRangoVacaciones, prepararAjusteVacacionesEmpleado, prepararVacacionEmpleado, recalcularDiasAusenciaPreview, seleccionarEmpleadoVacaciones, sincronizarDescuentoAusencia } from './components/ausencias.js';
-import { cambiarVistaDebitos } from './components/debitos/debitos.js';
-import { cancelarImportacionDebitos, crearLoteDebitos, procesarArchivoDebitosCSV } from './components/debitos/debitos-importacion.js';
+import { cambiarVistaDebitos, seleccionarLoteDebitos } from './components/debitos/debitos.js';
+import { actualizarCampoImportacionDebitos, cancelarImportacionDebitos, crearLoteDebitos, procesarArchivoDebitosCSV } from './components/debitos/debitos-importacion.js';
 
 // Importamos manejadores asincrónicos de base de datos
 import {
@@ -136,6 +136,8 @@ window.editarReglaVacaciones = editarReglaVacaciones;
 window.cancelarEdicionReglaVacaciones = cancelarEdicionReglaVacaciones;
 window.prepararAjusteVacacionesEmpleado = prepararAjusteVacacionesEmpleado;
 window.cambiarVistaDebitos = cambiarVistaDebitos;
+window.seleccionarLoteDebitos = seleccionarLoteDebitos;
+window.actualizarCampoImportacionDebitos = actualizarCampoImportacionDebitos;
 window.procesarArchivoDebitosCSV = procesarArchivoDebitosCSV;
 window.cancelarImportacionDebitos = cancelarImportacionDebitos;
 window.crearLoteDebitos = crearLoteDebitos;
@@ -698,6 +700,9 @@ onAuthStateChanged(auth, async (user) => {
         state.listaDebitosPrestacionesFirebase = [];
         state.debitosImportacionPreview = null;
         state.debitosImportacionArchivoNombre = '';
+        state.debitosImportacionFinanciador = '';
+        state.debitosImportacionPeriodo = '';
+        state.debitosLoteSeleccionadoId = '';
         state.empleadoRRHHEditandoId = null;
         state.ausenciaEditandoId = null;
         state.ajusteVacacionesEditandoId = null;

@@ -8,10 +8,31 @@ function valorInput(id) {
     return input ? input.value.trim() : '';
 }
 
+function guardarFormularioImportacionEnEstado() {
+    state.debitosImportacionFinanciador = valorInput('input-debitos-financiador') || state.debitosImportacionFinanciador || '';
+    state.debitosImportacionPeriodo = valorInput('input-debitos-periodo') || state.debitosImportacionPeriodo || '';
+}
+
+function mensajeErrorImportacion(error) {
+    const mensaje = error && error.message ? error.message : '';
+
+    if (mensaje.toLowerCase().includes('permission') || error?.code === 'permission-denied') {
+        return 'Firebase rechazó el guardado por permisos. Si estás probando localmente, probablemente todavía falten desplegar las reglas Firestore nuevas para debitos_lotes y debitos_prestaciones.';
+    }
+
+    return mensaje || 'No se pudo completar la operación.';
+}
+
+export function actualizarCampoImportacionDebitos(campo, valor) {
+    if (campo === 'financiador') state.debitosImportacionFinanciador = valor || '';
+    if (campo === 'periodo') state.debitosImportacionPeriodo = valor || '';
+}
+
 export function procesarArchivoDebitosCSV(event) {
     const archivo = event && event.target ? event.target.files[0] : null;
     if (!archivo) return;
 
+    guardarFormularioImportacionEnEstado();
     state.debitosImportacionPreview = null;
     state.debitosImportacionArchivoNombre = archivo.name;
 
@@ -42,6 +63,8 @@ export function procesarArchivoDebitosCSV(event) {
 export function cancelarImportacionDebitos() {
     state.debitosImportacionPreview = null;
     state.debitosImportacionArchivoNombre = '';
+    state.debitosImportacionFinanciador = '';
+    state.debitosImportacionPeriodo = '';
     const input = document.getElementById('input-debitos-csv');
     if (input) input.value = '';
     cambiarVista('debitos');
@@ -51,8 +74,10 @@ export async function crearLoteDebitos() {
     const preview = state.debitosImportacionPreview;
     if (!preview || preview.cantidadRegistros === 0) return alert('Primero cargá y validá un archivo.');
 
-    const financiador = valorInput('input-debitos-financiador');
-    const periodo = valorInput('input-debitos-periodo');
+    guardarFormularioImportacionEnEstado();
+
+    const financiador = state.debitosImportacionFinanciador;
+    const periodo = state.debitosImportacionPeriodo;
 
     if (!financiador) return alert('Indicá la obra social, prepaga o convenio del lote.');
     if (!periodo) return alert('Indicá el período del lote.');
@@ -78,7 +103,7 @@ export async function crearLoteDebitos() {
         state.debitosVistaActual = 'lotes';
         cambiarVista('debitos');
     } catch (error) {
-        alert('Error al importar lote: ' + (error.message || 'No se pudo completar la operación.'));
+        alert('Error al importar lote: ' + mensajeErrorImportacion(error));
     } finally {
         if (btn) {
             btn.disabled = false;
@@ -90,6 +115,8 @@ export async function crearLoteDebitos() {
 export function renderizarImportacionDebitos() {
     const puedeEditar = state.esAdminMaster || state.puedeEditarDebitos;
     const preview = state.debitosImportacionPreview;
+    const financiador = escaparHTML(state.debitosImportacionFinanciador || '');
+    const periodo = escaparHTML(state.debitosImportacionPeriodo || '');
 
     const resumenPreview = preview ? `
         <div class="bg-white border border-orange-100 rounded-2xl p-4 shadow-sm">
@@ -105,7 +132,7 @@ export function renderizarImportacionDebitos() {
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
                 <div class="bg-slate-50 rounded-xl border border-slate-100 p-3">
-                    <span class="block text-[10px] font-black text-slate-400 uppercase">Registros</span>
+                    <span class="block text-[10px] font-black text-slate-400 uppercase">Prestaciones detectadas</span>
                     <strong class="text-lg text-slate-800">${preview.cantidadRegistros}</strong>
                 </div>
                 <div class="bg-orange-50 rounded-xl border border-orange-100 p-3">
@@ -157,6 +184,17 @@ export function renderizarImportacionDebitos() {
                     </tbody>
                 </table>
             </div>
+
+            <div class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div class="bg-blue-50 border border-blue-100 rounded-xl p-3">
+                    <span class="block text-[10px] font-black text-blue-700 uppercase">Qué se crea al confirmar</span>
+                    <p class="text-xs text-blue-800 font-semibold mt-1">1 lote con los datos generales de esta importación y ${preview.cantidadRegistros} prestaciones vinculadas a ese lote.</p>
+                </div>
+                <div class="bg-slate-50 border border-slate-100 rounded-xl p-3">
+                    <span class="block text-[10px] font-black text-slate-500 uppercase">Dato original protegido</span>
+                    <p class="text-xs text-slate-600 font-semibold mt-1">Cada fila conserva los campos originales de Markey y agrega datos de gestión separados.</p>
+                </div>
+            </div>
         </div>
     ` : '';
 
@@ -166,16 +204,21 @@ export function renderizarImportacionDebitos() {
                 <h4 class="font-black text-slate-800 text-sm flex items-center gap-2">
                     <span class="material-symbols-rounded text-orange-600">upload_file</span> Importar reporte Markey
                 </h4>
-                <p class="text-xs text-slate-500 mt-1 mb-4">Cada archivo genera un lote independiente asociado a un financiador y período.</p>
+                <p class="text-xs text-slate-500 mt-1 mb-4">Cada archivo genera un lote. Cada fila importable del archivo queda como prestación dentro de ese lote.</p>
+
+                <div class="bg-orange-50 border border-orange-100 rounded-xl p-3 mb-4 text-xs text-orange-900">
+                    <p class="font-black mb-1">Flujo de importación</p>
+                    <p class="font-semibold">1. Indicá financiador y período. 2. Seleccioná el CSV. 3. Revisá la previsualización. 4. Confirmá para guardar lote + prestaciones.</p>
+                </div>
 
                 <div class="space-y-3">
                     <label class="block">
                         <span class="block text-[11px] font-black text-slate-500 uppercase mb-1">Financiador</span>
-                        <input id="input-debitos-financiador" type="text" placeholder="Obra social, prepaga o convenio" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-orange-500 focus:outline-none" ${puedeEditar ? '' : 'disabled'}>
+                        <input id="input-debitos-financiador" type="text" value="${financiador}" oninput="window.actualizarCampoImportacionDebitos('financiador', this.value)" placeholder="Obra social, prepaga o convenio" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-orange-500 focus:outline-none" ${puedeEditar ? '' : 'disabled'}>
                     </label>
                     <label class="block">
                         <span class="block text-[11px] font-black text-slate-500 uppercase mb-1">Período</span>
-                        <input id="input-debitos-periodo" type="month" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-orange-500 focus:outline-none" ${puedeEditar ? '' : 'disabled'}>
+                        <input id="input-debitos-periodo" type="month" value="${periodo}" onchange="window.actualizarCampoImportacionDebitos('periodo', this.value)" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-orange-500 focus:outline-none" ${puedeEditar ? '' : 'disabled'}>
                     </label>
                     <label for="input-debitos-csv" class="${puedeEditar ? 'cursor-pointer bg-orange-600 hover:bg-orange-700' : 'cursor-not-allowed bg-slate-300'} text-white font-black px-3.5 py-2.5 rounded-xl transition shadow-sm inline-flex items-center justify-center gap-1.5 text-xs w-full">
                         <span class="material-symbols-rounded" style="font-size:16px;">file_upload</span> Seleccionar CSV
