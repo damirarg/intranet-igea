@@ -47,7 +47,7 @@ const cambiarEmailUsuarioIntranetFn = httpsCallable(functions, "cambiarEmailUsua
 const actualizarNombreUsuarioIntranetFn = httpsCallable(functions, "actualizarNombreUsuarioIntranet");
 const cambiarEstadoUsuarioIntranetFn = httpsCallable(functions, "cambiarEstadoUsuarioIntranet");
 const sincronizarUsuariosDesdePermisosFn = httpsCallable(functions, "sincronizarUsuariosDesdePermisos");
-const MODULOS_GESTIONABLES = ["saldos", "guardias", "rrhh", "vacaciones"];
+const MODULOS_GESTIONABLES = ["saldos", "guardias", "rrhh", "vacaciones", "debitos"];
 
 function normalizarEmailPermiso(email) {
     return email.trim().toLowerCase();
@@ -270,16 +270,19 @@ export function evaluarPermisosUsuario(email) {
     const nivelGuardias = state.esAdminMaster ? 'editar' : obtenerNivelPermiso(permisoEncontrado, 'guardias');
     const nivelRRHH = state.esAdminMaster ? 'editar' : obtenerNivelPermiso(permisoEncontrado, 'rrhh');
     const nivelVacaciones = state.esAdminMaster ? 'editar' : obtenerNivelPermiso(permisoEncontrado, 'vacaciones');
+    const nivelDebitos = state.esAdminMaster ? 'editar' : obtenerNivelPermiso(permisoEncontrado, 'debitos');
 
     state.tienePermisoSaldos = nivelSaldos !== 'none';
     state.tienePermisoGuardias = nivelGuardias !== 'none';
     state.tienePermisoRRHH = nivelRRHH !== 'none';
     state.tienePermisoVacaciones = nivelVacaciones !== 'none';
+    state.tienePermisoDebitos = nivelDebitos !== 'none';
 
     state.puedeEditarSaldos = nivelSaldos === 'editar';
     state.puedeEditarGuardias = nivelGuardias === 'editar';
     state.puedeEditarRRHH = nivelRRHH === 'editar';
     state.puedeEditarVacaciones = nivelVacaciones === 'editar';
+    state.puedeEditarDebitos = nivelDebitos === 'editar';
 }
 
 function valorInput(id) {

@@ -99,5 +99,15 @@ service cloud.firestore {
     match /vacaciones_reglas/{reglaId} {
       allow read, create, update, delete: if isAdmin();
     }
+
+    match /debitos_lotes/{loteId} {
+      allow read: if isAdmin() || hasModule("debitos");
+      allow create, update, delete: if isAdmin() || canEditModule("debitos");
+    }
+
+    match /debitos_prestaciones/{prestacionId} {
+      allow read: if isAdmin() || hasModule("debitos");
+      allow create, update, delete: if isAdmin() || canEditModule("debitos");
+    }
   }
 }

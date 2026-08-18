@@ -20,10 +20,15 @@ const etiquetasModulos = {
         icono: 'event_busy',
         texto: 'Ausencias',
         clases: 'bg-teal-50 text-teal-700 border-teal-200'
+    },
+    debitos: {
+        icono: 'price_check',
+        texto: 'Débitos',
+        clases: 'bg-orange-50 text-orange-700 border-orange-200'
     }
 };
 
-const modulosGestionables = ['saldos', 'guardias', 'rrhh', 'vacaciones'];
+const modulosGestionables = ['saldos', 'guardias', 'rrhh', 'vacaciones', 'debitos'];
 
 function renderizarBadgesModulos(modulos = []) {
     if (!Array.isArray(modulos) || modulos.length === 0) return '<span class="text-slate-400 italic">Sin módulos</span>';
@@ -225,6 +230,9 @@ export function renderizarPermisos() {
                             </label>
                             <label class="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2 cursor-pointer">
                                 <input type="checkbox" value="guardias" class="check-modulo-usuario w-3.5 h-3.5 text-emerald-600 rounded focus:ring-emerald-500"> Guardias
+                            </label>
+                            <label class="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2 cursor-pointer">
+                                <input type="checkbox" value="debitos" class="check-modulo-usuario w-3.5 h-3.5 text-orange-600 rounded focus:ring-orange-500"> Débitos
                             </label>
                         </div>
                         <button id="btn-crear-usuario-admin" onclick="window.crearUsuarioIntranetFirebase()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs py-2.5 rounded-xl transition shadow-md shadow-indigo-200 flex items-center justify-center gap-1.5">

@@ -5,7 +5,7 @@ const admin = require("firebase-admin");
 admin.initializeApp();
 
 const ADMIN_EMAIL = "damirodriguez81@gmail.com";
-const MODULOS_VALIDOS = ["saldos", "guardias", "rrhh"];
+const MODULOS_VALIDOS = ["saldos", "guardias", "rrhh", "vacaciones", "debitos"];
 
 function normalizarEmail(email) {
   return String(email || "").trim().toLowerCase();

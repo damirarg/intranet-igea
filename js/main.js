@@ -38,6 +38,8 @@ import { seleccionarMaterialDidactico } from './components/procedimientos.js';
 import { guardiasMesSiguiente, guardiasMesAnterior } from './components/guardias.js';
 import { alternarArchivadosRRHH, actualizarSubareasRRHH, filtrarEmpleadosRRHH } from './components/rrhh.js';
 import { cambiarAnioAusencias, cancelarEdicionReglaVacaciones, editarReglaVacaciones, filtrarAusencias, irAHoyVacaciones, moverRangoVacaciones, prepararAjusteVacacionesEmpleado, prepararVacacionEmpleado, recalcularDiasAusenciaPreview, seleccionarEmpleadoVacaciones, sincronizarDescuentoAusencia } from './components/ausencias.js';
+import { cambiarVistaDebitos } from './components/debitos/debitos.js';
+import { cancelarImportacionDebitos, crearLoteDebitos, procesarArchivoDebitosCSV } from './components/debitos/debitos-importacion.js';
 
 // Importamos manejadores asincrónicos de base de datos
 import {
@@ -133,6 +135,10 @@ window.seleccionarEmpleadoVacaciones = seleccionarEmpleadoVacaciones;
 window.editarReglaVacaciones = editarReglaVacaciones;
 window.cancelarEdicionReglaVacaciones = cancelarEdicionReglaVacaciones;
 window.prepararAjusteVacacionesEmpleado = prepararAjusteVacacionesEmpleado;
+window.cambiarVistaDebitos = cambiarVistaDebitos;
+window.procesarArchivoDebitosCSV = procesarArchivoDebitosCSV;
+window.cancelarImportacionDebitos = cancelarImportacionDebitos;
+window.crearLoteDebitos = crearLoteDebitos;
 
 window.guardarNuevoDocumentoFirebase = guardarNuevoDocumentoFirebase;
 window.procesarEdicionDocFirebase = procesarEdicionDocFirebase;
@@ -190,6 +196,8 @@ const empleadosRRHHRef = collection(db, "empleados_rrhh");
 const ausenciasRef = collection(db, "ausencias");
 const ajustesVacacionesRef = collection(db, "vacaciones_ajustes");
 const reglasVacacionesRef = collection(db, "vacaciones_reglas");
+const debitosLotesRef = collection(db, "debitos_lotes");
+const debitosPrestacionesRef = collection(db, "debitos_prestaciones");
 
 let unsubscribePermisos = null;
 let unsubscribeSaldos = null;
@@ -198,6 +206,8 @@ let unsubscribeEmpleadosRRHH = null;
 let unsubscribeAusencias = null;
 let unsubscribeAjustesVacaciones = null;
 let unsubscribeReglasVacaciones = null;
+let unsubscribeDebitosLotes = null;
+let unsubscribeDebitosPrestaciones = null;
 
 function normalizarEmail(email) {
     return (email || '').toLowerCase().trim();
@@ -265,6 +275,7 @@ function aplicarVistaEfectiva(email) {
     escucharSaldosSiCorresponde();
     escucharEmpleadosRRHHSiCorresponde();
     escucharAusenciasAdmin();
+    escucharDebitosSiCorresponde();
     actualizarNombreHeader();
     actualizarSelectorVerComo();
 
@@ -273,6 +284,7 @@ function aplicarVistaEfectiva(email) {
     else if (state.seccionActual === 'guardias' && !state.tienePermisoGuardias && !state.esAdminMaster) cambiarVista('inicio');
     else if (state.seccionActual === 'rrhh' && !state.tienePermisoRRHH && !state.esAdminMaster) cambiarVista('inicio');
     else if ((state.seccionActual === 'ausencias' || state.seccionActual === 'vacaciones') && !state.esAdminMaster) cambiarVista('inicio');
+    else if (state.seccionActual === 'debitos' && !state.tienePermisoDebitos && !state.esAdminMaster) cambiarVista('inicio');
     else cambiarVista(state.seccionActual || 'inicio');
 }
 
@@ -330,6 +342,7 @@ function refrescarVistasPorPermisos() {
     escucharSaldosSiCorresponde();
     escucharEmpleadosRRHHSiCorresponde();
     escucharAusenciasAdmin();
+    escucharDebitosSiCorresponde();
     actualizarSelectorVerComo();
     actualizarNombreHeader();
 
@@ -343,6 +356,8 @@ function refrescarVistasPorPermisos() {
     else if (state.seccionActual === 'rrhh') cambiarVista('rrhh');
     if ((state.seccionActual === 'ausencias' || state.seccionActual === 'vacaciones') && !state.esAdminMaster) cambiarVista('inicio');
     else if (state.seccionActual === 'ausencias') cambiarVista('ausencias');
+    if (state.seccionActual === 'debitos' && !state.tienePermisoDebitos && !state.esAdminMaster) cambiarVista('inicio');
+    else if (state.seccionActual === 'debitos') cambiarVista('debitos');
 }
 
 function escucharSaldosSiCorresponde() {
@@ -469,6 +484,54 @@ function escucharAusenciasAdmin() {
     }
 }
 
+function escucharDebitosSiCorresponde() {
+    const puedeVerDebitos = state.esAdminMaster || state.tienePermisoDebitos;
+
+    if (!puedeVerDebitos) {
+        if (unsubscribeDebitosLotes) {
+            unsubscribeDebitosLotes();
+            unsubscribeDebitosLotes = null;
+        }
+        if (unsubscribeDebitosPrestaciones) {
+            unsubscribeDebitosPrestaciones();
+            unsubscribeDebitosPrestaciones = null;
+        }
+        state.listaDebitosLotesFirebase = [];
+        state.listaDebitosPrestacionesFirebase = [];
+        return;
+    }
+
+    if (!unsubscribeDebitosLotes) {
+        unsubscribeDebitosLotes = onSnapshot(query(debitosLotesRef), (snapshot) => {
+            state.listaDebitosLotesFirebase = [];
+            snapshot.forEach((docSnap) => {
+                state.listaDebitosLotesFirebase.push({ id: docSnap.id, ...docSnap.data() });
+            });
+
+            if (state.seccionActual === 'debitos' && !state.viendoDocumento) {
+                cambiarVista('debitos');
+            }
+        }, (error) => {
+            console.error("Error al escuchar lotes de debitos:", error);
+        });
+    }
+
+    if (!unsubscribeDebitosPrestaciones) {
+        unsubscribeDebitosPrestaciones = onSnapshot(query(debitosPrestacionesRef), (snapshot) => {
+            state.listaDebitosPrestacionesFirebase = [];
+            snapshot.forEach((docSnap) => {
+                state.listaDebitosPrestacionesFirebase.push({ id: docSnap.id, ...docSnap.data() });
+            });
+
+            if (state.seccionActual === 'debitos' && !state.viendoDocumento) {
+                cambiarVista('debitos');
+            }
+        }, (error) => {
+            console.error("Error al escuchar prestaciones de debitos:", error);
+        });
+    }
+}
+
 function escucharPermisosUsuario(email) {
     if (unsubscribePermisos) {
         unsubscribePermisos();
@@ -590,6 +653,7 @@ onAuthStateChanged(auth, async (user) => {
             escucharSaldosSiCorresponde();
             escucharEmpleadosRRHHSiCorresponde();
             escucharAusenciasAdmin();
+            escucharDebitosSiCorresponde();
         } catch (error) {
             console.error("Error al verificar permisos:", error);
             actualizarEstadoLogin("No se pudieron verificar los permisos. Cerrá sesión y volvé a intentar.");
@@ -617,10 +681,12 @@ onAuthStateChanged(auth, async (user) => {
         state.tienePermisoGuardias = false;
         state.tienePermisoRRHH = false;
         state.tienePermisoVacaciones = false;
+        state.tienePermisoDebitos = false;
         state.puedeEditarSaldos = false;
         state.puedeEditarGuardias = false;
         state.puedeEditarRRHH = false;
         state.puedeEditarVacaciones = false;
+        state.puedeEditarDebitos = false;
         state.listaPermisosFirebase = [];
         state.listaUsuariosFirebase = [];
         state.listaSaldosFirebase = [];
@@ -628,6 +694,10 @@ onAuthStateChanged(auth, async (user) => {
         state.listaAusenciasFirebase = [];
         state.listaAjustesVacacionesFirebase = [];
         state.listaReglasVacacionesFirebase = [];
+        state.listaDebitosLotesFirebase = [];
+        state.listaDebitosPrestacionesFirebase = [];
+        state.debitosImportacionPreview = null;
+        state.debitosImportacionArchivoNombre = '';
         state.empleadoRRHHEditandoId = null;
         state.ausenciaEditandoId = null;
         state.ajusteVacacionesEditandoId = null;
@@ -660,6 +730,14 @@ onAuthStateChanged(auth, async (user) => {
         if (unsubscribeReglasVacaciones) {
             unsubscribeReglasVacaciones();
             unsubscribeReglasVacaciones = null;
+        }
+        if (unsubscribeDebitosLotes) {
+            unsubscribeDebitosLotes();
+            unsubscribeDebitosLotes = null;
+        }
+        if (unsubscribeDebitosPrestaciones) {
+            unsubscribeDebitosPrestaciones();
+            unsubscribeDebitosPrestaciones = null;
         }
         pantallaLogin.classList.remove('hidden');
         appPrincipal.classList.add('hidden');
