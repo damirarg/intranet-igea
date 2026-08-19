@@ -38,8 +38,8 @@ import { seleccionarMaterialDidactico } from './components/procedimientos.js';
 import { guardiasMesSiguiente, guardiasMesAnterior } from './components/guardias.js';
 import { alternarArchivadosRRHH, actualizarSubareasRRHH, filtrarEmpleadosRRHH } from './components/rrhh.js';
 import { cambiarAnioAusencias, cancelarEdicionReglaVacaciones, editarReglaVacaciones, filtrarAusencias, irAHoyVacaciones, moverRangoVacaciones, prepararAjusteVacacionesEmpleado, prepararVacacionEmpleado, recalcularDiasAusenciaPreview, seleccionarEmpleadoVacaciones, sincronizarDescuentoAusencia } from './components/ausencias.js';
-import { cambiarVistaDebitos, seleccionarLoteDebitos } from './components/debitos/debitos.js';
-import { actualizarCampoImportacionDebitos, cancelarImportacionDebitos, crearLoteDebitos, procesarArchivoDebitosCSV } from './components/debitos/debitos-importacion.js';
+import { actualizarFiltroDebitos, aplicarGestionMasivaDebitos, cambiarVistaDebitos, cerrarDetallePrestacionDebitos, guardarGestionPrestacionDebitos, limpiarFiltrosDebitos, recalcularImportesGestionDebitos, seleccionarLoteDebitos, seleccionarPrestacionDebitos, seleccionarPrestacionMasivaDebitos, seleccionarPrestacionesVisiblesDebitos } from './components/debitos/debitos.js';
+import { actualizarCampoImportacionDebitos, cambiarModoSimulacionDebitos, cancelarImportacionDebitos, crearLoteDebitos, procesarArchivoDebitosCSV } from './components/debitos/debitos-importacion.js';
 
 // Importamos manejadores asincrónicos de base de datos
 import {
@@ -137,7 +137,17 @@ window.cancelarEdicionReglaVacaciones = cancelarEdicionReglaVacaciones;
 window.prepararAjusteVacacionesEmpleado = prepararAjusteVacacionesEmpleado;
 window.cambiarVistaDebitos = cambiarVistaDebitos;
 window.seleccionarLoteDebitos = seleccionarLoteDebitos;
+window.seleccionarPrestacionDebitos = seleccionarPrestacionDebitos;
+window.cerrarDetallePrestacionDebitos = cerrarDetallePrestacionDebitos;
+window.guardarGestionPrestacionDebitos = guardarGestionPrestacionDebitos;
+window.recalcularImportesGestionDebitos = recalcularImportesGestionDebitos;
+window.actualizarFiltroDebitos = actualizarFiltroDebitos;
+window.limpiarFiltrosDebitos = limpiarFiltrosDebitos;
+window.seleccionarPrestacionMasivaDebitos = seleccionarPrestacionMasivaDebitos;
+window.seleccionarPrestacionesVisiblesDebitos = seleccionarPrestacionesVisiblesDebitos;
+window.aplicarGestionMasivaDebitos = aplicarGestionMasivaDebitos;
 window.actualizarCampoImportacionDebitos = actualizarCampoImportacionDebitos;
+window.cambiarModoSimulacionDebitos = cambiarModoSimulacionDebitos;
 window.procesarArchivoDebitosCSV = procesarArchivoDebitosCSV;
 window.cancelarImportacionDebitos = cancelarImportacionDebitos;
 window.crearLoteDebitos = crearLoteDebitos;
@@ -702,7 +712,17 @@ onAuthStateChanged(auth, async (user) => {
         state.debitosImportacionArchivoNombre = '';
         state.debitosImportacionFinanciador = '';
         state.debitosImportacionPeriodo = '';
+        state.debitosImportacionNC = '';
+        state.debitosImportacionNCTipo = 'B';
+        state.debitosImportacionNCPunto = '';
+        state.debitosImportacionNCNumero = '';
         state.debitosLoteSeleccionadoId = '';
+        state.debitosPrestacionSeleccionadaId = '';
+        state.debitosModoSimulacion = true;
+        state.debitosFiltroTexto = '';
+        state.debitosFiltroEstado = 'todos';
+        state.debitosFiltroRefacturable = 'todos';
+        state.debitosPrestacionesSeleccionadasIds = [];
         state.empleadoRRHHEditandoId = null;
         state.ausenciaEditandoId = null;
         state.ajusteVacacionesEditandoId = null;

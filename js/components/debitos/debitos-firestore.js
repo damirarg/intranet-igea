@@ -4,10 +4,11 @@ import {
     collection,
     doc,
     serverTimestamp,
+    updateDoc,
     writeBatch
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-export async function crearLoteDebitosFirestore({ financiador, periodo, archivoNombre, prestaciones, importeTotalDebitado }) {
+export async function crearLoteDebitosFirestore({ financiador, periodo, numeroNC, archivoNombre, prestaciones, importeTotalDebitado }) {
     if (!state.puedeEditarDebitos && !state.esAdminMaster) {
         throw new Error('No tenés permisos de edición para importar débitos.');
     }
@@ -22,6 +23,7 @@ export async function crearLoteDebitosFirestore({ financiador, periodo, archivoN
     batch.set(loteRef, {
         financiador,
         periodo,
+        numeroNC,
         archivoNombre,
         cantidadRegistros: prestaciones.length,
         importeTotalDebitado,
@@ -43,7 +45,8 @@ export async function crearLoteDebitosFirestore({ financiador, periodo, archivoN
         batch.set(prestacionRef, {
             ...prestacion,
             loteId: loteRef.id,
-            financiador,
+            numeroNC,
+            financiador: prestacion.camposNormalizados?.convenio || financiador,
             periodo,
             usuarioImportador: usuario,
             fechaImportacion: serverTimestamp()
@@ -55,4 +58,15 @@ export async function crearLoteDebitosFirestore({ financiador, periodo, archivoN
     if (operaciones > 0) await batch.commit();
 
     return loteRef.id;
+}
+
+export async function actualizarGestionPrestacionDebitosFirestore(prestacionId, gestion, trazabilidad) {
+    if (!state.puedeEditarDebitos && !state.esAdminMaster) {
+        throw new Error('No tenés permisos de edición para actualizar la gestión del débito.');
+    }
+
+    await updateDoc(doc(db, 'debitos_prestaciones', prestacionId), {
+        gestion,
+        trazabilidad
+    });
 }
