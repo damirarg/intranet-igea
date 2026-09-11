@@ -37,7 +37,6 @@ import { alternarFiltroSaldadas, procesarArchivoCSV, cancelarCargaCSV, seleccion
 import { seleccionarMaterialDidactico } from './components/procedimientos.js';
 import { guardiasMesSiguiente, guardiasMesAnterior } from './components/guardias.js';
 import { alternarArchivadosRRHH, actualizarSubareasRRHH, filtrarEmpleadosRRHH } from './components/rrhh.js';
-import { cambiarAnioAusencias, cancelarEdicionReglaVacaciones, editarReglaVacaciones, filtrarAusencias, irAHoyVacaciones, moverRangoVacaciones, prepararAjusteVacacionesEmpleado, prepararVacacionEmpleado, recalcularDiasAusenciaPreview, seleccionarEmpleadoVacaciones, sincronizarDescuentoAusencia } from './components/ausencias.js';
 import { actualizarFiltroDebitos, aplicarGestionMasivaDebitos, cambiarVistaDebitos, cerrarDetallePrestacionDebitos, guardarGestionPrestacionDebitos, limpiarFiltrosDebitos, recalcularImportesGestionDebitos, seleccionarLoteDebitos, seleccionarPrestacionDebitos, seleccionarPrestacionMasivaDebitos, seleccionarPrestacionesVisiblesDebitos } from './components/debitos/debitos.js';
 import { actualizarCampoImportacionDebitos, cambiarModoSimulacionDebitos, cancelarImportacionDebitos, crearLoteDebitos, procesarArchivoDebitosCSV } from './components/debitos/debitos-importacion.js';
 
@@ -64,14 +63,6 @@ import {
     editarEmpleadoRRHH,
     cancelarEdicionEmpleadoRRHH,
     eliminarEmpleadoRRHHFirebase,
-    guardarAusenciaFirebase,
-    editarAusenciaFirebase,
-    cancelarEdicionAusenciaFirebase,
-    eliminarAusenciaFirebase,
-    guardarAjusteVacacionesFirebase,
-    eliminarAjusteVacacionesFirebase,
-    guardarReglaVacacionesFirebase,
-    eliminarReglaVacacionesFirebase,
     otorgarPermisoFirebase,
     revocarPermisoFirebase,
     actualizarCampoFirebase,
@@ -124,17 +115,6 @@ window.guardiasMesAnterior = guardiasMesAnterior;
 window.filtrarEmpleadosRRHH = filtrarEmpleadosRRHH;
 window.alternarArchivadosRRHH = alternarArchivadosRRHH;
 window.actualizarSubareasRRHH = actualizarSubareasRRHH;
-window.filtrarAusencias = filtrarAusencias;
-window.cambiarAnioAusencias = cambiarAnioAusencias;
-window.recalcularDiasAusenciaPreview = recalcularDiasAusenciaPreview;
-window.sincronizarDescuentoAusencia = sincronizarDescuentoAusencia;
-window.moverRangoVacaciones = moverRangoVacaciones;
-window.irAHoyVacaciones = irAHoyVacaciones;
-window.prepararVacacionEmpleado = prepararVacacionEmpleado;
-window.seleccionarEmpleadoVacaciones = seleccionarEmpleadoVacaciones;
-window.editarReglaVacaciones = editarReglaVacaciones;
-window.cancelarEdicionReglaVacaciones = cancelarEdicionReglaVacaciones;
-window.prepararAjusteVacacionesEmpleado = prepararAjusteVacacionesEmpleado;
 window.cambiarVistaDebitos = cambiarVistaDebitos;
 window.seleccionarLoteDebitos = seleccionarLoteDebitos;
 window.seleccionarPrestacionDebitos = seleccionarPrestacionDebitos;
@@ -171,14 +151,6 @@ window.prepararUsuarioDesdeEmpleadoRRHH = prepararUsuarioDesdeEmpleadoRRHH;
 window.editarEmpleadoRRHH = editarEmpleadoRRHH;
 window.cancelarEdicionEmpleadoRRHH = cancelarEdicionEmpleadoRRHH;
 window.eliminarEmpleadoRRHHFirebase = eliminarEmpleadoRRHHFirebase;
-window.guardarAusenciaFirebase = guardarAusenciaFirebase;
-window.editarAusenciaFirebase = editarAusenciaFirebase;
-window.cancelarEdicionAusenciaFirebase = cancelarEdicionAusenciaFirebase;
-window.eliminarAusenciaFirebase = eliminarAusenciaFirebase;
-window.guardarAjusteVacacionesFirebase = guardarAjusteVacacionesFirebase;
-window.eliminarAjusteVacacionesFirebase = eliminarAjusteVacacionesFirebase;
-window.guardarReglaVacacionesFirebase = guardarReglaVacacionesFirebase;
-window.eliminarReglaVacacionesFirebase = eliminarReglaVacacionesFirebase;
 window.otorgarPermisoFirebase = otorgarPermisoFirebase;
 window.revocarPermisoFirebase = revocarPermisoFirebase;
 window.actualizarCampoFirebase = actualizarCampoFirebase;
@@ -205,9 +177,6 @@ const permisosRef = collection(db, "permisos");
 const usuariosRef = collection(db, "usuarios");
 const guardiasRef = collection(db, "guardias");
 const empleadosRRHHRef = collection(db, "empleados_rrhh");
-const ausenciasRef = collection(db, "ausencias");
-const ajustesVacacionesRef = collection(db, "vacaciones_ajustes");
-const reglasVacacionesRef = collection(db, "vacaciones_reglas");
 const debitosLotesRef = collection(db, "debitos_lotes");
 const debitosPrestacionesRef = collection(db, "debitos_prestaciones");
 
@@ -215,9 +184,6 @@ let unsubscribePermisos = null;
 let unsubscribeSaldos = null;
 let unsubscribeUsuarios = null;
 let unsubscribeEmpleadosRRHH = null;
-let unsubscribeAusencias = null;
-let unsubscribeAjustesVacaciones = null;
-let unsubscribeReglasVacaciones = null;
 let unsubscribeDebitosLotes = null;
 let unsubscribeDebitosPrestaciones = null;
 
@@ -286,7 +252,6 @@ function aplicarVistaEfectiva(email) {
     evaluarPermisosUsuario(email);
     escucharSaldosSiCorresponde();
     escucharEmpleadosRRHHSiCorresponde();
-    escucharAusenciasAdmin();
     escucharDebitosSiCorresponde();
     actualizarNombreHeader();
     actualizarSelectorVerComo();
@@ -295,7 +260,7 @@ function aplicarVistaEfectiva(email) {
     else if (state.seccionActual === 'saldos' && !state.tienePermisoSaldos && !state.esAdminMaster) cambiarVista('inicio');
     else if (state.seccionActual === 'guardias' && !state.tienePermisoGuardias && !state.esAdminMaster) cambiarVista('inicio');
     else if (state.seccionActual === 'rrhh' && !state.tienePermisoRRHH && !state.esAdminMaster) cambiarVista('inicio');
-    else if ((state.seccionActual === 'ausencias' || state.seccionActual === 'vacaciones') && !state.esAdminMaster) cambiarVista('inicio');
+    else if (state.seccionActual === 'ausencias' || state.seccionActual === 'vacaciones') cambiarVista('inicio');
     else if (state.seccionActual === 'debitos' && !state.tienePermisoDebitos && !state.esAdminMaster) cambiarVista('inicio');
     else cambiarVista(state.seccionActual || 'inicio');
 }
@@ -353,7 +318,6 @@ function refrescarVistasPorPermisos() {
 
     escucharSaldosSiCorresponde();
     escucharEmpleadosRRHHSiCorresponde();
-    escucharAusenciasAdmin();
     escucharDebitosSiCorresponde();
     actualizarSelectorVerComo();
     actualizarNombreHeader();
@@ -366,8 +330,7 @@ function refrescarVistasPorPermisos() {
     if (state.seccionActual === 'saldos' && !state.tienePermisoSaldos && !state.esAdminMaster) cambiarVista('inicio');
     if (state.seccionActual === 'rrhh' && !state.tienePermisoRRHH && !state.esAdminMaster) cambiarVista('inicio');
     else if (state.seccionActual === 'rrhh') cambiarVista('rrhh');
-    if ((state.seccionActual === 'ausencias' || state.seccionActual === 'vacaciones') && !state.esAdminMaster) cambiarVista('inicio');
-    else if (state.seccionActual === 'ausencias') cambiarVista('ausencias');
+    if (state.seccionActual === 'ausencias' || state.seccionActual === 'vacaciones') cambiarVista('inicio');
     if (state.seccionActual === 'debitos' && !state.tienePermisoDebitos && !state.esAdminMaster) cambiarVista('inicio');
     else if (state.seccionActual === 'debitos') cambiarVista('debitos');
 }
@@ -428,72 +391,6 @@ function escucharEmpleadosRRHHSiCorresponde() {
     }, (error) => {
         console.error("Error al escuchar empleados de RRHH:", error);
     });
-}
-
-function escucharAusenciasAdmin() {
-    if (!state.esAdminAutenticado) {
-        if (unsubscribeAusencias) {
-            unsubscribeAusencias();
-            unsubscribeAusencias = null;
-        }
-        if (unsubscribeAjustesVacaciones) {
-            unsubscribeAjustesVacaciones();
-            unsubscribeAjustesVacaciones = null;
-        }
-        if (unsubscribeReglasVacaciones) {
-            unsubscribeReglasVacaciones();
-            unsubscribeReglasVacaciones = null;
-        }
-        state.listaAusenciasFirebase = [];
-        state.listaAjustesVacacionesFirebase = [];
-        state.listaReglasVacacionesFirebase = [];
-        return;
-    }
-
-    if (unsubscribeAusencias) return;
-
-    unsubscribeAusencias = onSnapshot(query(ausenciasRef), (snapshot) => {
-        state.listaAusenciasFirebase = [];
-        snapshot.forEach((docSnap) => {
-            state.listaAusenciasFirebase.push({ id: docSnap.id, ...docSnap.data() });
-        });
-
-        if (state.seccionActual === 'ausencias' && !state.viendoDocumento) {
-            cambiarVista('ausencias');
-        }
-    }, (error) => {
-        console.error("Error al escuchar ausencias:", error);
-    });
-
-    if (!unsubscribeAjustesVacaciones) {
-        unsubscribeAjustesVacaciones = onSnapshot(query(ajustesVacacionesRef), (snapshot) => {
-            state.listaAjustesVacacionesFirebase = [];
-            snapshot.forEach((docSnap) => {
-                state.listaAjustesVacacionesFirebase.push({ id: docSnap.id, ...docSnap.data() });
-            });
-
-            if (state.seccionActual === 'ausencias' && !state.viendoDocumento) {
-                cambiarVista('ausencias');
-            }
-        }, (error) => {
-            console.error("Error al escuchar ajustes de vacaciones:", error);
-        });
-    }
-
-    if (!unsubscribeReglasVacaciones) {
-        unsubscribeReglasVacaciones = onSnapshot(query(reglasVacacionesRef), (snapshot) => {
-            state.listaReglasVacacionesFirebase = [];
-            snapshot.forEach((docSnap) => {
-                state.listaReglasVacacionesFirebase.push({ id: docSnap.id, ...docSnap.data() });
-            });
-
-            if (state.seccionActual === 'ausencias' && !state.viendoDocumento) {
-                cambiarVista('ausencias');
-            }
-        }, (error) => {
-            console.error("Error al escuchar reglas de vacaciones:", error);
-        });
-    }
 }
 
 function escucharDebitosSiCorresponde() {
@@ -664,7 +561,6 @@ onAuthStateChanged(auth, async (user) => {
             escucharUsuariosAdmin();
             escucharSaldosSiCorresponde();
             escucharEmpleadosRRHHSiCorresponde();
-            escucharAusenciasAdmin();
             escucharDebitosSiCorresponde();
         } catch (error) {
             console.error("Error al verificar permisos:", error);
@@ -743,18 +639,6 @@ onAuthStateChanged(auth, async (user) => {
         if (unsubscribeEmpleadosRRHH) {
             unsubscribeEmpleadosRRHH();
             unsubscribeEmpleadosRRHH = null;
-        }
-        if (unsubscribeAusencias) {
-            unsubscribeAusencias();
-            unsubscribeAusencias = null;
-        }
-        if (unsubscribeAjustesVacaciones) {
-            unsubscribeAjustesVacaciones();
-            unsubscribeAjustesVacaciones = null;
-        }
-        if (unsubscribeReglasVacaciones) {
-            unsubscribeReglasVacaciones();
-            unsubscribeReglasVacaciones = null;
         }
         if (unsubscribeDebitosLotes) {
             unsubscribeDebitosLotes();

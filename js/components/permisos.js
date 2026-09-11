@@ -16,11 +16,6 @@ const etiquetasModulos = {
         texto: 'RRHH',
         clases: 'bg-cyan-50 text-cyan-700 border-cyan-200'
     },
-    vacaciones: {
-        icono: 'event_busy',
-        texto: 'Ausencias',
-        clases: 'bg-teal-50 text-teal-700 border-teal-200'
-    },
     debitos: {
         icono: 'price_check',
         texto: 'Débitos',
@@ -28,7 +23,7 @@ const etiquetasModulos = {
     }
 };
 
-const modulosGestionables = ['saldos', 'guardias', 'rrhh', 'vacaciones', 'debitos'];
+const modulosGestionables = ['saldos', 'guardias', 'rrhh', 'debitos'];
 
 function renderizarBadgesModulos(modulos = []) {
     if (!Array.isArray(modulos) || modulos.length === 0) return '<span class="text-slate-400 italic">Sin módulos</span>';

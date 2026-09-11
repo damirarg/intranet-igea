@@ -8,7 +8,6 @@ import { renderizarSaldos, parsearMontoNumerico } from './components/saldos.js';
 import { renderizarPermisos } from './components/permisos.js';
 import { renderizarGuardias } from './components/guardias.js';
 import { renderizarRRHH } from './components/rrhh.js';
-import { renderizarAusencias } from './components/ausencias.js';
 import { renderizarDebitos } from './components/debitos/debitos.js';
 
 export function abrirModalClave() {
@@ -237,7 +236,7 @@ export function cerrarModalGuardia() {
 }
 
 export function cambiarVista(vista) {
-    if (vista === 'vacaciones') vista = 'ausencias';
+    if (vista === 'vacaciones' || vista === 'ausencias') vista = 'inicio';
 
     state.seccionActual = vista;
     state.viendoDocumento = false; 
@@ -260,7 +259,6 @@ export function cambiarVista(vista) {
         if (vista === 'permisos') { titulo.textContent = "Administración de Permisos"; contenido.innerHTML = renderizarPermisos(); }
         if (vista === 'guardias') { titulo.textContent = "Cronograma de Guardias"; contenido.innerHTML = renderizarGuardias(); }
         if (vista === 'rrhh') { titulo.textContent = "Recursos Humanos"; contenido.innerHTML = renderizarRRHH(); }
-        if (vista === 'ausencias') { titulo.textContent = "Ausencias"; contenido.innerHTML = renderizarAusencias(); }
         if (vista === 'debitos') { titulo.textContent = "Débitos"; contenido.innerHTML = renderizarDebitos(); }
     }
 }
