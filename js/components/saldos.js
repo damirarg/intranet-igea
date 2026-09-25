@@ -239,7 +239,6 @@ export function renderizarSaldos() {
                     <input type="checkbox" class="check-saldo w-3.5 h-3.5 text-rose-600 rounded focus:ring-rose-500" data-index="${index}" checked>
                 </td>
                 <td class="p-2 font-semibold text-slate-800 text-xs celda-recortable sticky left-8 z-10 bg-white shadow-xs" title="${reg.paciente}">${reg.paciente}</td>
-                <td class="p-2 text-slate-500 text-[11px] celda-recortable">${reg.ultimoPago}</td>
                 <td class="p-2 text-slate-500 text-[11px] celda-recortable">${reg.periodo}</td>
                 <td class="p-2 text-slate-500 text-[11px] text-center celda-recortable" title="${reg.comprobante}">${reg.comprobante}</td>
                 <td class="p-2 text-slate-500 text-[11px] text-right celda-recortable">${reg.importeOrig}</td>
@@ -261,7 +260,6 @@ export function renderizarSaldos() {
                             <tr class="border-b border-slate-200 text-slate-500 text-[9px] uppercase tracking-wider">
                                 <th class="p-2 text-center w-8 resizable celda-recortable sticky left-0 z-30 bg-slate-50">Sel<div class="resizer"></div></th>
                                 <th class="p-2 resizable w-36 celda-recortable sticky left-8 z-30 bg-slate-50 shadow-xs">Paciente<div class="resizer"></div></th>
-                                <th class="p-2 resizable w-24 celda-recortable">Últ. Pago<div class="resizer"></div></th>
                                 <th class="p-2 resizable w-20 celda-recortable">Período<div class="resizer"></div></th>
                                 <th class="p-2 text-center resizable w-44 celda-recortable">Comprobantes<div class="resizer"></div></th>
                                 <th class="p-2 text-right resizable w-28 celda-recortable">Imp. Orig.<div class="resizer"></div></th>
@@ -395,7 +393,6 @@ export function renderizarSaldos() {
                         ${practicaHTML}
                     </td>
 
-                    <td class="p-2 text-slate-500 text-[11px] text-center celda-recortable" title="${cuenta.ultimoPago}">${cuenta.ultimoPago}</td>
                     <td class="p-2 text-slate-500 text-[11px] text-center celda-recortable" title="${cuenta.periodo}">${cuenta.periodo}</td>
                     <td class="p-2 text-slate-500 text-[11px] text-center celda-recortable" title="${cuenta.comprobante}">${cuenta.comprobante}</td>
                     <td class="p-2 text-slate-500 text-[11px] text-right celda-recortable" title="${cuenta.importeOrig}">${cuenta.importeOrig}</td>
@@ -461,9 +458,6 @@ export function renderizarSaldos() {
                                 </th>
                                 <th onclick="window.ordenarSaldos('practica')" class="p-2 resizable w-20 cursor-pointer hover:bg-slate-100 transition celda-recortable">
                                     Práctica ${iconoOrden('practica')}<div class="resizer"></div>
-                                </th>
-                                <th onclick="window.ordenarSaldos('ultimoPago')" class="p-2 text-center resizable w-22 cursor-pointer hover:bg-slate-100 transition celda-recortable">
-                                    Últ. Pago ${iconoOrden('ultimoPago')}<div class="resizer"></div>
                                 </th>
                                 <th onclick="window.ordenarSaldos('periodo')" class="p-2 text-center resizable w-18 cursor-pointer hover:bg-slate-100 transition celda-recortable">
                                     Período ${iconoOrden('periodo')}<div class="resizer"></div>
