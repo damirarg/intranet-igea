@@ -37,6 +37,7 @@ import { alternarFiltroSaldadas, procesarArchivoCSV, cancelarCargaCSV, seleccion
 import { seleccionarMaterialDidactico } from './components/procedimientos.js';
 import { guardiasMesSiguiente, guardiasMesAnterior } from './components/guardias.js';
 import { alternarArchivadosRRHH, actualizarSubareasRRHH, filtrarEmpleadosRRHH } from './components/rrhh.js';
+import { actualizarMaterialCapacitacion, actualizarTituloSeccionCapacitacion, agregarMaterialCapacitacion, agregarSeccionCapacitacion, abrirMaterialCapacitacion, cancelarEdicionCapacitacion, editarCapacitacion, eliminarCapacitacion, eliminarMaterialCapacitacion, eliminarSeccionCapacitacion, guardarCapacitacion, moverMaterialCapacitacion, moverSeccionCapacitacion, nuevaCapacitacion, seleccionarCapacitacion } from './components/capacitaciones.js';
 
 // Importamos manejadores asincrónicos de base de datos
 import {
@@ -113,6 +114,21 @@ window.guardiasMesAnterior = guardiasMesAnterior;
 window.filtrarEmpleadosRRHH = filtrarEmpleadosRRHH;
 window.alternarArchivadosRRHH = alternarArchivadosRRHH;
 window.actualizarSubareasRRHH = actualizarSubareasRRHH;
+window.seleccionarCapacitacion = seleccionarCapacitacion;
+window.nuevaCapacitacion = nuevaCapacitacion;
+window.editarCapacitacion = editarCapacitacion;
+window.cancelarEdicionCapacitacion = cancelarEdicionCapacitacion;
+window.agregarSeccionCapacitacion = agregarSeccionCapacitacion;
+window.eliminarSeccionCapacitacion = eliminarSeccionCapacitacion;
+window.moverSeccionCapacitacion = moverSeccionCapacitacion;
+window.actualizarTituloSeccionCapacitacion = actualizarTituloSeccionCapacitacion;
+window.agregarMaterialCapacitacion = agregarMaterialCapacitacion;
+window.eliminarMaterialCapacitacion = eliminarMaterialCapacitacion;
+window.moverMaterialCapacitacion = moverMaterialCapacitacion;
+window.actualizarMaterialCapacitacion = actualizarMaterialCapacitacion;
+window.guardarCapacitacion = guardarCapacitacion;
+window.eliminarCapacitacion = eliminarCapacitacion;
+window.abrirMaterialCapacitacion = abrirMaterialCapacitacion;
 
 window.guardarNuevoDocumentoFirebase = guardarNuevoDocumentoFirebase;
 window.procesarEdicionDocFirebase = procesarEdicionDocFirebase;
@@ -159,6 +175,7 @@ const permisosRef = collection(db, "permisos");
 const usuariosRef = collection(db, "usuarios");
 const guardiasRef = collection(db, "guardias");
 const empleadosRRHHRef = collection(db, "empleados_rrhh");
+const capacitacionesRef = collection(db, "capacitaciones");
 
 let unsubscribePermisos = null;
 let unsubscribeSaldos = null;
@@ -466,6 +483,19 @@ onSnapshot(guardiasRef, (snapshot) => {
     }
 });
 
+// Escuchar capacitaciones (visibles para todos los usuarios autenticados)
+onSnapshot(capacitacionesRef, (snapshot) => {
+    state.listaCapacitacionesFirebase = [];
+    snapshot.forEach((docSnap) => {
+        state.listaCapacitacionesFirebase.push({ id: docSnap.id, ...docSnap.data() });
+    });
+    if (state.seccionActual === 'capacitaciones' && !state.viendoDocumento) {
+        cambiarVista('capacitaciones');
+    }
+}, (error) => {
+    console.error("Error al escuchar capacitaciones:", error);
+});
+
 // Escuchar cambios de estado de sesión
 onAuthStateChanged(auth, async (user) => {
     const pantallaLogin = document.getElementById('pantalla-login');
@@ -517,6 +547,7 @@ onAuthStateChanged(auth, async (user) => {
         state.puedeEditarGuardias = false;
         state.puedeEditarRRHH = false;
         state.puedeEditarVacaciones = false;
+        state.puedeEditarCapacitaciones = false;
         state.listaPermisosFirebase = [];
         state.listaUsuariosFirebase = [];
         state.listaSaldosFirebase = [];

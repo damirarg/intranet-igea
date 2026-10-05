@@ -16,9 +16,14 @@ const etiquetasModulos = {
         texto: 'RRHH',
         clases: 'bg-cyan-50 text-cyan-700 border-cyan-200'
     },
+    capacitaciones: {
+        icono: 'school',
+        texto: 'Capacitaciones',
+        clases: 'bg-violet-50 text-violet-700 border-violet-200'
+    },
 };
 
-const modulosGestionables = ['saldos', 'guardias', 'rrhh'];
+const modulosGestionables = ['saldos', 'guardias', 'rrhh', 'capacitaciones'];
 
 function renderizarBadgesModulos(modulos = []) {
     if (!Array.isArray(modulos) || modulos.length === 0) return '<span class="text-slate-400 italic">Sin módulos</span>';
@@ -59,7 +64,9 @@ function obtenerNivelModulo(usuario, modulo) {
 function renderizarControlPermisos(email, usuario) {
     return modulosGestionables.map(modulo => {
         const meta = etiquetasModulos[modulo];
-        const nivel = obtenerNivelModulo(usuario, modulo);
+        const nivel = modulo === 'capacitaciones' && obtenerNivelModulo(usuario, modulo) === 'none'
+            ? 'ver'
+            : obtenerNivelModulo(usuario, modulo);
 
         return `
             <label class="flex items-center justify-between gap-2 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2">
@@ -68,7 +75,7 @@ function renderizarControlPermisos(email, usuario) {
                     ${meta.texto}
                 </span>
                 <select onchange="window.guardarNivelPermisoModuloFirebase('${email}', '${modulo}', this.value)" class="bg-white border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-                    <option value="none" ${nivel === 'none' ? 'selected' : ''}>Sin acceso</option>
+                    ${modulo === 'capacitaciones' ? '' : `<option value="none" ${nivel === 'none' ? 'selected' : ''}>Sin acceso</option>`}
                     <option value="ver" ${nivel === 'ver' ? 'selected' : ''}>Sólo ver</option>
                     <option value="editar" ${nivel === 'editar' ? 'selected' : ''}>Editar</option>
                 </select>

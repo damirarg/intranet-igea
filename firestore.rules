@@ -83,6 +83,11 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin() || canEditModule("guardias");
     }
 
+    match /capacitaciones/{capacitacionId} {
+      allow read: if signedIn();
+      allow create, update, delete: if isAdmin() || canEditModule("capacitaciones");
+    }
+
     match /empleados_rrhh/{empleadoId} {
       allow read: if isAdmin() || hasModule("rrhh");
       allow create, update, delete: if isAdmin() || canEditModule("rrhh");
