@@ -3,22 +3,26 @@ import { state } from '../app-state.js';
 const etiquetasModulos = {
     saldos: {
         icono: 'request_quote',
-        texto: 'Gestión Saldos',
+        texto: 'Gestión de Saldos',
+        detalle: 'Acceso al módulo',
         clases: 'bg-rose-50 text-rose-700 border-rose-200'
     },
     guardias: {
         icono: 'clinical_notes',
         texto: 'Guardias',
+        detalle: 'Acceso al módulo',
         clases: 'bg-emerald-50 text-emerald-700 border-emerald-200'
     },
     rrhh: {
         icono: 'groups',
         texto: 'RRHH',
+        detalle: 'Acceso al módulo',
         clases: 'bg-cyan-50 text-cyan-700 border-cyan-200'
     },
     capacitaciones: {
         icono: 'school',
         texto: 'Capacitaciones',
+        detalle: 'Lectura incluida',
         clases: 'bg-violet-50 text-violet-700 border-violet-200'
     },
 };
@@ -70,9 +74,9 @@ function renderizarControlPermisos(email, usuario) {
 
         return `
             <label class="flex items-center justify-between gap-2 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2">
-                <span class="inline-flex items-center gap-1.5 font-black text-slate-600">
+                <span class="inline-flex items-center gap-1.5 font-black text-slate-600 min-w-0">
                     <span class="material-symbols-rounded" style="font-size:15px;">${meta.icono}</span>
-                    ${meta.texto}
+                    <span><span class="block">${meta.texto}</span><span class="block text-[9px] font-semibold text-slate-400">${meta.detalle}</span></span>
                 </span>
                 <select onchange="window.guardarNivelPermisoModuloFirebase('${email}', '${modulo}', this.value)" class="bg-white border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                     ${modulo === 'capacitaciones' ? '' : `<option value="none" ${nivel === 'none' ? 'selected' : ''}>Sin acceso</option>`}
@@ -221,12 +225,16 @@ export function renderizarPermisos() {
                         <input type="text" id="input-nombre-usuario-admin" placeholder="Nombre completo" class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                         <input type="email" id="input-email-usuario-admin" placeholder="correo@ejemplo.com" class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                         <input type="text" id="input-clave-usuario-admin" placeholder="Clave temporal opcional" class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        <p class="text-[10px] font-black uppercase text-slate-500">Accesos iniciales opcionales</p>
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-semibold text-slate-600">
                             <label class="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2 cursor-pointer">
                                 <input type="checkbox" value="saldos" class="check-modulo-usuario w-3.5 h-3.5 text-rose-600 rounded focus:ring-rose-500"> Saldos
                             </label>
                             <label class="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2 cursor-pointer">
                                 <input type="checkbox" value="guardias" class="check-modulo-usuario w-3.5 h-3.5 text-emerald-600 rounded focus:ring-emerald-500"> Guardias
+                            </label>
+                            <label class="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2 cursor-pointer">
+                                <input type="checkbox" value="rrhh" class="check-modulo-usuario w-3.5 h-3.5 text-cyan-600 rounded focus:ring-cyan-500"> RRHH
                             </label>
                         </div>
                         <button id="btn-crear-usuario-admin" onclick="window.crearUsuarioIntranetFirebase()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs py-2.5 rounded-xl transition shadow-md shadow-indigo-200 flex items-center justify-center gap-1.5">
@@ -320,13 +328,24 @@ export function renderizarPermisos() {
         <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col shrink-0 mb-8">
                 <div class="p-4 bg-slate-50 border-b border-slate-200">
                     <h4 class="font-bold text-slate-700 text-sm">Usuarios de la Intranet (${usuariosOrdenados.length})</h4>
+                    <p class="text-[11px] text-slate-500 mt-1">Los controles de la tabla corresponden únicamente a accesos restringidos o permisos de edición.</p>
+                    <div class="mt-3 pt-3 border-t border-slate-200 grid grid-cols-1 lg:grid-cols-2 gap-3 text-[11px]">
+                        <div class="flex items-start gap-2">
+                            <span class="material-symbols-rounded text-emerald-600" style="font-size:18px;">verified_user</span>
+                            <div><span class="font-black text-slate-700">Incluidos para todos los usuarios activos</span><span class="block text-slate-500 mt-0.5">DPP, Procedimientos, Capacitaciones (lectura) y Sugerencias.</span></div>
+                        </div>
+                        <div class="flex items-start gap-2">
+                            <span class="material-symbols-rounded text-indigo-600" style="font-size:18px;">person</span>
+                            <div><span class="font-black text-slate-700">Accesos personales o externos</span><span class="block text-slate-500 mt-0.5">Mis Recibos muestra sólo la carpeta propia. Absentify abre su plataforma externa.</span></div>
+                        </div>
+                    </div>
                 </div>
                 <div class="overflow-x-auto flex-1">
                     <table class="w-full text-left border-collapse whitespace-nowrap">
                         <thead>
                             <tr class="border-b border-slate-200 text-slate-500 text-[10px] uppercase tracking-wider bg-slate-50/50">
                                 <th class="p-3.5">Usuario / Correo</th>
-                                <th class="p-3.5">Permisos por módulo</th>
+                                <th class="p-3.5">Accesos configurables</th>
                                 <th class="p-3.5 text-right">Acciones</th>
                             </tr>
                         </thead>
