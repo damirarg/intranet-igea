@@ -181,6 +181,10 @@ let unsubscribePermisos = null;
 let unsubscribeSaldos = null;
 let unsubscribeUsuarios = null;
 let unsubscribeEmpleadosRRHH = null;
+let unsubscribeDocumentos = null;
+let unsubscribeSugerencias = null;
+let unsubscribeGuardias = null;
+let unsubscribeCapacitaciones = null;
 
 function normalizarEmail(email) {
     return (email || '').toLowerCase().trim();
@@ -245,6 +249,7 @@ function actualizarSelectorVerComo() {
 function aplicarVistaEfectiva(email) {
     state.usuarioActualEmail = email;
     evaluarPermisosUsuario(email);
+    escucharGuardiasSiCorresponde();
     escucharSaldosSiCorresponde();
     escucharEmpleadosRRHHSiCorresponde();
     actualizarNombreHeader();
@@ -310,6 +315,7 @@ function refrescarVistasPorPermisos() {
     }
 
     escucharSaldosSiCorresponde();
+    escucharGuardiasSiCorresponde();
     escucharEmpleadosRRHHSiCorresponde();
     actualizarSelectorVerComo();
     actualizarNombreHeader();
@@ -383,6 +389,106 @@ function escucharEmpleadosRRHHSiCorresponde() {
     });
 }
 
+function escucharGuardiasSiCorresponde() {
+    const puedeVerGuardias = state.esAdminMaster || state.tienePermisoGuardias;
+
+    if (!puedeVerGuardias) {
+        if (unsubscribeGuardias) {
+            unsubscribeGuardias();
+            unsubscribeGuardias = null;
+        }
+        state.listaGuardiasFirebase = [];
+        return;
+    }
+
+    if (unsubscribeGuardias) return;
+
+    unsubscribeGuardias = onSnapshot(guardiasRef, (snapshot) => {
+        state.listaGuardiasFirebase = [];
+        snapshot.forEach((docSnap) => {
+            state.listaGuardiasFirebase.push({ id: docSnap.id, ...docSnap.data() });
+        });
+        if (state.seccionActual === 'guardias' && !state.viendoDocumento) {
+            cambiarVista('guardias');
+        }
+    }, (error) => {
+        unsubscribeGuardias = null;
+        console.error("Error al escuchar guardias:", error);
+    });
+}
+
+function escucharContenidoGeneral() {
+    if (!unsubscribeDocumentos) {
+        unsubscribeDocumentos = onSnapshot(query(documentosRef, orderBy("fechaAlta", "desc")), (snapshot) => {
+            state.listaDocumentosFirebase = [];
+            snapshot.forEach((docSnap) => {
+                state.listaDocumentosFirebase.push({ id: docSnap.id, ...docSnap.data() });
+            });
+
+            if (state.listaDocumentosFirebase.length === 0 && state.esAdminAutenticado) {
+                inicializarDocumentosBase();
+            }
+
+            if ((state.seccionActual === 'dpp' || state.seccionActual === 'procedimientos' || state.seccionActual === 'permisos') && !state.viendoDocumento) {
+                cambiarVista(state.seccionActual);
+            }
+        }, (error) => {
+            unsubscribeDocumentos = null;
+            console.error("Error al escuchar documentos:", error);
+        });
+    }
+
+    if (!unsubscribeSugerencias) {
+        unsubscribeSugerencias = onSnapshot(query(sugerenciasRef, orderBy("fechaCreacion", "desc")), (snapshot) => {
+            state.listaSugerencias = [];
+            snapshot.forEach((docSnap) => {
+                state.listaSugerencias.push({ id: docSnap.id, ...docSnap.data() });
+            });
+            if (state.seccionActual === 'sugerencias' && !state.viendoDocumento) {
+                cambiarVista('sugerencias');
+            }
+        }, (error) => {
+            unsubscribeSugerencias = null;
+            console.error("Error al escuchar sugerencias:", error);
+        });
+    }
+
+    if (!unsubscribeCapacitaciones) {
+        unsubscribeCapacitaciones = onSnapshot(capacitacionesRef, (snapshot) => {
+            state.listaCapacitacionesFirebase = [];
+            snapshot.forEach((docSnap) => {
+                state.listaCapacitacionesFirebase.push({ id: docSnap.id, ...docSnap.data() });
+            });
+            if (state.seccionActual === 'capacitaciones' && !state.viendoDocumento) {
+                cambiarVista('capacitaciones');
+            }
+        }, (error) => {
+            unsubscribeCapacitaciones = null;
+            console.error("Error al escuchar capacitaciones:", error);
+        });
+    }
+}
+
+function detenerContenidoGeneral() {
+    [
+        ['documentos', unsubscribeDocumentos],
+        ['sugerencias', unsubscribeSugerencias],
+        ['guardias', unsubscribeGuardias],
+        ['capacitaciones', unsubscribeCapacitaciones]
+    ].forEach(([, unsubscribe]) => {
+        if (unsubscribe) unsubscribe();
+    });
+
+    unsubscribeDocumentos = null;
+    unsubscribeSugerencias = null;
+    unsubscribeGuardias = null;
+    unsubscribeCapacitaciones = null;
+    state.listaDocumentosFirebase = [];
+    state.listaSugerencias = [];
+    state.listaGuardiasFirebase = [];
+    state.listaCapacitacionesFirebase = [];
+}
+
 function escucharPermisosUsuario(email) {
     if (unsubscribePermisos) {
         unsubscribePermisos();
@@ -445,57 +551,6 @@ function escucharUsuariosAdmin() {
     });
 }
 
-// Escuchar documentos
-onSnapshot(query(documentosRef, orderBy("fechaAlta", "desc")), (snapshot) => {
-    state.listaDocumentosFirebase = [];
-    snapshot.forEach((docSnap) => {
-        state.listaDocumentosFirebase.push({ id: docSnap.id, ...docSnap.data() });
-    });
-
-    if (state.listaDocumentosFirebase.length === 0) {
-        inicializarDocumentosBase();
-    }
-
-    if ((state.seccionActual === 'dpp' || state.seccionActual === 'procedimientos' || state.seccionActual === 'permisos') && !state.viendoDocumento) {
-        cambiarVista(state.seccionActual);
-    }
-});
-
-// Escuchar sugerencias
-onSnapshot(query(sugerenciasRef, orderBy("fechaCreacion", "desc")), (snapshot) => {
-    state.listaSugerencias = [];
-    snapshot.forEach((docSnap) => {
-        state.listaSugerencias.push({ id: docSnap.id, ...docSnap.data() });
-    });
-    if (state.seccionActual === 'sugerencias' && !state.viendoDocumento) {
-        cambiarVista('sugerencias');
-    }
-});
-
-// Escuchar guardias
-onSnapshot(guardiasRef, (snapshot) => {
-    state.listaGuardiasFirebase = [];
-    snapshot.forEach((docSnap) => {
-        state.listaGuardiasFirebase.push({ id: docSnap.id, ...docSnap.data() });
-    });
-    if (state.seccionActual === 'guardias' && !state.viendoDocumento) {
-        cambiarVista('guardias');
-    }
-});
-
-// Escuchar capacitaciones (visibles para todos los usuarios autenticados)
-onSnapshot(capacitacionesRef, (snapshot) => {
-    state.listaCapacitacionesFirebase = [];
-    snapshot.forEach((docSnap) => {
-        state.listaCapacitacionesFirebase.push({ id: docSnap.id, ...docSnap.data() });
-    });
-    if (state.seccionActual === 'capacitaciones' && !state.viendoDocumento) {
-        cambiarVista('capacitaciones');
-    }
-}, (error) => {
-    console.error("Error al escuchar capacitaciones:", error);
-});
-
 // Escuchar cambios de estado de sesión
 onAuthStateChanged(auth, async (user) => {
     const pantallaLogin = document.getElementById('pantalla-login');
@@ -512,8 +567,10 @@ onAuthStateChanged(auth, async (user) => {
 
         try {
             await cargarPermisoInicial(state.usuarioActualEmail);
+            escucharContenidoGeneral();
             escucharPermisosUsuario(state.usuarioActualEmail);
             escucharUsuariosAdmin();
+            escucharGuardiasSiCorresponde();
             escucharSaldosSiCorresponde();
             escucharEmpleadosRRHHSiCorresponde();
         } catch (error) {
@@ -555,6 +612,7 @@ onAuthStateChanged(auth, async (user) => {
         state.listaAusenciasFirebase = [];
         state.listaAjustesVacacionesFirebase = [];
         state.listaReglasVacacionesFirebase = [];
+        detenerContenidoGeneral();
         state.empleadoRRHHEditandoId = null;
         state.ausenciaEditandoId = null;
         state.ajusteVacacionesEditandoId = null;
