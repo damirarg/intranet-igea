@@ -32,6 +32,125 @@ body {
     font-size: 32px; 
 }
 
+.sidebar-item {
+    position: relative;
+    width: 100%;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 12px;
+    border-radius: 8px;
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 700;
+    text-align: left;
+    transition: color 160ms ease, background-color 160ms ease;
+}
+
+.sidebar-item:hover {
+    color: #1d4ed8;
+    background: #eff6ff;
+}
+
+.sidebar-item.is-active {
+    color: #1d4ed8;
+    background: #dbeafe;
+}
+
+.sidebar-item.is-active::before {
+    content: '';
+    position: absolute;
+    left: -8px;
+    width: 3px;
+    height: 24px;
+    border-radius: 0 3px 3px 0;
+    background: #2563eb;
+}
+
+.sidebar-item > .material-symbols-rounded:first-child {
+    width: 20px;
+    flex: 0 0 20px;
+    font-size: 20px;
+    text-align: center;
+}
+
+.sidebar-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sidebar-external {
+    margin-left: auto;
+    font-size: 14px;
+}
+
+.sidebar-tooltip {
+    display: none;
+}
+
+.sidebar-separador {
+    padding: 12px 10px 5px;
+    color: #94a3b8;
+    font-size: 9px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+@media (min-width: 768px) {
+    .sidebar-navegacion .sidebar-item {
+        justify-content: center;
+        padding: 0;
+    }
+
+    .sidebar-navegacion .sidebar-label,
+    .sidebar-navegacion .sidebar-external,
+    .sidebar-navegacion .sidebar-separador span {
+        display: none;
+    }
+
+    .sidebar-navegacion .sidebar-separador {
+        height: 17px;
+        padding: 8px 10px;
+    }
+
+    .sidebar-navegacion .sidebar-separador::after {
+        content: '';
+        display: block;
+        height: 1px;
+        background: #e2e8f0;
+    }
+
+    .sidebar-navegacion .sidebar-tooltip {
+        position: absolute;
+        display: block;
+        left: 54px;
+        top: 50%;
+        z-index: 80;
+        padding: 6px 9px;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        background: #0f172a;
+        color: white;
+        font-size: 11px;
+        font-weight: 700;
+        line-height: 1.2;
+        white-space: nowrap;
+        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.16);
+        opacity: 0;
+        pointer-events: none;
+        transform: translate(4px, -50%);
+        transition: opacity 120ms ease, transform 120ms ease;
+    }
+
+    .sidebar-navegacion .sidebar-item:hover .sidebar-tooltip,
+    .sidebar-navegacion .sidebar-item:focus-visible .sidebar-tooltip {
+        opacity: 1;
+        transform: translate(0, -50%);
+    }
+}
+
 table.tabla-flexible {
     table-layout: fixed !important;
     width: 100%;

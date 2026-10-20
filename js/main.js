@@ -28,7 +28,9 @@ import {
     abrirDocumento,
     volverAtras,
     abrirModalGuardia,
-    cerrarModalGuardia
+    cerrarModalGuardia,
+    alternarSidebarMovil,
+    cerrarSidebarMovil
 } from './ui.js';
 
 // Importamos controles específicos de componentes
@@ -98,6 +100,8 @@ window.abrirDocumento = abrirDocumento;
 window.volverAtras = volverAtras;
 window.abrirModalGuardia = abrirModalGuardia;
 window.cerrarModalGuardia = cerrarModalGuardia;
+window.alternarSidebarMovil = alternarSidebarMovil;
+window.cerrarSidebarMovil = cerrarSidebarMovil;
 
 window.alternarVistaArchivadas = alternarVistaArchivadas;
 window.seleccionarColorPostit = seleccionarColorPostit;

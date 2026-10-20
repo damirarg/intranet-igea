@@ -235,6 +235,48 @@ export function cerrarModalGuardia() {
     state.guardiaDiaSeleccionado = null;
 }
 
+export function alternarSidebarMovil() {
+    const sidebar = document.getElementById('sidebar-navegacion');
+    const overlay = document.getElementById('sidebar-overlay');
+    if (!sidebar || !overlay) return;
+    const estaAbierto = !sidebar.classList.contains('-translate-x-full');
+    sidebar.classList.toggle('-translate-x-full', estaAbierto);
+    overlay.classList.toggle('hidden', estaAbierto);
+}
+
+export function cerrarSidebarMovil() {
+    const sidebar = document.getElementById('sidebar-navegacion');
+    const overlay = document.getElementById('sidebar-overlay');
+    if (!sidebar || !overlay || window.innerWidth >= 768) return;
+    sidebar.classList.add('-translate-x-full');
+    overlay.classList.add('hidden');
+}
+
+function actualizarNavegacionLateral(vista) {
+    document.querySelectorAll('[data-sidebar-vista]').forEach(item => {
+        item.classList.toggle('is-active', item.dataset.sidebarVista === vista);
+        item.setAttribute('aria-current', item.dataset.sidebarVista === vista ? 'page' : 'false');
+    });
+
+    document.querySelectorAll('[data-sidebar-permiso]').forEach(item => {
+        const permiso = item.dataset.sidebarPermiso;
+        const visible = permiso === 'admin'
+            ? state.esAdminMaster
+            : permiso === 'saldos'
+                ? state.esAdminMaster || state.tienePermisoSaldos
+                : permiso === 'guardias'
+                    ? state.esAdminMaster || state.tienePermisoGuardias
+                    : permiso === 'rrhh'
+                        ? state.esAdminMaster || state.tienePermisoRRHH
+                        : false;
+        item.classList.toggle('hidden', !visible);
+    });
+
+    const hayGestion = state.esAdminMaster || state.tienePermisoSaldos || state.tienePermisoGuardias || state.tienePermisoRRHH;
+    document.getElementById('sidebar-separador-gestion')?.classList.toggle('hidden', !hayGestion);
+    document.getElementById('sidebar-separador-admin')?.classList.toggle('hidden', !state.esAdminMaster);
+}
+
 export function cambiarVista(vista) {
     if (vista === 'vacaciones' || vista === 'ausencias') vista = 'inicio';
 
@@ -244,13 +286,15 @@ export function cambiarVista(vista) {
     const btnInicioHeader = document.getElementById('btn-inicio-header');
     const contenido = document.getElementById('contenido-seccion');
     const titulo = document.getElementById('titulo-seccion');
+    actualizarNavegacionLateral(vista);
+    cerrarSidebarMovil();
 
     if (vista === 'inicio') {
         btnInicioHeader.classList.add('hidden');
         titulo.textContent = "Inicio";
         contenido.innerHTML = renderizarInicio();
     } else {
-        btnInicioHeader.classList.remove('hidden');
+        btnInicioHeader.classList.add('hidden');
         if (vista === 'dpp') { titulo.textContent = "Directorio de Perfiles"; contenido.innerHTML = renderizarDPP(); }
         if (vista === 'procedimientos') { titulo.textContent = "Procedimientos Internos"; contenido.innerHTML = renderizarProcedimientos(); }
         if (vista === 'recibos') { titulo.textContent = "Legajo Digital"; contenido.innerHTML = renderizarRecibos(); }
