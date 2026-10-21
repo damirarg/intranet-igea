@@ -33,40 +33,39 @@ function valorNombresEmpleado(empleado = null) {
     return escaparHTML(empleado.nombres || '');
 }
 
-function etiquetaArea(area = '') {
-    const areas = {
-        administracion: 'Administración',
-        asistencial: 'Asistencial'
-    };
-
-    return areas[area] || '-';
-}
-
-const subareasPorArea = {
-    administracion: [
+const areasRRHHIniciales = [
+    { id: 'administracion', nombre: 'Administración', activa: true, orden: 1, subareas: [
         { valor: 'admision', texto: 'Admisión' },
         { valor: 'coordinacion', texto: 'Coordinación' },
         { valor: 'atencion_telefonica', texto: 'Atención Telefónica' },
         { valor: 'tesoreria', texto: 'Tesorería' },
         { valor: 'facturacion', texto: 'Facturación' }
-    ],
-    asistencial: [
+    ]},
+    { id: 'asistencial', nombre: 'Asistencial', activa: true, orden: 2, subareas: [
         { valor: 'coordinacion', texto: 'Coordinación' },
         { valor: 'coordinacion_asistentes_endoscopia', texto: 'Coordinación de Asistentes de Endoscopía' },
         { valor: 'asistentes_endoscopia', texto: 'Asistentes de Endoscopía' }
-    ]
-};
+    ]}
+];
+
+function areasRRHH() {
+    return state.listaAreasRRHHFirebase?.length ? state.listaAreasRRHHFirebase : areasRRHHIniciales;
+}
+
+function etiquetaArea(area = '') {
+    return areasRRHH().find(item => item.id === area)?.nombre || area || '-';
+}
 
 function etiquetaSubarea(area = '', subarea = '') {
     if (subarea === 'tesoreria_facturacion') return 'Tesorería y Facturación';
 
-    const opciones = subareasPorArea[area] || [];
+    const opciones = areasRRHH().find(item => item.id === area)?.subareas || [];
     const encontrada = opciones.find(opcion => opcion.valor === subarea);
     return encontrada ? encontrada.texto : '-';
 }
 
 function renderizarOpcionesSubarea(area = '', subareaSeleccionada = '') {
-    const opciones = subareasPorArea[area] || [];
+    const opciones = (areasRRHH().find(item => item.id === area)?.subareas || []).filter(opcion => opcion.activa !== false || opcion.valor === subareaSeleccionada);
 
     return `
         <option value="">Seleccionar subárea</option>
@@ -74,6 +73,42 @@ function renderizarOpcionesSubarea(area = '', subareaSeleccionada = '') {
             <option value="${opcion.valor}" ${opcion.valor === subareaSeleccionada ? 'selected' : ''}>${opcion.texto}</option>
         `).join('')}
     `;
+}
+
+export function renderizarListaAreasRRHH() {
+    const contenedor = document.getElementById('lista-areas-rrhh');
+    if (!contenedor) return;
+    contenedor.innerHTML = areasRRHH().map(area => `
+        <section class="border border-slate-200 rounded-2xl overflow-hidden ${area.activa === false ? 'opacity-65' : ''}">
+            <div class="flex items-center gap-2 p-3 bg-slate-50">
+                <input id="nombre-area-rrhh-${area.id}" value="${escaparHTML(area.nombre)}" class="flex-1 bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold">
+                <button onclick="window.actualizarAreaRRHHFirebase('${area.id}')" class="w-8 h-8 inline-flex items-center justify-center text-cyan-700 hover:bg-cyan-100 rounded-lg" title="Guardar nombre"><span class="material-symbols-rounded" style="font-size:17px">save</span></button>
+                <button onclick="window.alternarAreaRRHHFirebase('${area.id}', ${area.activa === false})" class="w-8 h-8 inline-flex items-center justify-center text-slate-600 hover:bg-slate-200 rounded-lg" title="${area.activa === false ? 'Restaurar' : 'Archivar'}"><span class="material-symbols-rounded" style="font-size:17px">${area.activa === false ? 'unarchive' : 'archive'}</span></button>
+            </div>
+            <div class="p-3 space-y-2">
+                ${(area.subareas || []).map(subarea => `
+                    <div class="flex items-center gap-2 ${subarea.activa === false ? 'opacity-50' : ''}">
+                        <span class="material-symbols-rounded text-slate-300" style="font-size:16px">subdirectory_arrow_right</span>
+                        <input id="nombre-subarea-rrhh-${area.id}-${subarea.valor}" value="${escaparHTML(subarea.texto)}" class="flex-1 bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-semibold">
+                        <button onclick="window.actualizarSubareaRRHHFirebase('${area.id}','${subarea.valor}')" class="w-7 h-7 inline-flex items-center justify-center text-cyan-700 hover:bg-cyan-50 rounded-lg" title="Guardar"><span class="material-symbols-rounded" style="font-size:15px">save</span></button>
+                        <button onclick="window.alternarSubareaRRHHFirebase('${area.id}','${subarea.valor}',${subarea.activa === false})" class="w-7 h-7 inline-flex items-center justify-center text-slate-500 hover:bg-slate-100 rounded-lg" title="${subarea.activa === false ? 'Restaurar' : 'Archivar'}"><span class="material-symbols-rounded" style="font-size:15px">${subarea.activa === false ? 'unarchive' : 'archive'}</span></button>
+                    </div>`).join('')}
+                <div class="flex items-center gap-2 pt-1">
+                    <input id="nueva-subarea-rrhh-${area.id}" placeholder="Nueva subárea" class="flex-1 bg-slate-50 border border-dashed border-slate-300 rounded-lg px-3 py-1.5 text-xs">
+                    <button onclick="window.agregarSubareaRRHHFirebase('${area.id}')" class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg text-[11px] font-bold text-slate-700">Agregar</button>
+                </div>
+            </div>
+        </section>`).join('');
+}
+
+export function abrirModalAreasRRHH() {
+    if (!state.esAdminMaster || state.verComoEmail) return;
+    document.getElementById('modal-areas-rrhh').classList.remove('hidden');
+    renderizarListaAreasRRHH();
+}
+
+export function cerrarModalAreasRRHH() {
+    document.getElementById('modal-areas-rrhh').classList.add('hidden');
 }
 
 function etiquetaMotivoSalida(motivo = '') {
@@ -201,8 +236,8 @@ export function renderizarRRHH() {
         const edad = calcularEdad(e.fechaNacimiento);
 
         return `
-            <article data-empleado-rrhh data-busqueda="${escaparHTML(busqueda)}" class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm hover:border-cyan-200 transition">
-                <div class="flex items-start justify-between gap-3">
+            <details name="empleados-rrhh" data-empleado-rrhh data-busqueda="${escaparHTML(busqueda)}" class="grupo-empleado-rrhh bg-white border border-slate-200 rounded-xl shadow-sm hover:border-cyan-200 transition overflow-hidden">
+                <summary class="flex items-center justify-between gap-3 p-4 cursor-pointer select-none list-none">
                     <div>
                         <h4 class="text-sm font-black text-slate-800">${escaparHTML(nombreVisible || 'Sin nombre')}</h4>
                         <p class="text-[11px] text-slate-500 font-semibold mt-0.5">DNI ${escaparHTML(e.dni || '-')} · CUIL ${escaparHTML(e.cuil || '-')}</p>
@@ -216,17 +251,15 @@ export function renderizarRRHH() {
                             ${e.archivado ? `<span class="bg-rose-50 text-rose-700 border border-rose-100 px-2 py-0.5 rounded-lg text-[10px] font-black">Archivada</span>` : ''}
                         </div>
                     </div>
-                    ${puedeEditar ? `<div class="flex items-center gap-1">
-                        <button onclick="window.editarEmpleadoRRHH('${e.id}')" class="text-slate-400 hover:text-cyan-700 p-1 rounded-lg transition" title="Editar ficha">
-                            <span class="material-symbols-rounded" style="font-size:18px;">edit</span>
-                        </button>
-                        <button onclick="window.eliminarEmpleadoRRHHFirebase('${e.id}')" class="text-slate-400 hover:text-red-600 p-1 rounded-lg transition" title="Eliminar ficha">
-                            <span class="material-symbols-rounded" style="font-size:18px;">delete</span>
-                        </button>
-                    </div>` : ''}
-                </div>
+                    <span class="material-symbols-rounded flecha-empleado-rrhh text-slate-400 shrink-0">expand_more</span>
+                </summary>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4 text-xs">
+                <div class="border-t border-slate-100 p-4 bg-slate-50/40">
+                    ${puedeEditar ? `<div class="flex justify-end gap-1 mb-3">
+                        <button onclick="window.editarEmpleadoRRHH('${e.id}')" class="inline-flex items-center gap-1 text-cyan-700 hover:bg-cyan-50 px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition" title="Editar ficha"><span class="material-symbols-rounded" style="font-size:16px;">edit</span> Editar</button>
+                        <button onclick="window.eliminarEmpleadoRRHHFirebase('${e.id}')" class="inline-flex items-center gap-1 text-red-600 hover:bg-red-50 px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition" title="Eliminar ficha"><span class="material-symbols-rounded" style="font-size:16px;">delete</span> Eliminar</button>
+                    </div>` : ''}
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
                     <div class="bg-purple-50 border border-purple-100 rounded-xl p-3 md:col-span-2">
                         <p class="text-[10px] uppercase font-black text-purple-500 tracking-wide">Usuario de intranet asociado</p>
                         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mt-1">
@@ -266,7 +299,8 @@ export function renderizarRRHH() {
                         </div>
                     ` : ''}
                 </div>
-            </article>
+                </div>
+            </details>
         `;
     }).join('') : `
         <div class="bg-white border border-dashed border-slate-200 rounded-2xl p-8 text-center text-slate-400 text-sm italic">
@@ -312,8 +346,7 @@ export function renderizarRRHH() {
                         <label class="block text-[10px] font-black uppercase text-slate-500 mb-1">Área</label>
                         <select id="input-area-empleado-rrhh" onchange="window.actualizarSubareasRRHH()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs focus:ring-2 focus:ring-cyan-500 focus:outline-none">
                             <option value="">Seleccionar área</option>
-                            <option value="administracion" ${empleadoEditando && empleadoEditando.area === 'administracion' ? 'selected' : ''}>Administración</option>
-                            <option value="asistencial" ${empleadoEditando && empleadoEditando.area === 'asistencial' ? 'selected' : ''}>Asistencial</option>
+                            ${areasRRHH().filter(area => area.activa !== false || area.id === empleadoEditando?.area).map(area => `<option value="${area.id}" ${empleadoEditando && empleadoEditando.area === area.id ? 'selected' : ''}>${escaparHTML(area.nombre)}</option>`).join('')}
                         </select>
                     </div>
                     <div class="sm:col-span-2">
@@ -390,6 +423,7 @@ export function renderizarRRHH() {
                             <p class="text-xs text-slate-500 mt-1">Activos: ${totalActivos} · Archivados: ${totalArchivados}</p>
                         </div>
                         <div class="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+                            ${state.esAdminMaster && !state.verComoEmail ? `<button onclick="window.abrirModalAreasRRHH()" class="bg-cyan-50 text-cyan-800 border border-cyan-100 hover:bg-cyan-100 px-3 py-2.5 rounded-xl text-xs font-black transition inline-flex items-center justify-center gap-1.5"><span class="material-symbols-rounded" style="font-size:16px">account_tree</span> Configurar áreas</button>` : ''}
                             <button onclick="window.alternarArchivadosRRHH()" class="${state.verEmpleadosArchivadosRRHH ? 'bg-cyan-700 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'} px-3 py-2.5 rounded-xl text-xs font-black transition inline-flex items-center justify-center gap-1.5">
                                 <span class="material-symbols-rounded" style="font-size:16px;">inventory_2</span>
                                 ${state.verEmpleadosArchivadosRRHH ? 'Ver activos' : 'Ver archivados'}
@@ -402,7 +436,7 @@ export function renderizarRRHH() {
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 2xl:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 gap-2.5">
                     ${filas}
                 </div>
             </section>

@@ -6,7 +6,8 @@ import {
     getDoc,
     onSnapshot, 
     query, 
-    orderBy 
+    orderBy,
+    where
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
@@ -29,16 +30,26 @@ import {
     volverAtras,
     abrirModalGuardia,
     cerrarModalGuardia,
+    abrirModalGuardiasPeriodo,
+    cerrarModalGuardiasPeriodo,
+    actualizarVistaPreviaGuardiasPeriodo,
+    abrirModalNovedadInicio,
+    cerrarModalNovedadInicio,
+    seleccionarDestinatariosNovedad,
+    actualizarContadorDestinatariosNovedad,
+    formatearNovedadInicio,
+    editarNovedadInicio,
+    renderizarGestionNovedadesInicio,
     alternarSidebarMovil,
     cerrarSidebarMovil
-} from './ui.js?v=20261020-clima3';
+} from './ui.js?v=20261021-areas-rrhh';
 
 // Importamos controles específicos de componentes
 import { alternarVistaArchivadas, seleccionarColorPostit } from './components/sugerencias.js';
 import { alternarFiltroSaldadas, procesarArchivoCSV, cancelarCargaCSV, seleccionarTodosSaldos, ordenarSaldos, aplicarOrdenamientoSaldos } from './components/saldos.js';
 import { seleccionarMaterialDidactico } from './components/procedimientos.js';
-import { guardiasMesSiguiente, guardiasMesAnterior } from './components/guardias.js';
-import { alternarArchivadosRRHH, actualizarSubareasRRHH, filtrarEmpleadosRRHH } from './components/rrhh.js';
+import { guardiasMesSiguiente, guardiasMesAnterior } from './components/guardias.js?v=20261021-novedades4';
+import { alternarArchivadosRRHH, actualizarSubareasRRHH, filtrarEmpleadosRRHH, abrirModalAreasRRHH, cerrarModalAreasRRHH, renderizarListaAreasRRHH } from './components/rrhh.js?v=20261021-areas-rrhh';
 import { actualizarMaterialCapacitacion, actualizarTituloSeccionCapacitacion, agregarMaterialCapacitacion, agregarSeccionCapacitacion, abrirMaterialCapacitacion, cancelarEdicionCapacitacion, editarCapacitacion, eliminarCapacitacion, eliminarMaterialCapacitacion, eliminarSeccionCapacitacion, guardarCapacitacion, moverMaterialCapacitacion, moverSeccionCapacitacion, nuevaCapacitacion, seleccionarCapacitacion } from './components/capacitaciones.js';
 
 // Importamos manejadores asincrónicos de base de datos
@@ -79,8 +90,19 @@ import {
     cerrarSesion,
     cambiarClaveFirebase,
     guardarGuardiaFirebase,
-    eliminarGuardiaFirebase
-} from './firebase-handlers.js';
+    eliminarGuardiaFirebase,
+    guardarGuardiasPeriodoFirebase,
+    guardarNovedadInicioFirebase,
+    eliminarNovedadInicioFirebase,
+    archivarNovedadInicioFirebase,
+    inicializarAreasRRHHFirebase,
+    guardarNuevaAreaRRHHFirebase,
+    actualizarAreaRRHHFirebase,
+    alternarAreaRRHHFirebase,
+    agregarSubareaRRHHFirebase,
+    actualizarSubareaRRHHFirebase,
+    alternarSubareaRRHHFirebase
+} from './firebase-handlers.js?v=20261021-areas-rrhh';
 
 // Exponemos las funciones a 'window' para que el HTML pueda llamarlas directamente
 window.abrirModalClave = abrirModalClave;
@@ -100,6 +122,16 @@ window.abrirDocumento = abrirDocumento;
 window.volverAtras = volverAtras;
 window.abrirModalGuardia = abrirModalGuardia;
 window.cerrarModalGuardia = cerrarModalGuardia;
+window.abrirModalGuardiasPeriodo = abrirModalGuardiasPeriodo;
+window.cerrarModalGuardiasPeriodo = cerrarModalGuardiasPeriodo;
+window.actualizarVistaPreviaGuardiasPeriodo = actualizarVistaPreviaGuardiasPeriodo;
+window.abrirModalNovedadInicio = abrirModalNovedadInicio;
+window.cerrarModalNovedadInicio = cerrarModalNovedadInicio;
+window.seleccionarDestinatariosNovedad = seleccionarDestinatariosNovedad;
+window.actualizarContadorDestinatariosNovedad = actualizarContadorDestinatariosNovedad;
+window.formatearNovedadInicio = formatearNovedadInicio;
+window.editarNovedadInicio = editarNovedadInicio;
+window.renderizarGestionNovedadesInicio = renderizarGestionNovedadesInicio;
 window.alternarSidebarMovil = alternarSidebarMovil;
 window.cerrarSidebarMovil = cerrarSidebarMovil;
 
@@ -115,6 +147,18 @@ window.ordenarSaldos = ordenarSaldos;
 window.seleccionarMaterialDidactico = seleccionarMaterialDidactico;
 window.guardiasMesSiguiente = guardiasMesSiguiente;
 window.guardiasMesAnterior = guardiasMesAnterior;
+window.guardarGuardiasPeriodoFirebase = guardarGuardiasPeriodoFirebase;
+window.guardarNovedadInicioFirebase = guardarNovedadInicioFirebase;
+window.eliminarNovedadInicioFirebase = eliminarNovedadInicioFirebase;
+window.archivarNovedadInicioFirebase = archivarNovedadInicioFirebase;
+window.abrirModalAreasRRHH = abrirModalAreasRRHH;
+window.cerrarModalAreasRRHH = cerrarModalAreasRRHH;
+window.guardarNuevaAreaRRHHFirebase = guardarNuevaAreaRRHHFirebase;
+window.actualizarAreaRRHHFirebase = actualizarAreaRRHHFirebase;
+window.alternarAreaRRHHFirebase = alternarAreaRRHHFirebase;
+window.agregarSubareaRRHHFirebase = agregarSubareaRRHHFirebase;
+window.actualizarSubareaRRHHFirebase = actualizarSubareaRRHHFirebase;
+window.alternarSubareaRRHHFirebase = alternarSubareaRRHHFirebase;
 window.filtrarEmpleadosRRHH = filtrarEmpleadosRRHH;
 window.alternarArchivadosRRHH = alternarArchivadosRRHH;
 window.actualizarSubareasRRHH = actualizarSubareasRRHH;
@@ -179,16 +223,21 @@ const permisosRef = collection(db, "permisos");
 const usuariosRef = collection(db, "usuarios");
 const guardiasRef = collection(db, "guardias");
 const empleadosRRHHRef = collection(db, "empleados_rrhh");
+const areasRRHHRef = collection(db, "rrhh_areas");
 const capacitacionesRef = collection(db, "capacitaciones");
+const novedadesRef = collection(db, "novedades");
 
 let unsubscribePermisos = null;
 let unsubscribeSaldos = null;
 let unsubscribeUsuarios = null;
 let unsubscribeEmpleadosRRHH = null;
+let unsubscribeAreasRRHH = null;
 let unsubscribeDocumentos = null;
 let unsubscribeSugerencias = null;
 let unsubscribeGuardias = null;
+let claveConsultaGuardias = '';
 let unsubscribeCapacitaciones = null;
+let unsubscribeNovedades = null;
 
 function normalizarEmail(email) {
     return (email || '').toLowerCase().trim();
@@ -373,7 +422,12 @@ function escucharEmpleadosRRHHSiCorresponde() {
             unsubscribeEmpleadosRRHH();
             unsubscribeEmpleadosRRHH = null;
         }
+        if (unsubscribeAreasRRHH) {
+            unsubscribeAreasRRHH();
+            unsubscribeAreasRRHH = null;
+        }
         state.listaEmpleadosRRHHFirebase = [];
+        state.listaAreasRRHHFirebase = [];
         return;
     }
 
@@ -391,32 +445,43 @@ function escucharEmpleadosRRHHSiCorresponde() {
     }, (error) => {
         console.error("Error al escuchar empleados de RRHH:", error);
     });
+
+    unsubscribeAreasRRHH = onSnapshot(query(areasRRHHRef, orderBy('orden', 'asc')), (snapshot) => {
+        state.listaAreasRRHHFirebase = [];
+        snapshot.forEach((docSnap) => state.listaAreasRRHHFirebase.push({ id: docSnap.id, ...docSnap.data() }));
+        if (snapshot.empty && state.esAdminAutenticado) inicializarAreasRRHHFirebase();
+        if (!document.getElementById('modal-areas-rrhh')?.classList.contains('hidden')) renderizarListaAreasRRHH();
+        if (state.seccionActual === 'rrhh' && !state.viendoDocumento) cambiarVista('rrhh');
+    }, (error) => console.error('Error al escuchar áreas de RRHH:', error));
 }
 
 function escucharGuardiasSiCorresponde() {
     const puedeVerGuardias = state.esAdminMaster || state.tienePermisoGuardias;
+    const emailActual = normalizarEmail(state.usuarioActualEmail);
+    const nuevaClave = puedeVerGuardias ? 'todas' : `personal:${emailActual}`;
 
-    if (!puedeVerGuardias) {
-        if (unsubscribeGuardias) {
-            unsubscribeGuardias();
-            unsubscribeGuardias = null;
-        }
-        state.listaGuardiasFirebase = [];
-        return;
-    }
+    if (unsubscribeGuardias && claveConsultaGuardias === nuevaClave) return;
+    if (unsubscribeGuardias) unsubscribeGuardias();
 
-    if (unsubscribeGuardias) return;
+    unsubscribeGuardias = null;
+    claveConsultaGuardias = nuevaClave;
+    state.listaGuardiasFirebase = [];
 
-    unsubscribeGuardias = onSnapshot(guardiasRef, (snapshot) => {
+    const consultaGuardias = puedeVerGuardias
+        ? guardiasRef
+        : query(guardiasRef, where('asignadosEmails', 'array-contains', emailActual));
+
+    unsubscribeGuardias = onSnapshot(consultaGuardias, (snapshot) => {
         state.listaGuardiasFirebase = [];
         snapshot.forEach((docSnap) => {
             state.listaGuardiasFirebase.push({ id: docSnap.id, ...docSnap.data() });
         });
-        if (state.seccionActual === 'guardias' && !state.viendoDocumento) {
-            cambiarVista('guardias');
+        if ((state.seccionActual === 'guardias' || state.seccionActual === 'inicio') && !state.viendoDocumento) {
+            cambiarVista(state.seccionActual);
         }
     }, (error) => {
         unsubscribeGuardias = null;
+        claveConsultaGuardias = '';
         console.error("Error al escuchar guardias:", error);
     });
 }
@@ -433,7 +498,7 @@ function escucharContenidoGeneral() {
                 inicializarDocumentosBase();
             }
 
-            if ((state.seccionActual === 'dpp' || state.seccionActual === 'procedimientos' || state.seccionActual === 'permisos') && !state.viendoDocumento) {
+            if ((state.seccionActual === 'inicio' || state.seccionActual === 'dpp' || state.seccionActual === 'procedimientos' || state.seccionActual === 'permisos') && !state.viendoDocumento) {
                 cambiarVista(state.seccionActual);
             }
         }, (error) => {
@@ -463,12 +528,25 @@ function escucharContenidoGeneral() {
             snapshot.forEach((docSnap) => {
                 state.listaCapacitacionesFirebase.push({ id: docSnap.id, ...docSnap.data() });
             });
-            if (state.seccionActual === 'capacitaciones' && !state.viendoDocumento) {
-                cambiarVista('capacitaciones');
+            if ((state.seccionActual === 'capacitaciones' || state.seccionActual === 'inicio') && !state.viendoDocumento) {
+                cambiarVista(state.seccionActual);
             }
         }, (error) => {
             unsubscribeCapacitaciones = null;
             console.error("Error al escuchar capacitaciones:", error);
+        });
+    }
+
+    if (!unsubscribeNovedades) {
+        unsubscribeNovedades = onSnapshot(query(novedadesRef, orderBy('fechaCreacion', 'desc')), (snapshot) => {
+            const novedadesPorId = new Map();
+            snapshot.forEach((docSnap) => novedadesPorId.set(docSnap.id, { id: docSnap.id, ...docSnap.data() }));
+            state.listaNovedadesFirebase = [...novedadesPorId.values()];
+            if (!document.getElementById('modal-novedad-inicio')?.classList.contains('hidden')) renderizarGestionNovedadesInicio();
+            if (state.seccionActual === 'inicio' && !state.viendoDocumento) cambiarVista('inicio');
+        }, (error) => {
+            unsubscribeNovedades = null;
+            console.error('Error al escuchar novedades:', error);
         });
     }
 }
@@ -478,7 +556,8 @@ function detenerContenidoGeneral() {
         ['documentos', unsubscribeDocumentos],
         ['sugerencias', unsubscribeSugerencias],
         ['guardias', unsubscribeGuardias],
-        ['capacitaciones', unsubscribeCapacitaciones]
+        ['capacitaciones', unsubscribeCapacitaciones],
+        ['novedades', unsubscribeNovedades]
     ].forEach(([, unsubscribe]) => {
         if (unsubscribe) unsubscribe();
     });
@@ -486,11 +565,14 @@ function detenerContenidoGeneral() {
     unsubscribeDocumentos = null;
     unsubscribeSugerencias = null;
     unsubscribeGuardias = null;
+    claveConsultaGuardias = '';
     unsubscribeCapacitaciones = null;
+    unsubscribeNovedades = null;
     state.listaDocumentosFirebase = [];
     state.listaSugerencias = [];
     state.listaGuardiasFirebase = [];
     state.listaCapacitacionesFirebase = [];
+    state.listaNovedadesFirebase = [];
 }
 
 function escucharPermisosUsuario(email) {

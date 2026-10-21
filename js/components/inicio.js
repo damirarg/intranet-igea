@@ -104,6 +104,80 @@ export function inicializarInicio() {
     cargarClimaInicio();
 }
 
+function escaparHTML(valor) {
+    return String(valor || '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+}
+
+function sanitizarHTMLNovedad(valor) {
+    const documento = new DOMParser().parseFromString(`<div>${valor || ''}</div>`, 'text/html');
+    const permitidos = new Set(['DIV', 'P', 'BR', 'B', 'STRONG', 'I', 'EM', 'U']);
+    const limpiar = nodo => [...nodo.childNodes].forEach(hijo => {
+        if (hijo.nodeType !== Node.ELEMENT_NODE) return;
+        limpiar(hijo);
+        if (!permitidos.has(hijo.tagName)) hijo.replaceWith(...hijo.childNodes);
+        else [...hijo.attributes].forEach(atributo => hijo.removeAttribute(atributo.name));
+    });
+    const raiz = documento.body.firstElementChild;
+    limpiar(raiz);
+    return raiz.innerHTML;
+}
+
+function fechaDesdeValor(valor) {
+    if (!valor) return null;
+    if (typeof valor.toDate === 'function') return valor.toDate();
+    if (Number.isFinite(valor.seconds)) return new Date(valor.seconds * 1000);
+    if (valor instanceof Date) return valor;
+    if (/^\d{4}-\d{2}-\d{2}/.test(String(valor))) return new Date(`${String(valor).slice(0, 10)}T12:00:00`);
+    const partes = String(valor).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    return partes ? new Date(Number(partes[3]), Number(partes[2]) - 1, Number(partes[1]), 12) : null;
+}
+
+function formatearFechaBreve(valor) {
+    const fecha = fechaDesdeValor(valor);
+    if (!fecha || Number.isNaN(fecha.getTime())) return '';
+    return fecha.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' });
+}
+
+function formatearFechaHora(valor) {
+    const fecha = fechaDesdeValor(valor);
+    if (!fecha || Number.isNaN(fecha.getTime())) return '';
+    return fecha.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' }) + ' · ' + fecha.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+}
+
+function fechaISOHoy() {
+    const ahora = new Date();
+    return `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(ahora.getDate()).padStart(2, '0')}`;
+}
+
+function itemParaVos({ icono, color, etiqueta, titulo, detalle, vista, externo = '' }) {
+    const accion = externo
+        ? `href="${externo}" target="_blank" rel="noopener noreferrer"`
+        : vista ? `href="#" onclick="event.preventDefault(); cambiarVista('${vista}')"` : '';
+    const etiquetaElemento = externo || vista ? 'a' : 'div';
+    return `
+        <${etiquetaElemento} ${accion} class="inicio-tarea group">
+            <span class="inicio-tarea-icono ${color}"><span class="material-symbols-rounded">${icono}</span></span>
+            <span class="min-w-0 flex-1">
+                <span class="inicio-tarea-etiqueta">${escaparHTML(etiqueta)}</span>
+                <strong>${escaparHTML(titulo)}</strong>
+                <small>${escaparHTML(detalle)}</small>
+            </span>
+            ${externo || vista ? '<span class="material-symbols-rounded inicio-tarea-flecha">arrow_forward</span>' : ''}
+        </${etiquetaElemento}>`;
+}
+
+function accesoFrecuente({ icono, titulo, vista, color, externo = '' }) {
+    const accion = externo
+        ? `href="${externo}" target="_blank" rel="noopener noreferrer"`
+        : `href="#" onclick="event.preventDefault(); cambiarVista('${vista}')"`;
+    return `<a ${accion} class="inicio-acceso"><span class="material-symbols-rounded ${color}">${icono}</span><span>${escaparHTML(titulo)}</span><span class="material-symbols-rounded">chevron_right</span></a>`;
+}
+
 export function renderizarInicio() {
     let nombreSaludo = state.usuarioActualEmail; 
     const empleado = baseRecibos.find(emp => emp.email.toLowerCase().trim() === state.usuarioActualEmail.toLowerCase().trim());
@@ -112,48 +186,69 @@ export function renderizarInicio() {
         nombreSaludo = partesDelNombre.pop();
     }
 
-    let tarjetaSaldosHTML = (state.tienePermisoSaldos || state.esAdminMaster) ? `
-        <div class="bg-white p-5 md:p-6 rounded-3xl border-t-4 border-t-rose-500 border-x border-b border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col justify-center" onclick="cambiarVista('saldos')">
-            <div class="w-10 h-10 md:w-12 md:h-12 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center mb-3 md:mb-4 group-hover:bg-rose-600 group-hover:text-white transition-colors">
-                <span class="material-symbols-rounded icon-large">request_quote</span>
-            </div>
-            <h4 class="font-bold text-base md:text-lg text-slate-800 mb-1 leading-tight">Gestión Saldos</h4>
-            <p class="text-slate-500 leading-relaxed text-xs">Control de cuentas particulares.</p>
-        </div>
-    ` : '';
+    const emailActual = String(state.usuarioActualEmail || '').toLowerCase().trim();
+    const hoy = fechaISOHoy();
+    const proximaGuardia = [...state.listaGuardiasFirebase]
+        .filter(guardia => guardia.fecha >= hoy && (
+            String(guardia.colaboradorEmail || '').toLowerCase().trim() === emailActual
+            || (guardia.enfermeria || []).some(persona => String(persona.email || '').toLowerCase().trim() === emailActual)
+        ))
+        .sort((a, b) => String(a.fecha).localeCompare(String(b.fecha)))[0];
+    const capacitaciones = [...state.listaCapacitacionesFirebase].sort((a, b) => String(b.fecha || '').localeCompare(String(a.fecha || '')));
+    const procedimientos = state.listaDocumentosFirebase.filter(item => item.tipo === 'procedimiento');
+    const capacitacionReciente = capacitaciones[0];
+    const procedimientoReciente = procedimientos[0];
 
-    let tarjetaPermisosHTML = state.esAdminMaster ? `
-        <div class="bg-white p-5 md:p-6 rounded-3xl border-t-4 border-t-purple-500 border-x border-b border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col justify-center" onclick="cambiarVista('permisos')">
-            <div class="w-10 h-10 md:w-12 md:h-12 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center mb-3 md:mb-4 group-hover:bg-purple-600 group-hover:text-white transition-colors">
-                <span class="material-symbols-rounded icon-large">admin_panel_settings</span>
-            </div>
-            <h4 class="font-bold text-base md:text-lg text-slate-800 mb-1 leading-tight">Panel Permisos</h4>
-            <p class="text-slate-500 leading-relaxed text-xs">Administración de accesos y documentos.</p>
-        </div>
-    ` : '';
+    const itemsPersonales = [];
+    if (empleado?.urlCarpeta) {
+        itemsPersonales.push(itemParaVos({ icono: 'receipt_long', color: 'text-indigo-600 bg-indigo-50', etiqueta: 'Tu legajo', titulo: 'Mis recibos', detalle: 'Consultá tus recibos de sueldo disponibles.', vista: 'recibos' }));
+    }
+    if (proximaGuardia) {
+        const esEnfermeria = (proximaGuardia.enfermeria || []).some(persona => String(persona.email || '').toLowerCase().trim() === emailActual);
+        const tipoGuardia = esEnfermeria ? 'Guardia de enfermería' : 'Guardia administrativa';
+        itemsPersonales.push(itemParaVos({ icono: 'calendar_month', color: esEnfermeria ? 'text-violet-700 bg-violet-50' : 'text-sky-700 bg-sky-50', etiqueta: 'Próxima guardia', titulo: formatearFechaBreve(proximaGuardia.fecha), detalle: proximaGuardia.feriado ? `${tipoGuardia} · Feriado` : `${tipoGuardia} asignada.`, vista: state.tienePermisoGuardias || state.esAdminMaster ? 'guardias' : '' }));
+    } else if (state.tienePermisoGuardias || state.esAdminMaster) {
+        itemsPersonales.push(itemParaVos({ icono: 'calendar_month', color: 'text-sky-700 bg-sky-50', etiqueta: 'Guardias pasivas', titulo: 'Consultar cronograma', detalle: 'Revisá las próximas asignaciones.', vista: 'guardias' }));
+    }
+    if (capacitacionReciente) {
+        itemsPersonales.push(itemParaVos({ icono: 'school', color: 'text-violet-700 bg-violet-50', etiqueta: 'Capacitación reciente', titulo: capacitacionReciente.titulo, detalle: `${capacitacionReciente.area || 'Toda la institución'}${capacitacionReciente.fecha ? ` · ${formatearFechaBreve(capacitacionReciente.fecha)}` : ''}`, vista: 'capacitaciones' }));
+    }
+    if (procedimientoReciente) {
+        itemsPersonales.push(itemParaVos({ icono: 'rule', color: 'text-emerald-700 bg-emerald-50', etiqueta: 'Documentación operativa', titulo: procedimientoReciente.nombre, detalle: 'Accedé a la normativa y materiales vigentes.', vista: 'procedimientos' }));
+    }
 
-    let tarjetaRRHHHTML = (state.tienePermisoRRHH || state.esAdminMaster) ? `
-        <div class="bg-white p-5 md:p-6 rounded-3xl border-t-4 border-t-cyan-500 border-x border-b border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col justify-center" onclick="cambiarVista('rrhh')">
-            <div class="w-10 h-10 md:w-12 md:h-12 bg-cyan-50 text-cyan-700 rounded-2xl flex items-center justify-center mb-3 md:mb-4 group-hover:bg-cyan-700 group-hover:text-white transition-colors">
-                <span class="material-symbols-rounded icon-large">groups</span>
-            </div>
-            <h4 class="font-bold text-base md:text-lg text-slate-800 mb-1 leading-tight">RRHH</h4>
-            <p class="text-slate-500 leading-relaxed text-xs">Base interna de empleados.</p>
-        </div>
-    ` : '';
+    const accesos = [
+        { icono: 'rule', titulo: 'Procedimientos', vista: 'procedimientos', color: 'text-emerald-600' },
+        { icono: 'school', titulo: 'Capacitaciones', vista: 'capacitaciones', color: 'text-violet-600' },
+        empleado?.urlCarpeta
+            ? { icono: 'receipt_long', titulo: 'Mis recibos', vista: 'recibos', color: 'text-indigo-600' }
+            : { icono: 'badge', titulo: 'Directorio DPP', vista: 'dpp', color: 'text-blue-600' },
+        { icono: 'beach_access', titulo: 'Absentify', externo: 'https://app.absentify.com', color: 'text-teal-600' }
+    ];
 
-    let tarjetaGuardiasHTML = (state.tienePermisoGuardias || state.esAdminMaster) ? `
-        <div class="bg-white p-5 md:p-6 rounded-3xl border-t-4 border-t-sky-500 border-x border-b border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col justify-center" onclick="cambiarVista('guardias')">
-            <div class="w-10 h-10 md:w-12 md:h-12 bg-sky-50 text-sky-600 rounded-2xl flex items-center justify-center mb-3 md:mb-4 group-hover:bg-sky-600 group-hover:text-white transition-colors">
-                <span class="material-symbols-rounded icon-large">calendar_month</span>
-            </div>
-            <h4 class="font-bold text-base md:text-lg text-slate-800 mb-1 leading-tight">Guardias Pasivas</h4>
-            <p class="text-slate-500 leading-relaxed text-xs">Calendario y asignación de turnos.</p>
-        </div>
-    ` : '';
+    const actualizaciones = [
+        ...capacitaciones.map(item => ({ tipo: 'Capacitación', titulo: item.titulo, fecha: item.fecha, vista: 'capacitaciones', icono: 'school', color: 'text-violet-600 bg-violet-50' })),
+        ...state.listaDocumentosFirebase.map(item => ({ tipo: item.tipo === 'dpp' ? 'DPP' : 'Procedimiento', titulo: item.nombre, fecha: item.fechaAlta || item.fecha, vista: item.tipo === 'dpp' ? 'dpp' : 'procedimientos', icono: item.tipo === 'dpp' ? 'badge' : 'rule', color: item.tipo === 'dpp' ? 'text-blue-600 bg-blue-50' : 'text-emerald-600 bg-emerald-50' }))
+    ].sort((a, b) => (fechaDesdeValor(b.fecha)?.getTime() || 0) - (fechaDesdeValor(a.fecha)?.getTime() || 0)).slice(0, 5);
+
+    const actualizacionesHTML = actualizaciones.length ? actualizaciones.map(item => `
+        <button onclick="cambiarVista('${item.vista}')" class="inicio-novedad">
+            <span class="inicio-novedad-icono ${item.color}"><span class="material-symbols-rounded">${item.icono}</span></span>
+            <span class="min-w-0 flex-1"><small>${escaparHTML(item.tipo)}${item.fecha ? ` · ${formatearFechaBreve(item.fecha)}` : ''}</small><strong>${escaparHTML(item.titulo)}</strong></span>
+            <span class="material-symbols-rounded">chevron_right</span>
+        </button>`).join('') : '<p class="inicio-vacio">Las nuevas publicaciones aparecerán en este espacio.</p>';
+
+    const novedadesInstitucionales = [...new Map((state.listaNovedadesFirebase || []).map(item => [item.id, item])).values()]
+        .filter(item => !item.archivada && (state.esAdminMaster || (item.destinatariosEmails || []).map(email => String(email).toLowerCase().trim()).includes(emailActual)))
+        .sort((a, b) => (fechaDesdeValor(b.fechaCreacion)?.getTime() || 0) - (fechaDesdeValor(a.fechaCreacion)?.getTime() || 0));
+    const novedadesInstitucionalesHTML = novedadesInstitucionales.length ? novedadesInstitucionales.slice(0, 8).map(item => `
+        <article class="inicio-comunicado">
+            <div class="inicio-comunicado-meta"><span>${escaparHTML(formatearFechaHora(item.fechaCreacion))}</span>${state.esAdminMaster && !state.verComoEmail ? `<span class="inicio-comunicado-acciones"><button onclick="window.editarNovedadInicio('${item.id}')" title="Editar novedad"><span class="material-symbols-rounded">edit</span></button><button onclick="window.archivarNovedadInicioFirebase('${item.id}', true)" title="Archivar novedad"><span class="material-symbols-rounded">archive</span></button><button onclick="window.eliminarNovedadInicioFirebase('${item.id}')" title="Eliminar novedad"><span class="material-symbols-rounded">delete</span></button></span>` : ''}</div>
+            <p>${item.contenidoHtml ? sanitizarHTMLNovedad(item.contenidoHtml) : escaparHTML(item.mensaje)}</p>
+        </article>`).join('') : '<p class="inicio-vacio">No hay novedades institucionales para mostrar.</p>';
 
     return `
-        <div class="relative w-full min-h-48 md:h-56 rounded-3xl overflow-hidden mb-6 md:mb-8 shadow-sm flex items-center px-6 py-5 md:px-10 border border-slate-200 shrink-0">
+        <div class="relative w-full min-h-48 md:h-52 rounded-2xl overflow-hidden mb-5 shadow-sm flex items-center px-6 py-5 md:px-9 border border-slate-200 shrink-0">
             <video autoplay loop muted playsinline class="absolute inset-0 w-full h-full object-cover opacity-20">
                 <source src="./assets/helice-adn.mp4" type="video/mp4">
             </video>
@@ -182,59 +277,28 @@ export function renderizarInicio() {
             </div>
         </div>
         
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6 shrink-0 pb-10">
-            <div class="bg-white p-5 md:p-6 rounded-3xl border-t-4 border-t-blue-500 border-x border-b border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col justify-center" onclick="cambiarVista('dpp')">
-                <div class="w-10 h-10 md:w-12 md:h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-3 md:mb-4 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                    <span class="material-symbols-rounded icon-large">badge</span>
+        <div class="inicio-tablero pb-8">
+            <section class="inicio-bloque inicio-bloque-principal">
+                <div class="inicio-bloque-cabecera"><div><span>Resumen personal</span><h3>Para vos</h3></div><span class="material-symbols-rounded">person_check</span></div>
+                <div class="inicio-tareas">
+                    ${itemsPersonales.slice(0, 4).join('') || '<p class="inicio-vacio">No tenés novedades personales pendientes.</p>'}
                 </div>
-                <h4 class="font-bold text-base md:text-lg text-slate-800 mb-1 leading-tight">Directorio DPP</h4>
-                <p class="text-slate-500 leading-relaxed text-xs">Descripciones de perfil y puestos.</p>
-            </div>
+            </section>
 
-            <div class="bg-white p-5 md:p-6 rounded-3xl border-t-4 border-t-emerald-500 border-x border-b border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col justify-center" onclick="cambiarVista('procedimientos')">
-                <div class="w-10 h-10 md:w-12 md:h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mb-3 md:mb-4 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
-                    <span class="material-symbols-rounded icon-large">rule</span>
-                </div>
-                <h4 class="font-bold text-base md:text-lg text-slate-800 mb-1 leading-tight">Procedimientos</h4>
-                <p class="text-slate-500 leading-relaxed text-xs">Normativa vigente y protocolos.</p>
-            </div>
+            <section class="inicio-bloque">
+                <div class="inicio-bloque-cabecera"><div><span>Navegación rápida</span><h3>Accesos frecuentes</h3></div><span class="material-symbols-rounded">bolt</span></div>
+                <div class="inicio-accesos">${accesos.map(accesoFrecuente).join('')}</div>
+            </section>
 
-            <div class="bg-white p-5 md:p-6 rounded-3xl border-t-4 border-t-violet-500 border-x border-b border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col justify-center" onclick="cambiarVista('capacitaciones')">
-                <div class="w-10 h-10 md:w-12 md:h-12 bg-violet-50 text-violet-600 rounded-2xl flex items-center justify-center mb-3 md:mb-4 group-hover:bg-violet-600 group-hover:text-white transition-colors">
-                    <span class="material-symbols-rounded icon-large">school</span>
-                </div>
-                <h4 class="font-bold text-base md:text-lg text-slate-800 mb-1 leading-tight">Capacitaciones</h4>
-                <p class="text-slate-500 leading-relaxed text-xs">Materiales de formación institucional.</p>
-            </div>
+            <section class="inicio-bloque inicio-bloque-novedades">
+                <div class="inicio-bloque-cabecera"><div><span>Comunicaciones</span><h3>Novedades</h3></div>${state.esAdminMaster && !state.verComoEmail ? '<button onclick="window.abrirModalNovedadInicio()" class="inicio-publicar-novedad"><span class="material-symbols-rounded">add</span> Publicar</button>' : '<span class="material-symbols-rounded">campaign</span>'}</div>
+                <div class="inicio-comunicados">${novedadesInstitucionalesHTML}</div>
+            </section>
 
-            <div class="bg-white p-5 md:p-6 rounded-3xl border-t-4 border-t-indigo-500 border-x border-b border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col justify-center" onclick="cambiarVista('recibos')">
-                <div class="w-10 h-10 md:w-12 md:h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mb-3 md:mb-4 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
-                    <span class="material-symbols-rounded icon-large">receipt_long</span>
-                </div>
-                <h4 class="font-bold text-base md:text-lg text-slate-800 mb-1 leading-tight">Mis Recibos</h4>
-                <p class="text-slate-500 leading-relaxed text-xs">Carpeta privada de sueldos.</p>
-            </div>
-
-            <div class="bg-white p-5 md:p-6 rounded-3xl border-t-4 border-t-amber-500 border-x border-b border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col justify-center" onclick="cambiarVista('sugerencias')">
-                <div class="w-10 h-10 md:w-12 md:h-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center mb-3 md:mb-4 group-hover:bg-amber-600 group-hover:text-white transition-colors">
-                    <span class="material-symbols-rounded icon-large">sticky_note_2</span>
-                </div>
-                <h4 class="font-bold text-base md:text-lg text-slate-800 mb-1 leading-tight">Sugerencias</h4>
-                <p class="text-slate-500 leading-relaxed text-xs">Mural de ideas y propuestas.</p>
-            </div>
-
-            <a href="https://app.absentify.com" target="_blank" class="bg-white p-5 md:p-6 rounded-3xl border-t-4 border-t-teal-500 border-x border-b border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col justify-center">
-                <div class="w-10 h-10 md:w-12 md:h-12 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center mb-3 md:mb-4 group-hover:bg-teal-600 group-hover:text-white transition-colors">
-                    <span class="material-symbols-rounded icon-large">beach_access</span>
-                </div>
-                <h4 class="font-bold text-base md:text-lg text-slate-800 mb-1 leading-tight">Absentify ↗</h4>
-                <p class="text-slate-500 leading-relaxed text-xs">Gestión de vacaciones y licencias.</p>
-            </a>
-
-            ${tarjetaSaldosHTML}
-            ${tarjetaGuardiasHTML}
-            ${tarjetaRRHHHTML}
-            ${tarjetaPermisosHTML}
+            <section class="inicio-bloque inicio-bloque-novedades">
+                <div class="inicio-bloque-cabecera"><div><span>Portal IGEA</span><h3>Actualizaciones recientes</h3></div><span class="material-symbols-rounded">update</span></div>
+                <div class="inicio-novedades">${actualizacionesHTML}</div>
+            </section>
         </div>
     `;
 }

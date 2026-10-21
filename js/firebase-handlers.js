@@ -29,15 +29,20 @@ import {
     cerrarModalClave,
     cambiarVista,
     abrirModalGestion,
-    cerrarModalGuardia
-} from './ui.js';
+    cerrarModalGuardia,
+    cerrarModalGuardiasPeriodo,
+    cerrarModalNovedadInicio,
+    renderizarGestionNovedadesInicio
+} from './ui.js?v=20261021-areas-rrhh';
 
 const documentosRef = collection(db, "documentos_dpp_proc");
 const sugerenciasRef = collection(db, "sugerencias");
 const saldosRef = collection(db, "saldos");
 const permisosRef = collection(db, "permisos");
 const empleadosRRHHRef = collection(db, "empleados_rrhh");
+const areasRRHHRef = collection(db, "rrhh_areas");
 const guardiasRef = collection(db, "guardias");
+const novedadesRef = collection(db, "novedades");
 const ausenciasRef = collection(db, "ausencias");
 const ajustesVacacionesRef = collection(db, "vacaciones_ajustes");
 const reglasVacacionesRef = collection(db, "vacaciones_reglas");
@@ -48,6 +53,73 @@ const actualizarNombreUsuarioIntranetFn = httpsCallable(functions, "actualizarNo
 const cambiarEstadoUsuarioIntranetFn = httpsCallable(functions, "cambiarEstadoUsuarioIntranet");
 const sincronizarUsuariosDesdePermisosFn = httpsCallable(functions, "sincronizarUsuariosDesdePermisos");
 const MODULOS_GESTIONABLES = ["saldos", "guardias", "rrhh", "vacaciones", "capacitaciones"];
+
+function slugRRHH(valor) {
+    return String(valor || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+}
+
+export async function inicializarAreasRRHHFirebase() {
+    if (!state.esAdminAutenticado) return;
+    const iniciales = [
+        { id: 'administracion', nombre: 'Administración', orden: 1, activa: true, subareas: [
+            { valor: 'admision', texto: 'Admisión', activa: true }, { valor: 'coordinacion', texto: 'Coordinación', activa: true }, { valor: 'atencion_telefonica', texto: 'Atención Telefónica', activa: true }, { valor: 'tesoreria', texto: 'Tesorería', activa: true }, { valor: 'facturacion', texto: 'Facturación', activa: true }
+        ]},
+        { id: 'asistencial', nombre: 'Asistencial', orden: 2, activa: true, subareas: [
+            { valor: 'coordinacion', texto: 'Coordinación', activa: true }, { valor: 'coordinacion_asistentes_endoscopia', texto: 'Coordinación de Asistentes de Endoscopía', activa: true }, { valor: 'asistentes_endoscopia', texto: 'Asistentes de Endoscopía', activa: true }
+        ]}
+    ];
+    await Promise.all(iniciales.map(({ id, ...datos }) => setDoc(doc(areasRRHHRef, id), datos)));
+}
+
+export async function guardarNuevaAreaRRHHFirebase() {
+    if (bloquearCambiosEnModoVerComo() || !state.esAdminMaster) return;
+    const input = document.getElementById('nueva-area-rrhh');
+    const nombre = input.value.trim();
+    const id = slugRRHH(nombre);
+    if (!nombre || !id) return alert('Ingresá un nombre de área válido.');
+    if ((state.listaAreasRRHHFirebase || []).some(area => area.id === id)) return alert('Ya existe un área con ese nombre.');
+    await setDoc(doc(areasRRHHRef, id), { nombre, activa: true, orden: (state.listaAreasRRHHFirebase || []).length + 1, subareas: [] });
+    input.value = '';
+}
+
+export async function actualizarAreaRRHHFirebase(id) {
+    if (bloquearCambiosEnModoVerComo() || !state.esAdminMaster) return;
+    const nombre = document.getElementById(`nombre-area-rrhh-${id}`).value.trim();
+    if (!nombre) return alert('El área debe tener un nombre.');
+    await updateDoc(doc(areasRRHHRef, id), { nombre });
+}
+
+export async function alternarAreaRRHHFirebase(id, activa) {
+    if (bloquearCambiosEnModoVerComo() || !state.esAdminMaster) return;
+    await updateDoc(doc(areasRRHHRef, id), { activa });
+}
+
+export async function agregarSubareaRRHHFirebase(areaId) {
+    if (bloquearCambiosEnModoVerComo() || !state.esAdminMaster) return;
+    const input = document.getElementById(`nueva-subarea-rrhh-${areaId}`);
+    const texto = input.value.trim();
+    const valor = slugRRHH(texto);
+    const area = (state.listaAreasRRHHFirebase || []).find(item => item.id === areaId);
+    if (!texto || !valor || !area) return alert('Ingresá un nombre de subárea válido.');
+    if ((area.subareas || []).some(item => item.valor === valor)) return alert('La subárea ya existe.');
+    await updateDoc(doc(areasRRHHRef, areaId), { subareas: [...(area.subareas || []), { valor, texto, activa: true }] });
+    input.value = '';
+}
+
+export async function actualizarSubareaRRHHFirebase(areaId, subareaId) {
+    if (bloquearCambiosEnModoVerComo() || !state.esAdminMaster) return;
+    const area = (state.listaAreasRRHHFirebase || []).find(item => item.id === areaId);
+    const texto = document.getElementById(`nombre-subarea-rrhh-${areaId}-${subareaId}`).value.trim();
+    if (!area || !texto) return;
+    await updateDoc(doc(areasRRHHRef, areaId), { subareas: (area.subareas || []).map(item => item.valor === subareaId ? { ...item, texto } : item) });
+}
+
+export async function alternarSubareaRRHHFirebase(areaId, subareaId, activa) {
+    if (bloquearCambiosEnModoVerComo() || !state.esAdminMaster) return;
+    const area = (state.listaAreasRRHHFirebase || []).find(item => item.id === areaId);
+    if (!area) return;
+    await updateDoc(doc(areasRRHHRef, areaId), { subareas: (area.subareas || []).map(item => item.valor === subareaId ? { ...item, activa } : item) });
+}
 
 function normalizarEmailPermiso(email) {
     return email.trim().toLowerCase();
@@ -109,6 +181,26 @@ function normalizarUrlGoogleDrive(url) {
     }
 
     return limpia;
+}
+
+function sanitizarHTMLNovedad(html) {
+    const documento = new DOMParser().parseFromString(`<div>${html}</div>`, 'text/html');
+    const permitidos = new Set(['DIV', 'P', 'BR', 'B', 'STRONG', 'I', 'EM', 'U']);
+    const limpiar = nodo => {
+        [...nodo.childNodes].forEach(hijo => {
+            if (hijo.nodeType === Node.ELEMENT_NODE) {
+                limpiar(hijo);
+                if (!permitidos.has(hijo.tagName)) {
+                    hijo.replaceWith(...hijo.childNodes);
+                } else {
+                    [...hijo.attributes].forEach(atributo => hijo.removeAttribute(atributo.name));
+                }
+            }
+        });
+    };
+    const raiz = documento.body.firstElementChild;
+    limpiar(raiz);
+    return raiz.innerHTML;
 }
 
 // CARGA SEMILLA AUTOMATICA
@@ -1493,19 +1585,15 @@ export async function guardarGuardiaFirebase() {
     const emailColab = document.getElementById('select-colaborador-guardia').value;
     const esFeriado = document.getElementById('check-feriado-guardia').checked;
     const notas = document.getElementById('texto-notes-guardia').value.trim();
-    const textoMedicos = document.getElementById('texto-medicos-guardia').value.trim();
-    const medicos = textoMedicos
-        ? textoMedicos.split('\n').map(linea => {
-            const partes = linea.split('|').map(p => p.trim());
-            return {
-                nombre: partes[0] || '',
-                especialidad: partes[1] || '',
-                contacto: partes[2] || ''
-            };
-        }).filter(m => m.nombre)
-        : [];
+    const emailsEnfermeria = [...document.querySelectorAll('input[name="enfermeria-guardia"]:checked')].map(input => input.value);
+    const enfermeria = emailsEnfermeria.map(email => {
+        const persona = baseRecibos.find(emp => emp.email.toLowerCase().trim() === email.toLowerCase().trim());
+        return { email, nombre: persona?.nombre || email };
+    });
+    const medicos = [...document.querySelectorAll('input[name="medicos-guardia"]:checked')]
+        .map(input => ({ nombre: input.value, especialidad: '', contacto: '' }));
 
-    if (!emailColab && !esFeriado && !notas && medicos.length === 0) {
+    if (!emailColab && !esFeriado && !notas && medicos.length === 0 && enfermeria.length === 0) {
         return eliminarGuardiaFirebase();
     }
 
@@ -1523,6 +1611,8 @@ export async function guardarGuardiaFirebase() {
             fecha: state.guardiaDiaSeleccionado,
             colaboradorEmail: emailColab,
             colaboradorNombre: nombreColab,
+            enfermeria,
+            asignadosEmails: [...new Set([emailColab, ...emailsEnfermeria].filter(Boolean).map(email => email.toLowerCase().trim()))],
             medicos: medicos,
             feriado: esFeriado,
             notas: notas,
@@ -1533,6 +1623,175 @@ export async function guardarGuardiaFirebase() {
         cerrarModalGuardia();
     } catch (e) {
         alert("Error al guardar guardia: " + e.message);
+    }
+}
+
+export async function guardarGuardiasPeriodoFirebase() {
+    if (bloquearCambiosEnModoVerComo()) return;
+    if (!state.puedeEditarGuardias) return alert("No tenes permisos para editar guardias.");
+
+    const desde = document.getElementById('guardias-periodo-desde').value;
+    const hasta = document.getElementById('guardias-periodo-hasta').value;
+    const diasIncluidos = new Set([...document.querySelectorAll('input[name="dia-guardia-periodo"]:checked')].map(input => Number(input.value)));
+    const politica = document.getElementById('guardias-periodo-politica').value;
+    const excluirFeriados = document.getElementById('guardias-periodo-excluir-feriados').checked;
+    const emailAdministracion = document.getElementById('guardias-periodo-administracion').value;
+    const emailsEnfermeria = [...document.querySelectorAll('input[name="enfermeria-guardia-periodo"]:checked')].map(input => input.value);
+    const nombresMedicos = [...document.querySelectorAll('input[name="medicos-guardia-periodo"]:checked')].map(input => input.value);
+
+    if (!desde || !hasta || desde > hasta) return alert("Seleccioná un rango de fechas válido.");
+    if (diasIncluidos.size === 0) return alert("Seleccioná al menos un día de la semana.");
+    if (!emailAdministracion && emailsEnfermeria.length === 0 && nombresMedicos.length === 0) return alert("Seleccioná al menos una persona para la guardia.");
+
+    const [anioDesde, mesDesde, diaDesde] = desde.split('-').map(Number);
+    const [anioHasta, mesHasta, diaHasta] = hasta.split('-').map(Number);
+    const fechaActual = new Date(anioDesde, mesDesde - 1, diaDesde, 12);
+    const fechaHasta = new Date(anioHasta, mesHasta - 1, diaHasta, 12);
+    const fechas = [];
+    while (fechaActual <= fechaHasta && fechas.length <= 366) {
+        if (diasIncluidos.has(fechaActual.getDay())) {
+            fechas.push(`${fechaActual.getFullYear()}-${String(fechaActual.getMonth() + 1).padStart(2, '0')}-${String(fechaActual.getDate()).padStart(2, '0')}`);
+        }
+        fechaActual.setDate(fechaActual.getDate() + 1);
+    }
+
+    if (fechaActual <= fechaHasta) return alert("El período no puede superar los 366 días seleccionados.");
+
+    const existentes = new Map(state.listaGuardiasFirebase.map(guardia => [guardia.fecha, guardia]));
+    const fechasAplicables = fechas.filter(fecha => {
+        const existente = existentes.get(fecha);
+        if (excluirFeriados && existente?.feriado) return false;
+        if (politica === 'conservar' && existente) return false;
+        return true;
+    });
+    if (fechasAplicables.length === 0) return alert("No hay fechas para modificar con la configuración elegida.");
+
+    const existentesAfectadas = fechasAplicables.filter(fecha => existentes.has(fecha)).length;
+    const accion = politica === 'reemplazar' && existentesAfectadas > 0
+        ? `Se reemplazará el equipo de ${existentesAfectadas} guardia${existentesAfectadas === 1 ? '' : 's'} existente${existentesAfectadas === 1 ? '' : 's'}.`
+        : `Se asignará el equipo en ${fechasAplicables.length} fecha${fechasAplicables.length === 1 ? '' : 's'}.`;
+    if (!confirm(`${accion}\n\n¿Confirmás la asignación por período?`)) return;
+
+    const enfermeriaSeleccionada = emailsEnfermeria.map(email => {
+        const persona = baseRecibos.find(emp => emp.email.toLowerCase().trim() === email.toLowerCase().trim());
+        return { email, nombre: persona?.nombre || email };
+    });
+    const medicosSeleccionados = nombresMedicos.map(nombre => ({ nombre, especialidad: '', contacto: '' }));
+    const adminSeleccionado = emailAdministracion
+        ? baseRecibos.find(emp => emp.email.toLowerCase().trim() === emailAdministracion.toLowerCase().trim())
+        : null;
+    const btn = document.getElementById('btn-guardar-guardias-periodo');
+    const htmlOriginal = activarBotonCarga(btn, 'Asignando...');
+    let omitidas = 0;
+    let guardadas = 0;
+
+    try {
+        const operaciones = fechas.map(fecha => {
+            const existente = existentes.get(fecha);
+            if ((excluirFeriados && existente?.feriado) || (politica === 'conservar' && existente)) {
+                omitidas++;
+                return null;
+            }
+
+            let colaboradorEmail = emailAdministracion;
+            let colaboradorNombre = adminSeleccionado?.nombre || '';
+            let enfermeria = enfermeriaSeleccionada;
+            let medicos = medicosSeleccionados;
+
+            if (politica === 'completar' && existente) {
+                colaboradorEmail = existente.colaboradorEmail || colaboradorEmail;
+                colaboradorNombre = existente.colaboradorNombre || (colaboradorEmail === emailAdministracion ? colaboradorNombre : '');
+                enfermeria = Array.isArray(existente.enfermeria) && existente.enfermeria.length > 0 ? existente.enfermeria : enfermeria;
+                medicos = Array.isArray(existente.medicos) && existente.medicos.length > 0 ? existente.medicos : medicos;
+            }
+
+            const asignadosEmails = [...new Set([
+                colaboradorEmail,
+                ...enfermeria.map(persona => persona.email)
+            ].filter(Boolean).map(email => email.toLowerCase().trim()))];
+            guardadas++;
+
+            return setDoc(doc(db, 'guardias', fecha), {
+                fecha,
+                colaboradorEmail,
+                colaboradorNombre,
+                enfermeria,
+                medicos,
+                asignadosEmails,
+                fechaAlta: existente?.fechaAlta || new Date(),
+                fechaActualizacion: new Date()
+            }, { merge: true });
+        }).filter(Boolean);
+
+        await Promise.all(operaciones);
+        cerrarModalGuardiasPeriodo();
+        alert(`${guardadas} guardia${guardadas === 1 ? '' : 's'} asignada${guardadas === 1 ? '' : 's'}${omitidas ? `; ${omitidas} fecha${omitidas === 1 ? '' : 's'} conservada${omitidas === 1 ? '' : 's'}` : ''}.`);
+    } catch (e) {
+        alert("Error al asignar el período: " + e.message);
+    } finally {
+        restaurarBotonCarga(btn, htmlOriginal);
+    }
+}
+
+export async function guardarNovedadInicioFirebase() {
+    if (bloquearCambiosEnModoVerComo()) return;
+    if (!state.esAdminMaster) return alert("Solo el administrador puede publicar novedades.");
+
+    const editor = document.getElementById('novedad-inicio-mensaje');
+    const mensaje = editor.innerText.trim();
+    const contenidoHtml = sanitizarHTMLNovedad(editor.innerHTML);
+    const destinatariosEmails = [...document.querySelectorAll('input[name="destinatario-novedad-inicio"]:checked')]
+        .map(input => input.value.toLowerCase().trim());
+    if (!mensaje) return alert("Escribí el mensaje de la novedad.");
+    if (destinatariosEmails.length === 0) return alert("Seleccioná al menos una persona destinataria.");
+
+    const btn = document.getElementById('btn-publicar-novedad-inicio');
+    const htmlOriginal = activarBotonCarga(btn, 'Publicando...');
+    try {
+        if (state.novedadEditandoId) {
+            await updateDoc(doc(db, 'novedades', state.novedadEditandoId), { mensaje, contenidoHtml, destinatariosEmails, fechaActualizacion: new Date() });
+            const indice = (state.listaNovedadesFirebase || []).findIndex(item => item.id === state.novedadEditandoId);
+            if (indice >= 0) state.listaNovedadesFirebase[indice] = { ...state.listaNovedadesFirebase[indice], mensaje, contenidoHtml, destinatariosEmails, fechaActualizacion: new Date() };
+        } else {
+            const fechaCreacion = new Date();
+            const nuevaRef = await addDoc(novedadesRef, { mensaje, contenidoHtml, destinatariosEmails, autorEmail: state.usuarioAutenticadoEmail, fechaCreacion, archivada: false });
+            const nuevaNovedad = { id: nuevaRef.id, mensaje, contenidoHtml, destinatariosEmails, autorEmail: state.usuarioAutenticadoEmail, fechaCreacion, archivada: false };
+            state.listaNovedadesFirebase = [nuevaNovedad, ...(state.listaNovedadesFirebase || []).filter(item => item.id !== nuevaRef.id)];
+        }
+        cerrarModalNovedadInicio();
+        cambiarVista('inicio');
+    } catch (e) {
+        alert("Error al publicar la novedad: " + e.message);
+    } finally {
+        restaurarBotonCarga(btn, htmlOriginal);
+    }
+}
+
+export async function eliminarNovedadInicioFirebase(id) {
+    if (bloquearCambiosEnModoVerComo()) return;
+    if (!state.esAdminMaster) return;
+    if (!confirm("¿Querés eliminar esta novedad?")) return;
+    try {
+        await deleteDoc(doc(db, 'novedades', id));
+        state.listaNovedadesFirebase = (state.listaNovedadesFirebase || []).filter(item => item.id !== id);
+        renderizarGestionNovedadesInicio();
+        cambiarVista('inicio');
+    } catch (e) {
+        alert("Error al eliminar la novedad: " + e.message);
+    }
+}
+
+export async function archivarNovedadInicioFirebase(id, archivada) {
+    if (bloquearCambiosEnModoVerComo()) return;
+    if (!state.esAdminMaster) return;
+    try {
+        await updateDoc(doc(db, 'novedades', id), { archivada, fechaActualizacion: new Date() });
+        const item = (state.listaNovedadesFirebase || []).find(novedad => novedad.id === id);
+        if (item) item.archivada = archivada;
+        renderizarGestionNovedadesInicio();
+        cambiarVista('inicio');
+    } catch (e) {
+        alert("Error al archivar la novedad: " + e.message);
     }
 }
 

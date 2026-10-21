@@ -37,6 +37,17 @@ function normalizarMedicos(guardia) {
         }));
 }
 
+function normalizarEnfermeria(guardia) {
+    if (!guardia || !Array.isArray(guardia.enfermeria)) return [];
+
+    return guardia.enfermeria
+        .filter(persona => persona && (persona.nombre || persona.email))
+        .map(persona => ({
+            nombre: persona.nombre || persona.email,
+            email: persona.email || ''
+        }));
+}
+
 function nombreAdministrativo(guardia, corto = false) {
     if (!guardia || !guardia.colaboradorEmail) return '';
 
@@ -65,6 +76,7 @@ function renderizarBloqueActual() {
     const hoyKey = fechaKeyDesdeDate(new Date());
     const guardiaHoy = obtenerGuardia(hoyKey);
     const medicosHoy = normalizarMedicos(guardiaHoy);
+    const enfermeriaHoy = normalizarEnfermeria(guardiaHoy);
     const adminHoy = nombreAdministrativo(guardiaHoy);
 
     const proximas = state.listaGuardiasFirebase
@@ -75,11 +87,12 @@ function renderizarBloqueActual() {
     const proximasHTML = proximas.length > 0 ? proximas.map(g => {
         const admin = nombreAdministrativo(g, true);
         const medicos = normalizarMedicos(g);
+        const enfermeria = normalizarEnfermeria(g);
         return `
             <div class="flex items-center justify-between gap-3 py-1.5 border-b border-slate-100 last:border-0">
                 <div class="min-w-0">
                     <p class="text-xs font-black text-slate-700 capitalize">${escaparHTML(formatearFecha(g.fecha))}</p>
-                    <p class="text-[11px] text-slate-500 truncate">${admin ? escaparHTML(admin) : 'Sin administración'} · ${medicos.length} médico${medicos.length === 1 ? '' : 's'}</p>
+                    <p class="text-[11px] text-slate-500 truncate">${admin ? escaparHTML(admin) : 'Sin administración'} · ${enfermeria.length} enfermera${enfermeria.length === 1 ? '' : 's'} · ${medicos.length} médico${medicos.length === 1 ? '' : 's'}</p>
                 </div>
                 ${g.feriado ? '<span class="text-[10px] font-bold text-red-600 bg-red-50 border border-red-100 px-2 py-1 rounded-lg shrink-0">Feriado</span>' : ''}
             </div>
@@ -100,6 +113,17 @@ function renderizarBloqueActual() {
         </div>
     `;
 
+    const enfermeriaHoyHTML = enfermeriaHoy.length > 0 ? enfermeriaHoy.map(persona => `
+        <div class="rounded-xl border border-violet-100 bg-white p-2.5">
+            <p class="text-sm font-black text-slate-800">${escaparHTML(persona.nombre)}</p>
+            <p class="text-xs text-violet-700 font-semibold">Enfermería de guardia</p>
+        </div>
+    `).join('') : `
+        <div class="rounded-xl border border-dashed border-slate-200 bg-white p-3 text-xs text-slate-400 italic">
+            Sin enfermería asignada para hoy.
+        </div>
+    `;
+
     return `
         <div class="grid grid-cols-1 xl:grid-cols-4 gap-3 mb-3 shrink-0">
             <div class="xl:col-span-3 bg-white border border-slate-200 rounded-2xl p-3 shadow-sm">
@@ -111,10 +135,14 @@ function renderizarBloqueActual() {
                     ${guardiaHoy && guardiaHoy.feriado ? '<span class="text-[10px] font-bold text-red-600 bg-red-50 border border-red-100 px-2 py-1 rounded-lg">Feriado</span>' : ''}
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-[0.7fr_1.3fr] gap-2">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
                     <div class="rounded-xl bg-sky-50 border border-sky-100 p-2.5">
                         <p class="text-[10px] font-black text-sky-700 uppercase tracking-wider mb-1">Administración</p>
                         <p class="text-sm font-black text-slate-800">${adminHoy ? escaparHTML(adminHoy) : 'Sin asignar'}</p>
+                    </div>
+                    <div class="rounded-xl bg-violet-50 border border-violet-100 p-2.5">
+                        <p class="text-[10px] font-black text-violet-700 uppercase tracking-wider mb-1.5">Enfermería</p>
+                        <div class="grid grid-cols-1 gap-2">${enfermeriaHoyHTML}</div>
                     </div>
                     <div class="rounded-xl bg-emerald-50 border border-emerald-100 p-2.5">
                         <p class="text-[10px] font-black text-emerald-700 uppercase tracking-wider mb-1.5">Médicos</p>
@@ -136,6 +164,7 @@ function renderizarContenidoGuardia(guardia) {
 
     const admin = nombreAdministrativo(guardia, true);
     const medicos = normalizarMedicos(guardia);
+    const enfermeria = normalizarEnfermeria(guardia);
     const notas = guardia.notas || guardia.notes || '';
 
     let html = '';
@@ -144,6 +173,19 @@ function renderizarContenidoGuardia(guardia) {
         html += `
             <div class="mt-1.5 bg-sky-100 border border-sky-300 text-sky-800 px-1.5 py-1 rounded-lg text-[9px] md:text-[10px] font-black tracking-tight text-center truncate" title="${escaparHTML(nombreAdministrativo(guardia))}">
                 <span class="material-symbols-rounded" style="font-size: 12px;">support_agent</span> ${escaparHTML(admin)}
+            </div>
+        `;
+    }
+
+    if (enfermeria.length > 0) {
+        html += `
+            <div class="mt-1 space-y-0.5">
+                ${enfermeria.slice(0, 2).map(persona => `
+                    <div class="bg-violet-50 border border-violet-200 text-violet-800 px-1.5 py-0.5 rounded-md text-[8px] md:text-[9px] font-bold truncate" title="${escaparHTML(persona.nombre)}">
+                        <span class="material-symbols-rounded" style="font-size: 11px;">clinical_notes</span> ${escaparHTML(persona.nombre)}
+                    </div>
+                `).join('')}
+                ${enfermeria.length > 2 ? `<p class="text-[8px] text-violet-700 font-bold text-center">+${enfermeria.length - 2} más</p>` : ''}
             </div>
         `;
     }
@@ -219,6 +261,7 @@ export function renderizarGuardias() {
         const esFinDeSemana = (diaSemanaIndex === 0 || diaSemanaIndex === 6);
         const guardia = obtenerGuardia(fechaKey);
         const tieneMedicos = normalizarMedicos(guardia).length > 0;
+        const tieneEnfermeria = normalizarEnfermeria(guardia).length > 0;
         const tieneAdmin = Boolean(guardia && guardia.colaboradorEmail);
 
         let bgCelda = "bg-white border-slate-200 hover:border-sky-400 hover:shadow-md";
@@ -250,6 +293,7 @@ export function renderizarGuardias() {
         const estadoDiaHTML = `
             <div class="flex gap-1 mt-1.5">
                 ${tieneAdmin ? '<span class="h-1.5 flex-1 rounded-full bg-sky-400" title="Administración asignada"></span>' : '<span class="h-1.5 flex-1 rounded-full bg-slate-200" title="Sin administración"></span>'}
+                ${tieneEnfermeria ? '<span class="h-1.5 flex-1 rounded-full bg-violet-400" title="Enfermería asignada"></span>' : '<span class="h-1.5 flex-1 rounded-full bg-slate-200" title="Sin enfermería"></span>'}
                 ${tieneMedicos ? '<span class="h-1.5 flex-1 rounded-full bg-emerald-400" title="Médicos cargados"></span>' : '<span class="h-1.5 flex-1 rounded-full bg-slate-200" title="Sin médicos"></span>'}
             </div>
         `;
@@ -293,12 +337,18 @@ export function renderizarGuardias() {
         <div class="mb-3 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 bg-white p-3 rounded-2xl border border-slate-200 shadow-sm shrink-0">
             <div>
                 <h3 class="font-black text-slate-800 text-base md:text-lg">Cronograma de Guardias Pasivas</h3>
-                <p class="text-xs text-slate-500">Guardias administrativas y médicas en un solo calendario operativo.</p>
+                <p class="text-xs text-slate-500">Guardias administrativas, de enfermería y médicas en un solo calendario operativo.</p>
             </div>
 
             <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0 w-full lg:w-auto">
+                ${puedeEditar ? `
+                    <button onclick="window.abrirModalGuardiasPeriodo()" class="inline-flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-xl text-xs font-bold transition shadow-sm">
+                        <span class="material-symbols-rounded" style="font-size:17px">date_range</span> Asignar período
+                    </button>
+                ` : ''}
                 <div class="flex items-center gap-2 text-[10px] font-bold text-slate-500">
                     <span class="inline-flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-sky-400"></span> Administración</span>
+                    <span class="inline-flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-violet-400"></span> Enfermería</span>
                     <span class="inline-flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-emerald-400"></span> Médicos</span>
                 </div>
                 <div class="flex items-center gap-1.5 justify-between sm:justify-end">

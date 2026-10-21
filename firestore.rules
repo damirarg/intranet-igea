@@ -79,7 +79,9 @@ service cloud.firestore {
     }
 
     match /guardias/{fecha} {
-      allow read: if isAdmin() || hasModule("guardias");
+      allow read: if isAdmin()
+        || hasModule("guardias")
+        || (signedIn() && "asignadosEmails" in resource.data && userEmail() in resource.data.asignadosEmails);
       allow create, update, delete: if isAdmin() || canEditModule("guardias");
     }
 
@@ -88,9 +90,19 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin() || canEditModule("capacitaciones");
     }
 
+    match /novedades/{novedadId} {
+      allow read: if signedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
     match /empleados_rrhh/{empleadoId} {
       allow read: if isAdmin() || hasModule("rrhh");
       allow create, update, delete: if isAdmin() || canEditModule("rrhh");
+    }
+
+    match /rrhh_areas/{areaId} {
+      allow read: if signedIn();
+      allow create, update, delete: if isAdmin();
     }
 
     match /ausencias/{ausenciaId} {

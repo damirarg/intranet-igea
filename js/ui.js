@@ -1,14 +1,34 @@
 import { state, baseRecibos } from './app-state.js';
-import { inicializarInicio, renderizarInicio } from './components/inicio.js?v=20261020-clima3';
+import { inicializarInicio, renderizarInicio } from './components/inicio.js?v=20261021-novedades4';
 import { renderizarDPP } from './components/dpp.js';
 import { renderizarProcedimientos } from './components/procedimientos.js';
 import { renderizarRecibos } from './components/recibos.js';
 import { renderizarSugerencias } from './components/sugerencias.js';
 import { renderizarSaldos, parsearMontoNumerico } from './components/saldos.js';
 import { renderizarPermisos } from './components/permisos.js';
-import { renderizarGuardias } from './components/guardias.js';
-import { renderizarRRHH } from './components/rrhh.js';
+import { renderizarGuardias } from './components/guardias.js?v=20261021-novedades4';
+import { renderizarRRHH } from './components/rrhh.js?v=20261021-areas-rrhh';
 import { renderizarCapacitaciones } from './components/capacitaciones.js';
+
+const EMAILS_ENFERMERIA_GUARDIAS = new Set([
+    'brendaruiz026@gmail.com',
+    'orirocio@gmail.com',
+    'coradeghini.sofia@gmail.com',
+    'violeclair@hotmail.com'
+]);
+
+const MEDICOS_GUARDIAS = [
+    'IRIARTE Maximiliano',
+    'INSAUSTI Agustín',
+    'GARAY Iñaki',
+    'BAJO Juliana',
+    'MARTINEZ Mauricio',
+    'VALERO Manuel'
+];
+
+function normalizarTextoGuardia(valor) {
+    return String(valor || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
 
 export function abrirModalClave() {
     document.getElementById('modal-clave').classList.remove('hidden');
@@ -203,27 +223,49 @@ export function abrirModalGuardia(fechaString) {
     const selectColab = document.getElementById('select-colaborador-guardia');
     selectColab.innerHTML = '<option value="" selected disabled>Seleccionar Colaborador...</option>' + 
         baseRecibos.map(emp => `<option value="${emp.email}">${emp.nombre}</option>`).join('');
+
+    const guardiaExistente = state.listaGuardiasFirebase.find(g => g.fecha === fechaString);
+    const textoMedicosExistentes = (guardiaExistente?.medicos || []).map(medico => medico.nombre || '').join(' ');
+    const textoNormalizadoExistente = normalizarTextoGuardia(textoMedicosExistentes);
+    const emailsEnfermeriaAsignada = new Set((guardiaExistente?.enfermeria || []).map(persona => String(persona.email || '').toLowerCase()));
+    const opcionesEnfermeria = baseRecibos.filter(emp => EMAILS_ENFERMERIA_GUARDIAS.has(emp.email.toLowerCase()));
+    const contenedorEnfermeria = document.getElementById('opciones-enfermeria-guardia');
+    if (contenedorEnfermeria) {
+        contenedorEnfermeria.innerHTML = opcionesEnfermeria.map(emp => `
+            <label class="flex items-center gap-2 bg-white border border-violet-100 rounded-lg px-2.5 py-2 cursor-pointer hover:border-violet-300 transition">
+                <input type="checkbox" name="enfermeria-guardia" value="${emp.email}" ${emailsEnfermeriaAsignada.has(emp.email.toLowerCase()) || textoNormalizadoExistente.includes(normalizarTextoGuardia(emp.nombre.split(' ')[0])) ? 'checked' : ''} class="w-4 h-4 text-violet-600 rounded focus:ring-violet-500">
+                <span class="text-xs font-semibold text-slate-700">${emp.nombre}</span>
+            </label>
+        `).join('');
+    }
+
+    const nombresMedicosAsignados = new Set((guardiaExistente?.medicos || []).map(medico => normalizarTextoGuardia(medico.nombre)));
+    const contenedorMedicos = document.getElementById('opciones-medicos-guardia');
+    if (contenedorMedicos) {
+        contenedorMedicos.innerHTML = MEDICOS_GUARDIAS.map(nombre => {
+            const apellido = normalizarTextoGuardia(nombre.split(' ')[0]);
+            const seleccionado = nombresMedicosAsignados.has(normalizarTextoGuardia(nombre)) || textoNormalizadoExistente.includes(apellido);
+            return `
+                <label class="flex items-center gap-2 bg-white border border-emerald-100 rounded-lg px-2.5 py-2 cursor-pointer hover:border-emerald-300 transition">
+                    <input type="checkbox" name="medicos-guardia" value="${nombre}" ${seleccionado ? 'checked' : ''} class="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500">
+                    <span class="text-xs font-semibold text-slate-700">${nombre}</span>
+                </label>
+            `;
+        }).join('');
+    }
         
     // Buscar si ya existe guardia cargada
-    const guardiaExistente = state.listaGuardiasFirebase.find(g => g.fecha === fechaString);
     const btnEliminar = document.getElementById('btn-eliminar-guardia');
-    const textoMedicos = document.getElementById('texto-medicos-guardia');
     
     if (guardiaExistente) {
         selectColab.value = guardiaExistente.colaboradorEmail || '';
         document.getElementById('check-feriado-guardia').checked = guardiaExistente.feriado === true;
         document.getElementById('texto-notes-guardia').value = guardiaExistente.notas || guardiaExistente.notes || '';
-        if (textoMedicos) {
-            textoMedicos.value = Array.isArray(guardiaExistente.medicos)
-                ? guardiaExistente.medicos.map(m => [m.nombre, m.especialidad, m.contacto].filter(Boolean).join(' | ')).join('\n')
-                : '';
-        }
         if (btnEliminar) btnEliminar.classList.remove('hidden');
     } else {
         selectColab.selectedIndex = 0;
         document.getElementById('check-feriado-guardia').checked = false;
         document.getElementById('texto-notes-guardia').value = '';
-        if (textoMedicos) textoMedicos.value = '';
         if (btnEliminar) btnEliminar.classList.add('hidden');
     }
     
@@ -233,6 +275,174 @@ export function abrirModalGuardia(fechaString) {
 export function cerrarModalGuardia() {
     document.getElementById('modal-guardia').classList.add('hidden');
     state.guardiaDiaSeleccionado = null;
+}
+
+function fechaISO(fecha) {
+    return `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}-${String(fecha.getDate()).padStart(2, '0')}`;
+}
+
+function fechasSeleccionadasPeriodo() {
+    const desdeValor = document.getElementById('guardias-periodo-desde')?.value;
+    const hastaValor = document.getElementById('guardias-periodo-hasta')?.value;
+    const dias = new Set([...document.querySelectorAll('input[name="dia-guardia-periodo"]:checked')].map(input => Number(input.value)));
+    if (!desdeValor || !hastaValor || desdeValor > hastaValor || dias.size === 0) return [];
+
+    const [anioDesde, mesDesde, diaDesde] = desdeValor.split('-').map(Number);
+    const [anioHasta, mesHasta, diaHasta] = hastaValor.split('-').map(Number);
+    const actual = new Date(anioDesde, mesDesde - 1, diaDesde, 12);
+    const hasta = new Date(anioHasta, mesHasta - 1, diaHasta, 12);
+    const fechas = [];
+
+    while (actual <= hasta && fechas.length <= 366) {
+        if (dias.has(actual.getDay())) fechas.push(fechaISO(actual));
+        actual.setDate(actual.getDate() + 1);
+    }
+    return fechas;
+}
+
+export function actualizarVistaPreviaGuardiasPeriodo() {
+    const resumen = document.getElementById('guardias-periodo-resumen');
+    if (!resumen) return;
+
+    const fechas = fechasSeleccionadasPeriodo();
+    const politica = document.getElementById('guardias-periodo-politica')?.value || 'conservar';
+    const excluirFeriados = document.getElementById('guardias-periodo-excluir-feriados')?.checked;
+    const existentes = new Map(state.listaGuardiasFirebase.map(guardia => [guardia.fecha, guardia]));
+    const excluidasFeriado = fechas.filter(fecha => excluirFeriados && existentes.get(fecha)?.feriado);
+    const candidatas = fechas.filter(fecha => !excluidasFeriado.includes(fecha));
+    const yaCargadas = candidatas.filter(fecha => existentes.has(fecha));
+    const afectadas = politica === 'conservar' ? candidatas.filter(fecha => !existentes.has(fecha)) : candidatas;
+
+    if (fechas.length === 0) {
+        resumen.innerHTML = '<p class="text-slate-400 italic">Elegí un rango válido y al menos un día de la semana.</p>';
+        return;
+    }
+
+    const chips = afectadas.slice(0, 12).map(fecha => {
+        const [anio, mes, dia] = fecha.split('-').map(Number);
+        return `<span class="inline-flex px-2 py-1 rounded-lg bg-white border border-slate-200 text-[10px] font-bold">${new Date(anio, mes - 1, dia).toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'short' })}</span>`;
+    }).join('');
+
+    resumen.innerHTML = `
+        <p class="text-3xl font-black text-slate-800">${afectadas.length}</p>
+        <p class="text-xs font-bold text-slate-600">fecha${afectadas.length === 1 ? '' : 's'} a asignar</p>
+        <div class="grid grid-cols-2 gap-2 mt-4 text-xs">
+            <div class="bg-white border border-slate-200 rounded-xl p-2"><strong class="block text-slate-800">${fechas.length}</strong> seleccionadas</div>
+            <div class="bg-white border border-slate-200 rounded-xl p-2"><strong class="block text-slate-800">${yaCargadas.length}</strong> ya cargadas</div>
+            <div class="bg-white border border-slate-200 rounded-xl p-2"><strong class="block text-slate-800">${excluidasFeriado.length}</strong> feriados excluidos</div>
+            <div class="bg-white border border-slate-200 rounded-xl p-2"><strong class="block text-slate-800">${politica === 'conservar' ? yaCargadas.length : 0}</strong> conservadas</div>
+        </div>
+        <div class="flex flex-wrap gap-1.5 mt-4">${chips}${afectadas.length > 12 ? `<span class="text-[10px] font-bold text-slate-500 px-2 py-1">+${afectadas.length - 12} más</span>` : ''}</div>
+    `;
+}
+
+export function abrirModalGuardiasPeriodo() {
+    if (!state.puedeEditarGuardias) return;
+
+    const hoy = new Date();
+    const fin = new Date(hoy);
+    fin.setDate(fin.getDate() + 6);
+    document.getElementById('guardias-periodo-desde').value = fechaISO(hoy);
+    document.getElementById('guardias-periodo-hasta').value = fechaISO(fin);
+
+    const selectAdministracion = document.getElementById('guardias-periodo-administracion');
+    selectAdministracion.innerHTML = '<option value="">Sin administración</option>' + baseRecibos.map(emp => `<option value="${emp.email}">${emp.nombre}</option>`).join('');
+
+    const enfermeria = baseRecibos.filter(emp => EMAILS_ENFERMERIA_GUARDIAS.has(emp.email.toLowerCase()));
+    document.getElementById('guardias-periodo-enfermeria').innerHTML = enfermeria.map(emp => `
+        <label class="flex items-center gap-2 bg-white border border-violet-100 rounded-lg px-2.5 py-2 cursor-pointer">
+            <input type="checkbox" name="enfermeria-guardia-periodo" value="${emp.email}" class="w-4 h-4 text-violet-600 rounded focus:ring-violet-500">
+            <span class="text-xs font-semibold text-slate-700">${emp.nombre}</span>
+        </label>`).join('');
+
+    document.getElementById('guardias-periodo-medicos').innerHTML = MEDICOS_GUARDIAS.map(nombre => `
+        <label class="flex items-center gap-2 bg-white border border-emerald-100 rounded-lg px-2.5 py-2 cursor-pointer">
+            <input type="checkbox" name="medicos-guardia-periodo" value="${nombre}" class="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500">
+            <span class="text-xs font-semibold text-slate-700">${nombre}</span>
+        </label>`).join('');
+
+    document.getElementById('modal-guardias-periodo').classList.remove('hidden');
+    actualizarVistaPreviaGuardiasPeriodo();
+}
+
+export function cerrarModalGuardiasPeriodo() {
+    document.getElementById('modal-guardias-periodo').classList.add('hidden');
+}
+
+export function actualizarContadorDestinatariosNovedad() {
+    const cantidad = document.querySelectorAll('input[name="destinatario-novedad-inicio"]:checked').length;
+    const contador = document.getElementById('novedad-inicio-contador');
+    if (contador) contador.textContent = `${cantidad} persona${cantidad === 1 ? '' : 's'} seleccionada${cantidad === 1 ? '' : 's'}`;
+}
+
+export function seleccionarDestinatariosNovedad(grupo) {
+    document.querySelectorAll('input[name="destinatario-novedad-inicio"]').forEach(input => {
+        const esEnfermeria = EMAILS_ENFERMERIA_GUARDIAS.has(input.value.toLowerCase());
+        input.checked = grupo === 'todos'
+            || (grupo === 'enfermeria' && esEnfermeria)
+            || (grupo === 'administracion' && !esEnfermeria);
+    });
+    actualizarContadorDestinatariosNovedad();
+}
+
+function escaparHTMLNovedad(valor) {
+    return String(valor || '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#039;');
+}
+
+export function formatearNovedadInicio(comando) {
+    const editor = document.getElementById('novedad-inicio-mensaje');
+    editor.focus();
+    document.execCommand(comando, false, null);
+}
+
+export function renderizarGestionNovedadesInicio() {
+    const contenedor = document.getElementById('gestion-novedades-inicio');
+    if (!contenedor) return;
+    const items = state.listaNovedadesFirebase || [];
+    contenedor.innerHTML = items.length ? items.map(item => `
+        <div class="flex items-start gap-2 p-2.5 rounded-xl border ${item.archivada ? 'border-slate-200 bg-slate-100' : 'border-amber-100 bg-amber-50'}">
+            <div class="min-w-0 flex-1"><p class="text-xs font-semibold text-slate-700 line-clamp-2">${escaparHTMLNovedad(item.mensaje)}</p><small class="text-[10px] font-bold ${item.archivada ? 'text-slate-500' : 'text-amber-700'}">${item.archivada ? 'Archivada' : 'Publicada'} · ${(item.destinatariosEmails || []).length} destinatarios</small></div>
+            <div class="flex gap-1 shrink-0">
+                <button onclick="window.editarNovedadInicio('${item.id}')" class="w-7 h-7 inline-flex items-center justify-center text-blue-600 hover:bg-blue-100 rounded-lg" title="Editar"><span class="material-symbols-rounded" style="font-size:16px">edit</span></button>
+                <button onclick="window.archivarNovedadInicioFirebase('${item.id}', ${!item.archivada})" class="w-7 h-7 inline-flex items-center justify-center text-slate-600 hover:bg-slate-200 rounded-lg" title="${item.archivada ? 'Restaurar' : 'Archivar'}"><span class="material-symbols-rounded" style="font-size:16px">${item.archivada ? 'unarchive' : 'archive'}</span></button>
+                <button onclick="window.eliminarNovedadInicioFirebase('${item.id}')" class="w-7 h-7 inline-flex items-center justify-center text-red-600 hover:bg-red-50 rounded-lg" title="Eliminar"><span class="material-symbols-rounded" style="font-size:16px">delete</span></button>
+            </div>
+        </div>`).join('') : '<p class="text-xs text-slate-400 italic">Todavía no hay comunicaciones publicadas.</p>';
+}
+
+export function abrirModalNovedadInicio() {
+    if (!state.esAdminMaster || state.verComoEmail) return;
+    state.novedadEditandoId = '';
+    document.getElementById('novedad-inicio-mensaje').innerHTML = '';
+    document.getElementById('texto-btn-novedad-inicio').textContent = 'Publicar';
+    document.getElementById('novedad-inicio-destinatarios').innerHTML = baseRecibos.map(emp => `
+        <label class="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-2.5 py-2 cursor-pointer hover:border-blue-300">
+            <input type="checkbox" name="destinatario-novedad-inicio" value="${emp.email}" onchange="window.actualizarContadorDestinatariosNovedad()" class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500">
+            <span class="text-xs font-semibold text-slate-700">${emp.nombre}</span>
+        </label>`).join('');
+    seleccionarDestinatariosNovedad('todos');
+    renderizarGestionNovedadesInicio();
+    document.getElementById('modal-novedad-inicio').classList.remove('hidden');
+    document.getElementById('novedad-inicio-mensaje').focus();
+}
+
+export function editarNovedadInicio(id) {
+    const item = (state.listaNovedadesFirebase || []).find(novedad => novedad.id === id);
+    if (!item) return;
+    if (document.getElementById('modal-novedad-inicio').classList.contains('hidden')) abrirModalNovedadInicio();
+    state.novedadEditandoId = id;
+    document.getElementById('novedad-inicio-mensaje').innerHTML = item.contenidoHtml || escaparHTMLNovedad(item.mensaje);
+    document.querySelectorAll('input[name="destinatario-novedad-inicio"]').forEach(input => {
+        input.checked = (item.destinatariosEmails || []).includes(input.value.toLowerCase());
+    });
+    actualizarContadorDestinatariosNovedad();
+    document.getElementById('texto-btn-novedad-inicio').textContent = 'Guardar cambios';
+    document.getElementById('novedad-inicio-mensaje').focus();
+}
+
+export function cerrarModalNovedadInicio() {
+    document.getElementById('modal-novedad-inicio').classList.add('hidden');
+    state.novedadEditandoId = '';
 }
 
 export function alternarSidebarMovil() {
@@ -284,8 +494,11 @@ export function cambiarVista(vista) {
     state.viendoDocumento = false; 
 
     const btnInicioHeader = document.getElementById('btn-inicio-header');
+    const btnVolverListado = document.getElementById('btn-volver-listado-header');
     const contenido = document.getElementById('contenido-seccion');
     const titulo = document.getElementById('titulo-seccion');
+    btnVolverListado?.classList.add('hidden');
+    btnVolverListado?.classList.remove('flex');
     actualizarNavegacionLateral(vista);
     cerrarSidebarMovil();
 
@@ -312,6 +525,22 @@ export function abrirDocumento(titulo, url, esImagen = false) {
     state.viendoDocumento = true;
     document.getElementById('titulo-seccion').textContent = titulo;
     document.getElementById('btn-inicio-header').classList.remove('hidden');
+
+    const destinos = {
+        dpp: 'Volver a DPP',
+        procedimientos: 'Volver a Procedimientos',
+        capacitaciones: 'Volver a Capacitaciones'
+    };
+    const btnVolverListado = document.getElementById('btn-volver-listado-header');
+    const textoVolverListado = document.getElementById('texto-volver-listado');
+    if (btnVolverListado && destinos[state.seccionActual]) {
+        btnVolverListado.dataset.vista = state.seccionActual;
+        btnVolverListado.title = destinos[state.seccionActual];
+        btnVolverListado.setAttribute('aria-label', destinos[state.seccionActual]);
+        btnVolverListado.classList.remove('hidden');
+        btnVolverListado.classList.add('flex');
+        if (textoVolverListado) textoVolverListado.textContent = destinos[state.seccionActual];
+    }
     
     let urlPreview = normalizarUrlGoogleDrive(url);
     
