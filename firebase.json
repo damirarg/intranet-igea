@@ -1,6 +1,15 @@
 {
   "hosting": {
     "public": ".",
+    "rewrites": [
+      {
+        "source": "/api/clima-bahia-blanca",
+        "function": {
+          "functionId": "climaBahiaBlanca",
+          "region": "us-central1"
+        }
+      }
+    ],
     "ignore": [
       "firebase.json",
       ".firebaserc",

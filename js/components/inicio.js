@@ -1,5 +1,109 @@
 import { state, baseRecibos } from '../app-state.js';
 
+let intervaloRelojInicio = null;
+
+const CLIMA_BAHIA_BLANCA = {
+    zonaHoraria: 'America/Argentina/Buenos_Aires',
+    estacion: 'Bahía Blanca Aero'
+};
+
+function detalleObservacionSMN(observaciones) {
+    const valor = nombre => observaciones.find(item => item.properties?.name === nombre)?.properties;
+    const nubosidad = Number(valor('cloud_cover_total')?.value);
+    const tiempoPresente = String(valor('present_weather')?.description || '').toLowerCase();
+
+    if (/thunder|storm|torment/.test(tiempoPresente)) return { descripcion: 'Tormenta', icono: 'thunderstorm', tema: 'tormenta' };
+    if (/rain|drizzle|shower|lluv|lloviz/.test(tiempoPresente)) return { descripcion: 'Lluvia', icono: 'rainy', tema: 'lluvia' };
+    if (/snow|nieve/.test(tiempoPresente)) return { descripcion: 'Nieve', icono: 'weather_snowy', tema: 'nieve' };
+    if (/fog|mist|niebla|neblina/.test(tiempoPresente)) return { descripcion: 'Con niebla', icono: 'foggy', tema: 'niebla' };
+    if (Number.isFinite(nubosidad) && nubosidad >= 85) return { descripcion: 'Nublado', icono: 'cloud', tema: 'nublado' };
+    if (Number.isFinite(nubosidad) && nubosidad >= 35) return { descripcion: 'Parcialmente nublado', icono: 'partly_cloudy_day', tema: 'parcial' };
+    return { descripcion: 'Despejado', icono: 'sunny', tema: 'soleado' };
+}
+
+function actualizarRelojInicio() {
+    const elementoHora = document.getElementById('inicio-hora');
+    const elementoFecha = document.getElementById('inicio-fecha');
+    if (!elementoHora || !elementoFecha) return;
+
+    const ahora = new Date();
+    elementoHora.textContent = new Intl.DateTimeFormat('es-AR', {
+        timeZone: CLIMA_BAHIA_BLANCA.zonaHoraria,
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+    }).format(ahora);
+    elementoFecha.textContent = new Intl.DateTimeFormat('es-AR', {
+        timeZone: CLIMA_BAHIA_BLANCA.zonaHoraria,
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long'
+    }).format(ahora);
+}
+
+async function cargarClimaInicio() {
+    const temperatura = document.getElementById('inicio-temperatura');
+    const descripcion = document.getElementById('inicio-clima-descripcion');
+    const rango = document.getElementById('inicio-clima-rango');
+    const fuente = document.getElementById('inicio-clima-fuente');
+    const icono = document.getElementById('inicio-clima-icono');
+    const widget = document.getElementById('inicio-clima-widget');
+    if (!temperatura || !descripcion || !rango || !fuente || !icono || !widget) return;
+
+    try {
+        const respuesta = await fetch('/api/clima-bahia-blanca');
+        if (!respuesta.ok) throw new Error(`Clima no disponible (${respuesta.status})`);
+        const datos = await respuesta.json();
+        const primera = datos.features?.[0]?.properties;
+        if (!primera?.reportId) throw new Error('El SMN no devolvió observaciones recientes');
+
+        const observaciones = datos.features.filter(item => item.properties?.reportId === primera.reportId);
+        const buscar = nombre => observaciones.find(item => item.properties?.name === nombre)?.properties;
+        const medicionTemperatura = buscar('air_temperature');
+        const maxima = buscar('maximum_temperature_at_height_and_over_period_specified');
+        const minima = buscar('minimum_temperature_at_height_and_over_period_specified');
+        if (!Number.isFinite(medicionTemperatura?.value)) throw new Error('La observación no incluye temperatura');
+
+        const detalle = detalleObservacionSMN(observaciones);
+        const horaObservacion = new Intl.DateTimeFormat('es-AR', {
+            timeZone: CLIMA_BAHIA_BLANCA.zonaHoraria,
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        }).format(new Date(medicionTemperatura.reportTime));
+        const horaActual = Number(new Intl.DateTimeFormat('en-US', {
+            timeZone: CLIMA_BAHIA_BLANCA.zonaHoraria,
+            hour: 'numeric',
+            hourCycle: 'h23'
+        }).format(new Date()));
+        const esNoche = horaActual < 7 || horaActual >= 20;
+
+        temperatura.textContent = `${Number(medicionTemperatura.value).toLocaleString('es-AR', { maximumFractionDigits: 1 })}°`;
+        descripcion.textContent = detalle.descripcion;
+        rango.textContent = Number.isFinite(maxima?.value) && Number.isFinite(minima?.value)
+            ? `Máx. ${Number(maxima.value).toLocaleString('es-AR', { maximumFractionDigits: 1 })}° · Mín. ${Number(minima.value).toLocaleString('es-AR', { maximumFractionDigits: 1 })}°`
+            : CLIMA_BAHIA_BLANCA.estacion;
+        fuente.textContent = `SMN ${horaObservacion}`;
+        widget.dataset.clima = esNoche ? 'noche' : detalle.tema;
+        icono.textContent = esNoche ? 'dark_mode' : detalle.icono;
+    } catch (error) {
+        console.warn('No se pudo cargar el clima de Bahía Blanca:', error);
+        temperatura.textContent = '--°';
+        descripcion.textContent = 'Clima no disponible';
+        rango.textContent = 'Bahía Blanca';
+        fuente.textContent = 'SMN';
+        icono.textContent = 'cloud_off';
+        widget.dataset.clima = 'neutral';
+    }
+}
+
+export function inicializarInicio() {
+    if (intervaloRelojInicio) clearInterval(intervaloRelojInicio);
+    actualizarRelojInicio();
+    intervaloRelojInicio = setInterval(actualizarRelojInicio, 30000);
+    cargarClimaInicio();
+}
+
 export function renderizarInicio() {
     let nombreSaludo = state.usuarioActualEmail; 
     const empleado = baseRecibos.find(emp => emp.email.toLowerCase().trim() === state.usuarioActualEmail.toLowerCase().trim());
@@ -49,14 +153,32 @@ export function renderizarInicio() {
     ` : '';
 
     return `
-        <div class="relative w-full h-36 md:h-56 rounded-3xl overflow-hidden mb-6 md:mb-8 shadow-sm flex items-center px-6 md:px-10 border border-slate-200 shrink-0">
+        <div class="relative w-full min-h-48 md:h-56 rounded-3xl overflow-hidden mb-6 md:mb-8 shadow-sm flex items-center px-6 py-5 md:px-10 border border-slate-200 shrink-0">
             <video autoplay loop muted playsinline class="absolute inset-0 w-full h-full object-cover opacity-20">
                 <source src="./assets/helice-adn.mp4" type="video/mp4">
             </video>
             <div class="absolute inset-0 bg-gradient-to-r from-white via-white/80 to-transparent"></div>
-            <div class="relative z-10">
+            <div class="relative z-10 w-full flex flex-col md:flex-row md:items-center md:justify-between gap-5 md:gap-8">
+                <div>
                 <h3 class="text-2xl md:text-4xl font-bold text-slate-800 mb-1 md:mb-2 tracking-tight">Hola, ${nombreSaludo}</h3>
                 <p class="text-slate-600 text-xs md:text-lg font-medium">Centralizá y gestioná tu documentación operativa y legajo personal.</p>
+                </div>
+
+                <section id="inicio-clima-widget" class="inicio-clima" data-clima="neutral" aria-label="Hora y clima actual en Bahía Blanca">
+                    <div class="inicio-clima-lluvia" aria-hidden="true">
+                        <i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+                    </div>
+                    <div class="inicio-clima-hora">
+                        <span id="inicio-hora">--:--</span>
+                        <span id="inicio-fecha">Cargando fecha...</span>
+                    </div>
+                    <div class="inicio-clima-separador" aria-hidden="true"></div>
+                    <span id="inicio-clima-icono" class="material-symbols-rounded inicio-clima-icono" aria-hidden="true">cloud</span>
+                    <div class="inicio-clima-estado">
+                        <div><strong id="inicio-temperatura">--°</strong><span id="inicio-clima-descripcion">Consultando clima...</span></div>
+                        <small><span id="inicio-clima-rango">Bahía Blanca</span> · <a id="inicio-clima-fuente" href="https://www.smn.gob.ar/" target="_blank" rel="noopener noreferrer">SMN</a></small>
+                    </div>
+                </section>
             </div>
         </div>
         

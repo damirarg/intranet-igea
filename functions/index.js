@@ -1,4 +1,4 @@
-const { onCall, HttpsError } = require("firebase-functions/v2/https");
+const { onCall, onRequest, HttpsError } = require("firebase-functions/v2/https");
 const logger = require("firebase-functions/logger");
 const admin = require("firebase-admin");
 
@@ -6,6 +6,7 @@ admin.initializeApp();
 
 const ADMIN_EMAIL = "damirodriguez81@gmail.com";
 const MODULOS_VALIDOS = ["saldos", "guardias", "rrhh"];
+const SMN_OBSERVACIONES_URL = "https://w2b.smn.gov.ar/oapi/collections/urn%3Awmo%3Amd%3Aar-smn%3Aslt0ci/items";
 
 function normalizarEmail(email) {
   return String(email || "").trim().toLowerCase();
@@ -39,6 +40,38 @@ function generarClaveTemporal() {
 
   return `${clave}!7`;
 }
+
+exports.climaBahiaBlanca = onRequest({ region: "us-central1", maxInstances: 2, cors: true }, async (request, response) => {
+  if (request.method !== "GET") {
+    response.set("Allow", "GET").status(405).json({ error: "Método no permitido" });
+    return;
+  }
+
+  try {
+    const desde = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().replace(/\.\d{3}Z$/, "Z");
+    const parametros = new URLSearchParams({
+      f: "json",
+      bbox: "-62.4,-38.8,-62.1,-38.6",
+      datetime: `${desde}/..`,
+      sortby: "-reportTime",
+      limit: "40"
+    });
+    const respuestaSMN = await fetch(`${SMN_OBSERVACIONES_URL}?${parametros}`, {
+      signal: AbortSignal.timeout(8000),
+      headers: { Accept: "application/geo+json, application/json" }
+    });
+
+    if (!respuestaSMN.ok) {
+      throw new Error(`SMN respondió ${respuestaSMN.status}`);
+    }
+
+    const datos = await respuestaSMN.json();
+    response.set("Cache-Control", "public, max-age=300, s-maxage=600").status(200).json(datos);
+  } catch (error) {
+    logger.error("No se pudo consultar el clima del SMN", error);
+    response.status(503).json({ error: "El clima del SMN no está disponible temporalmente." });
+  }
+});
 
 async function guardarPerfilPermisos({ email, nombre, uid, modulos }) {
   const db = admin.firestore();

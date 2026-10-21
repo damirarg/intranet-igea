@@ -31,7 +31,7 @@ import {
     cerrarModalGuardia,
     alternarSidebarMovil,
     cerrarSidebarMovil
-} from './ui.js';
+} from './ui.js?v=20261020-clima3';
 
 // Importamos controles específicos de componentes
 import { alternarVistaArchivadas, seleccionarColorPostit } from './components/sugerencias.js';

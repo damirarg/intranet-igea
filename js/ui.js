@@ -1,5 +1,5 @@
 import { state, baseRecibos } from './app-state.js';
-import { renderizarInicio } from './components/inicio.js';
+import { inicializarInicio, renderizarInicio } from './components/inicio.js?v=20261020-clima3';
 import { renderizarDPP } from './components/dpp.js';
 import { renderizarProcedimientos } from './components/procedimientos.js';
 import { renderizarRecibos } from './components/recibos.js';
@@ -293,6 +293,7 @@ export function cambiarVista(vista) {
         btnInicioHeader.classList.add('hidden');
         titulo.textContent = "Inicio";
         contenido.innerHTML = renderizarInicio();
+        inicializarInicio();
     } else {
         btnInicioHeader.classList.add('hidden');
         if (vista === 'dpp') { titulo.textContent = "Directorio de Perfiles"; contenido.innerHTML = renderizarDPP(); }
