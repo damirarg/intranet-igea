@@ -46,7 +46,7 @@ import {
 
 // Importamos controles específicos de componentes
 import { alternarVistaArchivadas, seleccionarColorPostit } from './components/sugerencias.js';
-import { alternarFiltroSaldadas, procesarArchivoCSV, cancelarCargaCSV, seleccionarTodosSaldos, ordenarSaldos, aplicarOrdenamientoSaldos } from './components/saldos.js';
+import { alternarFiltroSaldadas, actualizarFiltroPeriodoSaldos, aplicarRangoRapidoSaldos, procesarArchivoCSV, cancelarCargaCSV, seleccionarTodosSaldos, ordenarSaldos, aplicarOrdenamientoSaldos } from './components/saldos.js';
 import { seleccionarMaterialDidactico } from './components/procedimientos.js';
 import { guardiasMesSiguiente, guardiasMesAnterior } from './components/guardias.js?v=20261021-novedades4';
 import { alternarArchivadosRRHH, actualizarSubareasRRHH, filtrarEmpleadosRRHH, abrirModalAreasRRHH, cerrarModalAreasRRHH, renderizarListaAreasRRHH } from './components/rrhh.js?v=20261021-areas-rrhh';
@@ -139,6 +139,8 @@ window.alternarVistaArchivadas = alternarVistaArchivadas;
 window.seleccionarColorPostit = seleccionarColorPostit;
 
 window.alternarFiltroSaldadas = alternarFiltroSaldadas;
+window.actualizarFiltroPeriodoSaldos = actualizarFiltroPeriodoSaldos;
+window.aplicarRangoRapidoSaldos = aplicarRangoRapidoSaldos;
 window.procesarArchivoCSV = procesarArchivoCSV;
 window.cancelarCargaCSV = cancelarCargaCSV;
 window.seleccionarTodosSaldos = seleccionarTodosSaldos;

@@ -17,6 +17,75 @@ export function alternarFiltroSaldadas(estado) {
     cambiarVista('saldos');
 }
 
+export function normalizarPeriodoSaldo(cuenta = {}) {
+    const periodo = String(cuenta.periodo || '').trim();
+    const fecha = String(cuenta.fecha || '').trim();
+    const candidatos = [periodo, fecha];
+
+    for (const valor of candidatos) {
+        let coincidencia = valor.match(/^(\d{4})[-/]([01]?\d)(?:[-/]\d{1,2})?$/);
+        if (coincidencia) {
+            const mes = Number(coincidencia[2]);
+            if (mes >= 1 && mes <= 12) return `${coincidencia[1]}-${String(mes).padStart(2, '0')}`;
+        }
+
+        coincidencia = valor.match(/^(\d{1,2})[-/](\d{4})$/);
+        if (coincidencia) {
+            const mes = Number(coincidencia[1]);
+            if (mes >= 1 && mes <= 12) return `${coincidencia[2]}-${String(mes).padStart(2, '0')}`;
+        }
+
+        coincidencia = valor.match(/^\d{1,2}[-/](\d{1,2})[-/](\d{4})$/);
+        if (coincidencia) {
+            const mes = Number(coincidencia[1]);
+            if (mes >= 1 && mes <= 12) return `${coincidencia[2]}-${String(mes).padStart(2, '0')}`;
+        }
+
+        coincidencia = valor.match(/^(\d{4})([01]\d)$/);
+        if (coincidencia) {
+            const mes = Number(coincidencia[2]);
+            if (mes >= 1 && mes <= 12) return `${coincidencia[1]}-${coincidencia[2]}`;
+        }
+    }
+
+    return '';
+}
+
+function saldoDentroDelRango(cuenta) {
+    const desde = state.filtroPeriodoSaldosDesde;
+    const hasta = state.filtroPeriodoSaldosHasta;
+    if (!desde && !hasta) return true;
+
+    const periodo = normalizarPeriodoSaldo(cuenta);
+    if (!periodo) return false;
+    return (!desde || periodo >= desde) && (!hasta || periodo <= hasta);
+}
+
+export function actualizarFiltroPeriodoSaldos(campo, valor) {
+    if (campo === 'desde') state.filtroPeriodoSaldosDesde = valor || '';
+    if (campo === 'hasta') state.filtroPeriodoSaldosHasta = valor || '';
+    cambiarVista('saldos');
+}
+
+export function aplicarRangoRapidoSaldos(tipo) {
+    const hoy = new Date();
+    const mesActual = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`;
+
+    if (tipo === 'anio-actual') {
+        state.filtroPeriodoSaldosDesde = `${hoy.getFullYear()}-01`;
+        state.filtroPeriodoSaldosHasta = `${hoy.getFullYear()}-12`;
+    } else if (tipo === 'ultimos-12') {
+        const inicio = new Date(hoy.getFullYear(), hoy.getMonth() - 11, 1);
+        state.filtroPeriodoSaldosDesde = `${inicio.getFullYear()}-${String(inicio.getMonth() + 1).padStart(2, '0')}`;
+        state.filtroPeriodoSaldosHasta = mesActual;
+    } else {
+        state.filtroPeriodoSaldosDesde = '';
+        state.filtroPeriodoSaldosHasta = '';
+    }
+
+    cambiarVista('saldos');
+}
+
 export function procesarArchivoCSV(event) {
     if (!state.esAdminMaster) {
         if (event && event.target) event.target.value = '';
@@ -176,13 +245,20 @@ export function renderizarSaldos() {
     if (!state.esAdminMaster) state.verCuentasSaldadas = false;
     if (!state.esAdminMaster && state.datosCSVPrecargados.length > 0) state.datosCSVPrecargados = [];
 
-    let cuentasVisibles = state.listaSaldosFirebase.filter(c => state.verCuentasSaldadas ? c.saldada === true : c.saldada !== true);
+    const rangoInvalido = state.filtroPeriodoSaldosDesde && state.filtroPeriodoSaldosHasta
+        && state.filtroPeriodoSaldosDesde > state.filtroPeriodoSaldosHasta;
+    const cuentasDelPeriodo = rangoInvalido ? [] : state.listaSaldosFirebase.filter(saldoDentroDelRango);
+    const cuentasVisibles = cuentasDelPeriodo.filter(c => state.verCuentasSaldadas ? c.saldada === true : c.saldada !== true);
+    const filtroPeriodoActivo = Boolean(state.filtroPeriodoSaldosDesde || state.filtroPeriodoSaldosHasta);
+    const cuentasSinPeriodo = filtroPeriodoActivo
+        ? state.listaSaldosFirebase.filter(c => !normalizarPeriodoSaldo(c)).length
+        : 0;
 
     let totalSaldosAcumulados = 0;
     if (state.datosCSVPrecargados.length > 0) {
         totalSaldosAcumulados = state.datosCSVPrecargados.reduce((acc, curr) => acc + (curr.saldoNum || parsearMontoNumerico(curr.saldo)), 0);
     } else {
-        let activas = state.listaSaldosFirebase.filter(c => c.saldada !== true);
+        let activas = cuentasDelPeriodo.filter(c => c.saldada !== true);
         totalSaldosAcumulados = activas.reduce((acc, curr) => acc + parsearMontoNumerico(curr.saldo), 0);
     }
 
@@ -226,9 +302,44 @@ export function renderizarSaldos() {
                     </h4>
                 </div>
                 <p class="text-[10px] text-slate-400 font-medium mt-2">
-                    Total adeudado en cuentas activas.
+                    ${filtroPeriodoActivo ? 'Total del período filtrado.' : 'Total adeudado en cuentas activas.'}
                 </p>
             </div>
+        </div>
+    `;
+
+    const filtroPeriodoHTML = `
+        <div class="mb-3 bg-white border border-slate-200 rounded-2xl p-3 shadow-sm">
+            <div class="flex flex-col xl:flex-row xl:items-end gap-3">
+                <div class="flex items-center gap-2 min-w-fit">
+                    <div class="w-8 h-8 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
+                        <span class="material-symbols-rounded" style="font-size: 18px;">date_range</span>
+                    </div>
+                    <div>
+                        <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Filtrar período</p>
+                        <p class="text-xs font-semibold text-slate-700">Rango mensual</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 flex-1 max-w-xl">
+                    <label class="text-[10px] font-bold uppercase text-slate-500">
+                        Desde
+                        <input type="month" value="${state.filtroPeriodoSaldosDesde}" onchange="window.actualizarFiltroPeriodoSaldos('desde', this.value)" class="mt-1 w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-rose-400 focus:outline-none">
+                    </label>
+                    <label class="text-[10px] font-bold uppercase text-slate-500">
+                        Hasta
+                        <input type="month" value="${state.filtroPeriodoSaldosHasta}" onchange="window.actualizarFiltroPeriodoSaldos('hasta', this.value)" class="mt-1 w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-rose-400 focus:outline-none">
+                    </label>
+                </div>
+                <div class="flex flex-wrap gap-1.5 xl:ml-auto">
+                    <button onclick="window.aplicarRangoRapidoSaldos('anio-actual')" class="px-3 py-2 text-[11px] font-bold rounded-xl border border-slate-200 bg-slate-50 text-slate-600 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700 transition">Este año</button>
+                    <button onclick="window.aplicarRangoRapidoSaldos('ultimos-12')" class="px-3 py-2 text-[11px] font-bold rounded-xl border border-slate-200 bg-slate-50 text-slate-600 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700 transition">Últimos 12 meses</button>
+                    <button onclick="window.aplicarRangoRapidoSaldos('todo')" class="w-9 h-9 inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition" title="Limpiar filtro">
+                        <span class="material-symbols-rounded" style="font-size: 17px;">filter_alt_off</span>
+                    </button>
+                </div>
+            </div>
+            ${rangoInvalido ? '<p class="mt-2 text-[11px] font-semibold text-red-600">El período “Desde” no puede ser posterior al período “Hasta”.</p>' : ''}
+            ${cuentasSinPeriodo ? `<p class="mt-2 text-[10px] text-amber-700">${cuentasSinPeriodo} cuenta${cuentasSinPeriodo === 1 ? '' : 's'} sin un período reconocible ${cuentasSinPeriodo === 1 ? 'queda' : 'quedan'} fuera del filtro.</p>` : ''}
         </div>
     `;
 
@@ -281,7 +392,7 @@ export function renderizarSaldos() {
     
     else {
         if (cuentasVisibles.length === 0) {
-            return htmlSuperior + `
+            return htmlSuperior + filtroPeriodoHTML + `
                 <div class="mb-3">${selectorPestanasSaldosHTML}</div>
                 <div class="p-8 text-center text-slate-400 border border-dashed border-slate-300 rounded-2xl shrink-0">
                     <span class="material-symbols-rounded text-4xl mb-2 opacity-50">data_table</span>
@@ -426,7 +537,7 @@ export function renderizarSaldos() {
             </button>
         ` : '';
 
-        return htmlSuperior + `
+        return htmlSuperior + filtroPeriodoHTML + `
             <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm shrink-0 mb-6">
                 <div class="p-3 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                     <div class="flex items-center gap-2">
