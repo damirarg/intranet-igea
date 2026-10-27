@@ -896,6 +896,7 @@ export async function procesarCobroFirebase() {
 
     let saldoActualNum = parsearMontoNumerico(cuenta.saldo);
     let nuevoSaldoNum = saldoActualNum - montoAbonado;
+    let montoCobradoAcumulado = Number(cuenta.montoCobradoAcumulado || 0) + montoAbonado;
 
     const cuentaRef = doc(db, "saldos", state.saldoActualCobroId);
     let fechaFormateada = new Date(fechaPago + 'T00:00:00').toLocaleDateString('es-AR');
@@ -911,7 +912,10 @@ export async function procesarCobroFirebase() {
             await updateDoc(cuentaRef, {
                 saldada: true,
                 fechaSaldada: fechaFormateada,
-                montoFinalCobrado: montoAbonado,
+                fechaSaldadaISO: fechaPago,
+                incobrable: false,
+                montoCobradoAcumulado,
+                montoFinalCobrado: montoCobradoAcumulado,
                 saldo: "$ 0,00",
                 gestiones: arrayUnion(notaCobro)
             });
@@ -934,6 +938,7 @@ export async function procesarCobroFirebase() {
         try {
             await updateDoc(cuentaRef, {
                 saldo: nuevoSaldoTexto,
+                montoCobradoAcumulado,
                 gestiones: arrayUnion(notaCobro)
             });
 
@@ -942,6 +947,41 @@ export async function procesarCobroFirebase() {
         } catch (e) {
             alert("Error al registrar cobro parcial: " + e.message);
         }
+    }
+}
+
+// CLASIFICAR COMO INCOBRABLE
+export async function toggleIncobrableFirebase(docId, nuevoEstado) {
+    if (bloquearCambiosEnModoVerComo()) return;
+    if (!state.esAdminMaster && !state.puedeEditarSaldos) return alert("No tenes permisos para editar Gestión de Saldos.");
+
+    const cuenta = state.listaSaldosFirebase.find(item => item.id === docId);
+    if (!cuenta || cuenta.saldada === true) return;
+
+    const mensaje = nuevoEstado
+        ? "¿Confirmás que la gestión de esta cuenta fue infructuosa y debe clasificarse como incobrable?"
+        : "¿Confirmás que querés reabrir esta cuenta como activa?";
+    if (!confirm(mensaje)) return;
+
+    const ahora = new Date();
+    const fechaFormateada = ahora.toLocaleDateString('es-AR');
+    const fechaISO = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(ahora.getDate()).padStart(2, '0')}`;
+    const nota = {
+        fecha: ahora.toLocaleString('es-AR'),
+        texto: nuevoEstado ? 'CUENTA MARCADA COMO INCOBRABLE.' : 'Cuenta reabierta como activa.',
+        autor: state.usuarioActualEmail
+    };
+
+    try {
+        await updateDoc(doc(db, "saldos", docId), {
+            incobrable: nuevoEstado,
+            fechaIncobrable: nuevoEstado ? fechaFormateada : '',
+            fechaIncobrableISO: nuevoEstado ? fechaISO : '',
+            saldada: false,
+            gestiones: arrayUnion(nota)
+        });
+    } catch (error) {
+        alert("Error al actualizar la cuenta: " + error.message);
     }
 }
 

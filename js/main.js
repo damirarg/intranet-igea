@@ -60,6 +60,7 @@ import {
     eliminarDocumentoFirebase,
     evaluarPermisosUsuario,
     procesarCobroFirebase,
+    toggleIncobrableFirebase,
     togglePagareFirebase,
     toggleAcuerdoEspecialFirebase,
     editarGestionFirebase,
@@ -102,7 +103,7 @@ import {
     agregarSubareaRRHHFirebase,
     actualizarSubareaRRHHFirebase,
     alternarSubareaRRHHFirebase
-} from './firebase-handlers.js?v=20261021-areas-rrhh';
+} from './firebase-handlers.js?v=20261027-saldos-incobrables';
 
 // Exponemos las funciones a 'window' para que el HTML pueda llamarlas directamente
 window.abrirModalClave = abrirModalClave;
@@ -184,6 +185,7 @@ window.guardarNuevoDocumentoFirebase = guardarNuevoDocumentoFirebase;
 window.procesarEdicionDocFirebase = procesarEdicionDocFirebase;
 window.eliminarDocumentoFirebase = eliminarDocumentoFirebase;
 window.procesarCobroFirebase = procesarCobroFirebase;
+window.toggleIncobrableFirebase = toggleIncobrableFirebase;
 window.togglePagareFirebase = togglePagareFirebase;
 window.toggleAcuerdoEspecialFirebase = toggleAcuerdoEspecialFirebase;
 window.editarGestionFirebase = editarGestionFirebase;

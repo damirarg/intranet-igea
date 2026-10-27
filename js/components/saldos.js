@@ -13,14 +13,14 @@ export function formatearMonedaAR(monto) {
 }
 
 export function alternarFiltroSaldadas(estado) {
-    state.verCuentasSaldadas = estado;
+    const vista = estado === true ? 'saldadas' : estado === false ? 'activas' : estado;
+    state.vistaSaldos = ['activas', 'saldadas', 'incobrables'].includes(vista) ? vista : 'activas';
+    state.verCuentasSaldadas = state.vistaSaldos === 'saldadas';
     cambiarVista('saldos');
 }
 
-export function normalizarPeriodoSaldo(cuenta = {}) {
-    const periodo = String(cuenta.periodo || '').trim();
-    const fecha = String(cuenta.fecha || '').trim();
-    const candidatos = [periodo, fecha];
+function normalizarMesSaldo(...valores) {
+    const candidatos = valores.map(valor => String(valor || '').trim()).filter(Boolean);
 
     for (const valor of candidatos) {
         let coincidencia = valor.match(/^(\d{4})[-/]([01]?\d)(?:[-/]\d{1,2})?$/);
@@ -51,12 +51,30 @@ export function normalizarPeriodoSaldo(cuenta = {}) {
     return '';
 }
 
+export function normalizarPeriodoSaldo(cuenta = {}) {
+    return normalizarMesSaldo(cuenta.periodo, cuenta.fecha);
+}
+
+function normalizarFechaCancelacionSaldo(cuenta = {}) {
+    return normalizarMesSaldo(cuenta.fechaSaldadaISO, cuenta.fechaSaldada);
+}
+
+function normalizarFechaIncobrableSaldo(cuenta = {}) {
+    return normalizarMesSaldo(cuenta.fechaIncobrableISO, cuenta.fechaIncobrable);
+}
+
+function fechaReferenciaSaldo(cuenta = {}) {
+    if (state.vistaSaldos === 'saldadas') return normalizarFechaCancelacionSaldo(cuenta);
+    if (state.vistaSaldos === 'incobrables') return normalizarFechaIncobrableSaldo(cuenta);
+    return normalizarPeriodoSaldo(cuenta);
+}
+
 function saldoDentroDelRango(cuenta) {
     const desde = state.filtroPeriodoSaldosDesde;
     const hasta = state.filtroPeriodoSaldosHasta;
     if (!desde && !hasta) return true;
 
-    const periodo = normalizarPeriodoSaldo(cuenta);
+    const periodo = fechaReferenciaSaldo(cuenta);
     if (!periodo) return false;
     return (!desde || periodo >= desde) && (!hasta || periodo <= hasta);
 }
@@ -242,30 +260,50 @@ function iconoOrden(columnaKey) {
 }
 
 export function renderizarSaldos() {
-    if (!state.esAdminMaster) state.verCuentasSaldadas = false;
+    if (!state.vistaSaldos) state.vistaSaldos = state.verCuentasSaldadas ? 'saldadas' : 'activas';
+    if (!state.esAdminMaster && !state.puedeEditarSaldos) state.vistaSaldos = 'activas';
+    state.verCuentasSaldadas = state.vistaSaldos === 'saldadas';
     if (!state.esAdminMaster && state.datosCSVPrecargados.length > 0) state.datosCSVPrecargados = [];
 
+    const vistaActual = state.vistaSaldos;
+    const perteneceVista = cuenta => {
+        if (vistaActual === 'saldadas') return cuenta.saldada === true;
+        if (vistaActual === 'incobrables') return cuenta.incobrable === true && cuenta.saldada !== true;
+        return cuenta.saldada !== true && cuenta.incobrable !== true;
+    };
+    const cuentasDeLaVista = state.listaSaldosFirebase.filter(perteneceVista);
     const rangoInvalido = state.filtroPeriodoSaldosDesde && state.filtroPeriodoSaldosHasta
         && state.filtroPeriodoSaldosDesde > state.filtroPeriodoSaldosHasta;
-    const cuentasDelPeriodo = rangoInvalido ? [] : state.listaSaldosFirebase.filter(saldoDentroDelRango);
-    const cuentasVisibles = cuentasDelPeriodo.filter(c => state.verCuentasSaldadas ? c.saldada === true : c.saldada !== true);
+    const cuentasVisibles = rangoInvalido ? [] : cuentasDeLaVista.filter(saldoDentroDelRango);
     const filtroPeriodoActivo = Boolean(state.filtroPeriodoSaldosDesde || state.filtroPeriodoSaldosHasta);
     const cuentasSinPeriodo = filtroPeriodoActivo
-        ? state.listaSaldosFirebase.filter(c => !normalizarPeriodoSaldo(c)).length
+        ? cuentasDeLaVista.filter(c => !fechaReferenciaSaldo(c)).length
         : 0;
 
     let totalSaldosAcumulados = 0;
     if (state.datosCSVPrecargados.length > 0) {
         totalSaldosAcumulados = state.datosCSVPrecargados.reduce((acc, curr) => acc + (curr.saldoNum || parsearMontoNumerico(curr.saldo)), 0);
     } else {
-        let activas = cuentasDelPeriodo.filter(c => c.saldada !== true);
-        totalSaldosAcumulados = activas.reduce((acc, curr) => acc + parsearMontoNumerico(curr.saldo), 0);
+        totalSaldosAcumulados = cuentasVisibles.reduce((acc, curr) => {
+            if (vistaActual === 'saldadas') {
+                const recuperado = Number(curr.montoCobradoAcumulado ?? curr.montoFinalCobrado);
+                return acc + (Number.isFinite(recuperado) ? recuperado : parsearMontoNumerico(curr.importeOrig));
+            }
+            return acc + parsearMontoNumerico(curr.saldo);
+        }, 0);
     }
 
-    let selectorPestanasSaldosHTML = state.esAdminMaster ? `
+    const configuracionVista = {
+        activas: { titulo: 'Cuentas Activas', vacio: 'No hay cuentas activas en seguimiento.', kpi: 'Saldo pendiente activo', ayuda: 'Total adeudado en cuentas activas.', fecha: 'período de origen', color: 'rose', icono: 'payments' },
+        saldadas: { titulo: 'Histórico Saldadas', vacio: 'No hay cuentas saldadas guardadas.', kpi: 'Total recuperado', ayuda: 'Total cobrado en cuentas saldadas.', fecha: 'fecha de cancelación', color: 'emerald', icono: 'price_check' },
+        incobrables: { titulo: 'Cuentas Incobrables', vacio: 'No hay cuentas marcadas como incobrables.', kpi: 'Saldo incobrable', ayuda: 'Saldo pendiente clasificado como incobrable.', fecha: 'fecha de clasificación', color: 'slate', icono: 'money_off' }
+    }[vistaActual];
+
+    let selectorPestanasSaldosHTML = (state.esAdminMaster || state.puedeEditarSaldos) ? `
         <div class="bg-slate-100 p-1 rounded-xl flex gap-1 shrink-0">
-            <button onclick="window.alternarFiltroSaldadas(false)" class="px-2.5 py-1 text-xs font-semibold rounded-lg transition ${!state.verCuentasSaldadas ? 'bg-white shadow-xs text-slate-800' : 'text-slate-500 hover:text-slate-800'}">Activas</button>
-            <button onclick="window.alternarFiltroSaldadas(true)" class="px-2.5 py-1 text-xs font-semibold rounded-lg transition ${state.verCuentasSaldadas ? 'bg-white shadow-xs text-slate-800' : 'text-slate-500 hover:text-slate-800'}">Saldadas</button>
+            <button onclick="window.alternarFiltroSaldadas('activas')" class="px-2.5 py-1 text-xs font-semibold rounded-lg transition ${vistaActual === 'activas' ? 'bg-white shadow-xs text-slate-800' : 'text-slate-500 hover:text-slate-800'}">Activas</button>
+            <button onclick="window.alternarFiltroSaldadas('saldadas')" class="px-2.5 py-1 text-xs font-semibold rounded-lg transition ${vistaActual === 'saldadas' ? 'bg-white shadow-xs text-slate-800' : 'text-slate-500 hover:text-slate-800'}">Saldadas</button>
+            <button onclick="window.alternarFiltroSaldadas('incobrables')" class="px-2.5 py-1 text-xs font-semibold rounded-lg transition ${vistaActual === 'incobrables' ? 'bg-white shadow-xs text-slate-800' : 'text-slate-500 hover:text-slate-800'}">Incobrables</button>
         </div>
     ` : '';
 
@@ -289,20 +327,20 @@ export function renderizarSaldos() {
                 </div>
             </div>
 
-            <div class="bg-white p-4 md:p-5 rounded-3xl border-t-4 border-t-rose-500 border-x border-b border-slate-100 shadow-sm flex flex-col justify-between relative overflow-hidden">
+            <div class="bg-white p-4 md:p-5 rounded-3xl border-t-4 border-t-${configuracionVista.color}-500 border-x border-b border-slate-100 shadow-sm flex flex-col justify-between relative overflow-hidden">
                 <div>
                     <div class="flex items-center justify-between mb-1">
-                        <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Saldo Pendiente Activo</span>
-                        <div class="w-7 h-7 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center">
-                            <span class="material-symbols-rounded" style="font-size: 16px;">payments</span>
+                        <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">${configuracionVista.kpi}</span>
+                        <div class="w-7 h-7 rounded-full bg-${configuracionVista.color}-50 text-${configuracionVista.color}-600 flex items-center justify-center">
+                            <span class="material-symbols-rounded" style="font-size: 16px;">${configuracionVista.icono}</span>
                         </div>
                     </div>
-                    <h4 class="text-xl lg:text-2xl font-black text-rose-600 tracking-tight mt-0.5">
+                    <h4 class="text-xl lg:text-2xl font-black text-${configuracionVista.color}-600 tracking-tight mt-0.5">
                         ${formatearMonedaAR(totalSaldosAcumulados)}
                     </h4>
                 </div>
                 <p class="text-[10px] text-slate-400 font-medium mt-2">
-                    ${filtroPeriodoActivo ? 'Total del período filtrado.' : 'Total adeudado en cuentas activas.'}
+                    ${filtroPeriodoActivo ? `Subtotal según ${configuracionVista.fecha}.` : configuracionVista.ayuda}
                 </p>
             </div>
         </div>
@@ -317,7 +355,7 @@ export function renderizarSaldos() {
                     </div>
                     <div>
                         <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Filtrar período</p>
-                        <p class="text-xs font-semibold text-slate-700">Rango mensual</p>
+                        <p class="text-xs font-semibold text-slate-700">Rango mensual · ${configuracionVista.fecha}</p>
                     </div>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 flex-1 max-w-xl">
@@ -396,7 +434,7 @@ export function renderizarSaldos() {
                 <div class="mb-3">${selectorPestanasSaldosHTML}</div>
                 <div class="p-8 text-center text-slate-400 border border-dashed border-slate-300 rounded-2xl shrink-0">
                     <span class="material-symbols-rounded text-4xl mb-2 opacity-50">data_table</span>
-                    <p class="text-sm font-medium">${state.verCuentasSaldadas ? 'No hay cuentas saldadas guardadas.' : 'No hay cuentas activas en seguimiento.'}</p>
+                    <p class="text-sm font-medium">${configuracionVista.vacio}</p>
                 </div>
             `;
         }
@@ -405,6 +443,7 @@ export function renderizarSaldos() {
             let esAcuerdoEspecial = cuenta.acuerdoEspecial === true;
             let tienePagare = cuenta.tienePagare === true;
             let esSaldada = cuenta.saldada === true;
+            let esIncobrable = cuenta.incobrable === true && !esSaldada;
 
             let bgFila = 'hover:bg-slate-50';
             let bgCeldaFija = 'bg-white';
@@ -412,6 +451,9 @@ export function renderizarSaldos() {
             if (esSaldada) {
                 bgFila = 'bg-emerald-50/60 hover:bg-emerald-100/60';
                 bgCeldaFija = 'bg-emerald-50';
+            } else if (esIncobrable) {
+                bgFila = 'bg-slate-100/80 hover:bg-slate-200/70';
+                bgCeldaFija = 'bg-slate-100';
             } else if (tienePagare) {
                 bgFila = 'bg-sky-50/70 hover:bg-sky-100/70 border-sky-100';
                 bgCeldaFija = 'bg-sky-50';
@@ -504,15 +546,26 @@ export function renderizarSaldos() {
                         ${practicaHTML}
                     </td>
 
-                    <td class="p-2 text-slate-500 text-[11px] text-center celda-recortable" title="${cuenta.periodo}">${cuenta.periodo}</td>
+                    <td class="p-2 text-slate-500 text-[11px] text-center celda-recortable" title="${cuenta.periodo}">
+                        <span>${cuenta.periodo}</span>
+                        ${esSaldada && cuenta.fechaSaldada ? `<span class="block text-[9px] font-semibold text-emerald-700">Cancelada: ${cuenta.fechaSaldada}</span>` : ''}
+                        ${esIncobrable && cuenta.fechaIncobrable ? `<span class="block text-[9px] font-semibold text-slate-600">Incobrable: ${cuenta.fechaIncobrable}</span>` : ''}
+                    </td>
                     <td class="p-2 text-slate-500 text-[11px] text-center celda-recortable" title="${cuenta.comprobante}">${cuenta.comprobante}</td>
                     <td class="p-2 text-slate-500 text-[11px] text-right celda-recortable" title="${cuenta.importeOrig}">${cuenta.importeOrig}</td>
-                    <td class="p-2 ${esSaldada ? 'text-emerald-600' : 'text-rose-600'} font-bold text-xs text-right celda-recortable" title="${cuenta.saldo}">${cuenta.saldo}</td>
+                    <td class="p-2 ${esSaldada ? 'text-emerald-600' : esIncobrable ? 'text-slate-600' : 'text-rose-600'} font-bold text-xs text-right celda-recortable" title="${cuenta.saldo}">${cuenta.saldo}</td>
                     
                     <td class="p-2 text-right celda-recortable flex items-center justify-end gap-1">
-                        ${!esSaldada ? `
+                        ${!esSaldada && !esIncobrable ? `
                             <button onclick="window.abrirModalCobro('${cuenta.id}')" title="Registrar Cobro" class="bg-emerald-50 hover:bg-emerald-600 text-emerald-700 hover:text-white border border-emerald-200 px-1.5 py-1 rounded transition text-[10px] font-bold flex items-center gap-0.5 shrink-0">
                                 <span class="material-symbols-rounded" style="font-size: 13px;">payments</span> Cobrar
+                            </button>
+                            <button onclick="window.toggleIncobrableFirebase('${cuenta.id}', true)" title="Marcar esta cuenta como incobrable" class="bg-slate-50 hover:bg-slate-700 text-slate-600 hover:text-white border border-slate-200 px-1.5 py-1 rounded transition text-[10px] font-bold flex items-center gap-0.5 shrink-0">
+                                <span class="material-symbols-rounded" style="font-size: 13px;">money_off</span> Incobrable
+                            </button>
+                        ` : esIncobrable ? `
+                            <button onclick="window.toggleIncobrableFirebase('${cuenta.id}', false)" title="Reabrir como cuenta activa" class="bg-white hover:bg-slate-700 text-slate-700 hover:text-white border border-slate-300 px-1.5 py-1 rounded transition text-[10px] font-bold flex items-center gap-0.5 shrink-0">
+                                <span class="material-symbols-rounded" style="font-size: 13px;">restart_alt</span> Reabrir
                             </button>
                         ` : `
                             <span class="text-[9px] font-bold bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded border border-emerald-200">
@@ -541,7 +594,7 @@ export function renderizarSaldos() {
             <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm shrink-0 mb-6">
                 <div class="p-3 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                     <div class="flex items-center gap-2">
-                        <h4 class="font-bold text-slate-700 text-xs md:text-sm">${state.verCuentasSaldadas ? 'Histórico Saldadas' : 'Cuentas Activas'} (${cuentasVisibles.length})</h4>
+                        <h4 class="font-bold text-slate-700 text-xs md:text-sm">${configuracionVista.titulo} (${cuentasVisibles.length})</h4>
                         ${selectorPestanasSaldosHTML}
                     </div>
                     ${btnEliminarMasivoHTML}

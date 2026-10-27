@@ -105,6 +105,7 @@ export const state = {
     saldoActualCobroId: null,
 
     verCuentasSaldadas: false,
+    vistaSaldos: 'activas',
     filtroPeriodoSaldosDesde: '',
     filtroPeriodoSaldosHasta: '',
     columnaOrdenActual: 'paciente',
