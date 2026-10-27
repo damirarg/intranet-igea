@@ -555,13 +555,14 @@ export function renderizarSaldos() {
                     <td class="p-2 text-slate-500 text-[11px] text-right celda-recortable" title="${cuenta.importeOrig}">${cuenta.importeOrig}</td>
                     <td class="p-2 ${esSaldada ? 'text-emerald-600' : esIncobrable ? 'text-slate-600' : 'text-rose-600'} font-bold text-xs text-right celda-recortable" title="${cuenta.saldo}">${cuenta.saldo}</td>
                     
-                    <td class="p-2 text-right celda-recortable flex items-center justify-end gap-1">
+                    <td class="p-2 text-right celda-recortable">
+                        <div class="flex items-center justify-end gap-1 min-w-0">
                         ${!esSaldada && !esIncobrable ? `
                             <button onclick="window.abrirModalCobro('${cuenta.id}')" title="Registrar Cobro" class="bg-emerald-50 hover:bg-emerald-600 text-emerald-700 hover:text-white border border-emerald-200 px-1.5 py-1 rounded transition text-[10px] font-bold flex items-center gap-0.5 shrink-0">
                                 <span class="material-symbols-rounded" style="font-size: 13px;">payments</span> Cobrar
                             </button>
-                            <button onclick="window.toggleIncobrableFirebase('${cuenta.id}', true)" title="Marcar esta cuenta como incobrable" class="bg-slate-50 hover:bg-slate-700 text-slate-600 hover:text-white border border-slate-200 px-1.5 py-1 rounded transition text-[10px] font-bold flex items-center gap-0.5 shrink-0">
-                                <span class="material-symbols-rounded" style="font-size: 13px;">money_off</span> Incobrable
+                            <button onclick="window.toggleIncobrableFirebase('${cuenta.id}', true)" title="Marcar esta cuenta como incobrable" aria-label="Marcar como incobrable" class="w-7 h-7 bg-slate-50 hover:bg-slate-700 text-slate-600 hover:text-white border border-slate-200 rounded transition flex items-center justify-center shrink-0">
+                                <span class="material-symbols-rounded" style="font-size: 14px;">money_off</span>
                             </button>
                         ` : esIncobrable ? `
                             <button onclick="window.toggleIncobrableFirebase('${cuenta.id}', false)" title="Reabrir como cuenta activa" class="bg-white hover:bg-slate-700 text-slate-700 hover:text-white border border-slate-300 px-1.5 py-1 rounded transition text-[10px] font-bold flex items-center gap-0.5 shrink-0">
@@ -577,6 +578,7 @@ export function renderizarSaldos() {
                             <span class="material-symbols-rounded shrink-0" style="font-size: 14px;">edit_document</span> 
                             Gestión <span class="bg-slate-200 text-slate-500 px-1 rounded-full text-[9px] ml-0.5">${cuenta.gestiones ? cuenta.gestiones.length : 0}</span>
                         </button>
+                        </div>
                     </td>
                 </tr>
             `;
@@ -635,7 +637,7 @@ export function renderizarSaldos() {
                                 <th onclick="window.ordenarSaldos('saldo')" class="p-2 text-right resizable w-24 cursor-pointer hover:bg-slate-100 transition celda-recortable">
                                     Saldo Actual ${iconoOrden('saldo')}<div class="resizer"></div>
                                 </th>
-                                <th class="p-2 text-right resizable w-36 celda-recortable">Acciones<div class="resizer"></div></th>
+                                <th class="p-2 text-right resizable w-52 celda-recortable">Acciones<div class="resizer"></div></th>
                             </tr>
                         </thead>
                         <tbody>${filasFirebaseHTML}</tbody>
